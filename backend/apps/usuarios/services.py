@@ -13,7 +13,7 @@ from django.conf import settings
 from django.core.mail import send_mail
 from django.db.models import QuerySet
 
-from apps.usuarios.models import PasswordResetToken, Usuario
+from .models import PasswordResetToken, Usuario
 
 
 class UsuarioService:

@@ -1,7 +1,7 @@
 """
 Peluquería Lorena — Configuración de URLs raíz.
 
-Centraliza todas las rutas de la API bajo el prefijo /api/v1/.
+Centraliza todas las rutas de la aplicación web y de la API.
 """
 from django.contrib import admin
 from django.urls import include, path

@@ -4,7 +4,7 @@ Peluquería Lorena — Registro del modelo Usuario en Django Admin.
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 
-from apps.usuarios.models import Usuario
+from .models import Usuario
 
 
 @admin.register(Usuario)

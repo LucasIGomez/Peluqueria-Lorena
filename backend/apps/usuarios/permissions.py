@@ -10,7 +10,7 @@ from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.views import APIView
 
-from apps.usuarios.models import Usuario
+from .models import Usuario
 
 
 class EsAdministradora(BasePermission):

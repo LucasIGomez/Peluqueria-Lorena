@@ -10,7 +10,7 @@ from typing import Any, Dict
 
 from rest_framework import serializers
 
-from apps.usuarios.models import Usuario
+from .models import Usuario
 
 
 class UsuarioSerializer(serializers.ModelSerializer):
@@ -57,12 +57,12 @@ class UsuarioCreateSerializer(serializers.ModelSerializer):
             "nombre",
             "password",
             "rol",
-        ]
+        ]       
         read_only_fields = ["id"]
 
     def create(self, validated_data: Dict[str, Any]) -> Usuario:
         """Crea el usuario usando el service para hashear la contraseña."""
-        from apps.usuarios.services import UsuarioService
+        from .services import UsuarioService
 
         return UsuarioService.crear_usuario(**validated_data)
 

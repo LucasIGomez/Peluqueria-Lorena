@@ -20,9 +20,9 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView  # noqa: F401
 
-from apps.usuarios.models import Usuario
-from apps.usuarios.permissions import EsAdministradora
-from apps.usuarios.serializers import (
+from .models import Usuario
+from .permissions import EsAdministradora
+from .serializers import (
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
     PerfilUpdateSerializer,
@@ -30,7 +30,7 @@ from apps.usuarios.serializers import (
     UsuarioSerializer,
     UsuarioUpdateSerializer,
 )
-from apps.usuarios.services import UsuarioService
+from .services import UsuarioService
 
 
 # ──────────────────────────────────────────────────────────────

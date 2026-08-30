@@ -9,6 +9,15 @@ Define fixtures reutilizables para toda la suite de tests:
 import pytest
 from rest_framework.test import APIClient
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.template.context import BaseContext
+
+# Compatibilidad de copy(context) en Python 3.14 + Django 5.1
+def _compat_basecontext_copy(self):
+    duplicate = object.__new__(self.__class__)
+    duplicate.dicts = self.dicts[:]
+    return duplicate
+
+BaseContext.__copy__ = _compat_basecontext_copy
 
 from apps.usuarios.models import Usuario
 from tests.factories.usuario_factory import AdministradoraFactory, EmpleadaFactory

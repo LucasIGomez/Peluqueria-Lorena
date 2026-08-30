@@ -1,22 +1,46 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Eliminar Producto{% endblock %}
-{% block page_subtitle %}Confirma la eliminación del producto del inventario.{% endblock %}
+{% block page_title %}Dar de Baja Producto{% endblock %}
+{% block page_subtitle %}Confirma la baja del producto en el inventario.{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-6">
+<div class="row justify-content-center">
+    <div class="col-lg-6 col-md-8">
         <div class="card border-danger">
-            <div class="card-header bg-danger text-white">
-                <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Cuidado</h5>
+            <div class="card-header bg-danger bg-opacity-25 border-danger text-white d-flex align-items-center gap-2">
+                <i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
+                <h5 class="mb-0">Confirmar Baja del Producto</h5>
             </div>
-            <div class="card-body">
-                <p>¿Estás seguro que deseas eliminar el producto <strong>{{ producto.nombre }}</strong>?</p>
+            <div class="card-body p-4">
+                <p class="fs-6 mb-3">
+                    ¿Estás segura de que deseas dar de baja el producto 
+                    <strong class="text-accent">{{ producto.nombre }}</strong>?
+                </p>
+                <div class="bg-dark p-3 rounded-2 mb-4 border border-secondary border-opacity-25 small text-secondary">
+                    <div><strong>Stock Actual:</strong> {{ producto.stock_actual }} unidades</div>
+                    <div><strong>Precio:</strong> ${{ producto.precio }}</div>
+                    {% if producto.descripcion %}
+                        <div><strong>Descripción:</strong> {{ producto.descripcion }}</div>
+                    {% endif %}
+                </div>
+
                 <form method="post">
                     {% csrf_token %}
-                    <div class="mt-4 d-flex gap-2">
-                        <a href="{% url 'inventario:lista_productos' %}" class="btn btn-outline-secondary">Cancelar</a>
-                        <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                    
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" name="permanente" value="1" id="permanenteCheck">
+                        <label class="form-check-label small text-secondary" for="permanenteCheck">
+                            Eliminar de forma permanente de la base de datos (se perderá el historial de este producto si no tiene movimientos asociados).
+                        </label>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'inventario:lista_productos' %}" class="btn btn-outline-secondary px-4">
+                            Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-danger px-4">
+                            <i class="bi bi-trash me-1"></i> Confirmar Baja
+                        </button>
                     </div>
                 </form>
             </div>

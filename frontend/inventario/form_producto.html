@@ -1,19 +1,102 @@
 {% extends 'base.html' %}
 
 {% block page_title %}{{ accion }} Producto{% endblock %}
-{% block page_subtitle %}Ingresa los detalles del producto de inventario.{% endblock %}
+{% block page_subtitle %}Configura la información y umbrales de stock del producto.{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-6">
+<div class="row justify-content-center">
+    <div class="col-lg-7 col-md-9">
         <div class="card">
-            <div class="card-body">
-                <form method="post">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-box-seam me-2 text-accent"></i>
+                    {{ accion }} Producto
+                </h5>
+                <a href="{% url 'inventario:lista_productos' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Volver
+                </a>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" novalidate>
                     {% csrf_token %}
-                    {{ form.as_p }}
-                    <div class="mt-4 d-flex justify-content-end gap-2">
-                        <a href="{% url 'inventario:lista_productos' %}" class="btn btn-outline-secondary">Cancelar</a>
-                        <button type="submit" class="btn btn-accent"><i class="bi bi-save"></i> Guardar</button>
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                <p class="mb-0">{{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Nombre -->
+                    <div class="mb-3">
+                        <label for="{{ form.nombre.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.nombre.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.nombre }}
+                        {% if form.nombre.errors %}
+                            <div class="text-danger small mt-1">{{ form.nombre.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Descripción -->
+                    <div class="mb-3">
+                        <label for="{{ form.descripcion.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.descripcion.label }}
+                        </label>
+                        {{ form.descripcion }}
+                        {% if form.descripcion.errors %}
+                            <div class="text-danger small mt-1">{{ form.descripcion.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Precio -->
+                    <div class="mb-3">
+                        <label for="{{ form.precio.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.precio.label }} <span class="text-danger">*</span>
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark text-secondary border-secondary">$</span>
+                            {{ form.precio }}
+                        </div>
+                        {% if form.precio.errors %}
+                            <div class="text-danger small mt-1">{{ form.precio.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Stocks: Actual y Mínimo -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="{{ form.stock_actual.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.stock_actual.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.stock_actual }}
+                            <small class="text-secondary">Unidades actualmente en existencia.</small>
+                            {% if form.stock_actual.errors %}
+                                <div class="text-danger small mt-1">{{ form.stock_actual.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="{{ form.stock_minimo.id_for_label }}" class="form-label fw-semibold">
+                                {{ form.stock_minimo.label }} <span class="text-danger">*</span>
+                            </label>
+                            {{ form.stock_minimo }}
+                            <small class="text-secondary">Dispara alerta automática si baja de este valor.</small>
+                            {% if form.stock_minimo.errors %}
+                                <div class="text-danger small mt-1">{{ form.stock_minimo.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top border-secondary border-opacity-25">
+                        <a href="{% url 'inventario:lista_productos' %}" class="btn btn-outline-secondary px-4">
+                            Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-accent px-4">
+                            <i class="bi bi-check-lg me-1"></i> Guardar Producto
+                        </button>
                     </div>
                 </form>
             </div>

@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Descuento Manual de Stock{% endblock %}
+{% block page_subtitle %}Registra el consumo de insumos o productos utilizados al finalizar un servicio.{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7 col-md-9">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="bi bi-scissors me-2 text-warning"></i>
+                    Registrar Consumo en Servicio
+                </h5>
+                <a href="{% url 'inventario:lista_productos' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-left"></i> Volver a Stock
+                </a>
+            </div>
+            <div class="card-body p-4">
+                {% if producto_inicial %}
+                    <div class="alert alert-dark border-secondary d-flex align-items-center justify-content-between mb-4">
+                        <div>
+                            <span class="text-secondary small d-block">Producto Seleccionado:</span>
+                            <span class="fs-5 fw-bold text-accent">{{ producto_inicial.nombre }}</span>
+                        </div>
+                        <div class="text-end">
+                            <span class="text-secondary small d-block">Stock Disponible:</span>
+                            <span class="fs-5 fw-bold {% if producto_inicial.verificar_stock_minimo %}text-danger{% else %}text-success{% endif %}">
+                                {{ producto_inicial.stock_actual }} unidades
+                            </span>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <form method="post" novalidate>
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                <p class="mb-0"><i class="bi bi-exclamation-triangle-fill me-1"></i> {{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Selección de Producto -->
+                    <div class="mb-3">
+                        <label for="{{ form.producto.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.producto.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.producto }}
+                        {% if form.producto.errors %}
+                            <div class="text-danger small mt-1">{{ form.producto.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Cantidad a descontar -->
+                    <div class="mb-3">
+                        <label for="{{ form.cantidad.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.cantidad.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.cantidad }}
+                        <small class="text-secondary">Unidades utilizadas en la sesión o servicio.</small>
+                        {% if form.cantidad.errors %}
+                            <div class="text-danger small mt-1">{{ form.cantidad.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Detalle del servicio realizado -->
+                    <div class="mb-4">
+                        <label for="{{ form.detalle_servicio.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.detalle_servicio.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.detalle_servicio }}
+                        <small class="text-secondary d-block mt-1">{{ form.detalle_servicio.help_text }}</small>
+                        {% if form.detalle_servicio.errors %}
+                            <div class="text-danger small mt-1">{{ form.detalle_servicio.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top border-secondary border-opacity-25">
+                        <a href="{% url 'inventario:lista_productos' %}" class="btn btn-outline-secondary px-4">
+                            Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-warning text-dark fw-bold px-4">
+                            <i class="bi bi-check2-circle me-1"></i> Confirmar Descuento
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

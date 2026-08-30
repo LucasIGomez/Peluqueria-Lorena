@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Historial y Auditoría de Stock{% endblock %}
+{% block page_subtitle %}Registro detallado de consumos en servicios, ventas y reposiciones.{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-body py-3">
+        <!-- Filtros del Historial -->
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-5">
+                <label class="form-label small text-secondary mb-1">Filtrar por Producto</label>
+                <select name="producto" class="form-select form-select-sm">
+                    <option value="">-- Todos los productos --</option>
+                    {% for p in productos %}
+                        <option value="{{ p.pk }}" {% if producto_seleccionado and producto_seleccionado.pk == p.pk %}selected{% endif %}>
+                            {{ p.nombre }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small text-secondary mb-1">Tipo de Movimiento</label>
+                <select name="tipo" class="form-select form-select-sm">
+                    <option value="">-- Todos los tipos --</option>
+                    {% for key, label in tipos_movimiento %}
+                        <option value="{{ key }}" {% if tipo_seleccionado == key %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-accent w-100">
+                    <i class="bi bi-funnel"></i> Filtrar
+                </button>
+                <a href="{% url 'inventario:historial_movimientos' %}" class="btn btn-sm btn-outline-secondary" title="Limpiar filtros">
+                    <i class="bi bi-x-lg"></i>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-clock-history me-2 text-accent"></i> Registro de Movimientos</h5>
+        <a href="{% url 'inventario:lista_productos' %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Volver al Inventario
+        </a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Fecha y Hora</th>
+                        <th>Tipo</th>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Evolución de Stock</th>
+                        <th>Motivo / Detalle del Servicio</th>
+                        <th class="pe-4">Usuario</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mov in movimientos %}
+                    <tr>
+                        <td class="ps-4 small text-secondary">
+                            {{ mov.fecha|date:"d/m/Y H:i" }}
+                        </td>
+                        <td>
+                            {% if mov.tipo_movimiento == 'CONSUMO_SERVICIO' %}
+                                <span class="badge bg-warning text-dark"><i class="bi bi-scissors"></i> Consumo Servicio</span>
+                            {% elif mov.tipo_movimiento == 'REPOSICION' %}
+                                <span class="badge bg-success"><i class="bi bi-box-arrow-in-down"></i> Reposición</span>
+                            {% elif mov.tipo_movimiento == 'VENTA_DIRECTA' %}
+                                <span class="badge bg-info text-dark"><i class="bi bi-bag-check"></i> Venta Directa</span>
+                            {% else %}
+                                <span class="badge bg-secondary"><i class="bi bi-sliders"></i> Ajuste Manual</span>
+                            {% endif %}
+                        </td>
+                        <td class="fw-bold">{{ mov.producto.nombre }}</td>
+                        <td>
+                            <span class="fw-bold {% if mov.tipo_movimiento == 'REPOSICION' %}text-success{% else %}text-warning{% endif %}">
+                                {% if mov.tipo_movimiento == 'REPOSICION' %}+{% else %}-{% endif %}{{ mov.cantidad }} u.
+                            </span>
+                        </td>
+                        <td class="small">
+                            <span class="text-secondary">{{ mov.stock_previo }}</span> 
+                            <i class="bi bi-arrow-right text-secondary mx-1"></i> 
+                            <span class="fw-bold text-light">{{ mov.stock_posterior }}</span>
+                        </td>
+                        <td class="small text-light text-opacity-75">
+                            {{ mov.motivo|default:"Sin detalle" }}
+                        </td>
+                        <td class="pe-4 small text-secondary">
+                            {{ mov.usuario.nombre|default:"Sistema" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-secondary">
+                            <i class="bi bi-journal-x fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                            No hay registros de movimientos que coincidan con la búsqueda.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
