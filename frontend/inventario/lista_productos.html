@@ -1,0 +1,54 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Stock e Inventario{% endblock %}
+{% block page_subtitle %}Control de productos de la peluquería.{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Listado de Productos</h5>
+        <a href="{% url 'inventario:crear_producto' %}" class="btn btn-accent btn-sm">
+            <i class="bi bi-plus-lg"></i> Nuevo Producto
+        </a>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0 align-middle">
+                <thead>
+                    <tr>
+                        <th class="ps-4">Nombre</th>
+                        <th>Precio</th>
+                        <th>Stock Actual</th>
+                        <th>Stock Mínimo</th>
+                        <th class="text-end pe-4">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for producto in productos %}
+                    <tr>
+                        <td class="ps-4 fw-bold">{{ producto.nombre }}</td>
+                        <td>${{ producto.precio }}</td>
+                        <td>
+                            {% if producto.verificarStockMinimo %}
+                                <span class="badge bg-danger">{{ producto.stockActual }} (Bajo Stock)</span>
+                            {% else %}
+                                {{ producto.stockActual }}
+                            {% endif %}
+                        </td>
+                        <td>{{ producto.stockMinimo }}</td>
+                        <td class="text-end pe-4">
+                            <a href="{% url 'inventario:editar_producto' producto.pk %}" class="btn btn-sm btn-outline-light me-2"><i class="bi bi-pencil"></i></a>
+                            <a href="{% url 'inventario:eliminar_producto' producto.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-secondary">No hay productos registrados aún.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,37 @@
+# Python
+*.pyc
+*.pyo
+__pycache__/
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+
+# Entornos Virtuales
+venv/
+.venv/
+.venv-win/
+env/
+ENV/
+
+# Testing y Caché
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Variables de entorno / Secretos
+.env
+.env.local
+
+# IDEs y SO
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Documentación Interna
+documentacion/
