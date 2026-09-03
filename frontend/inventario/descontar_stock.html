@@ -7,14 +7,11 @@
 <div class="row justify-content-center">
     <div class="col-lg-7 col-md-9">
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-header">
                 <h5 class="mb-0">
                     <i class="bi bi-scissors me-2 text-warning"></i>
                     Registrar Consumo en Servicio
                 </h5>
-                <a href="{% url 'inventario:lista_productos' %}" class="btn btn-sm btn-outline-secondary">
-                    <i class="bi bi-arrow-left"></i> Volver a Stock
-                </a>
             </div>
             <div class="card-body p-4">
                 {% if producto_inicial %}
@@ -32,7 +29,7 @@
                     </div>
                 {% endif %}
 
-                <form method="post" novalidate>
+                <form method="post" novalidate id="form-descontar-stock">
                     {% csrf_token %}
 
                     {% if form.non_field_errors %}
@@ -80,10 +77,10 @@
 
                     <!-- Botones de Acción -->
                     <div class="d-flex justify-content-end gap-2 pt-3 border-top border-secondary border-opacity-25">
-                        <a href="{% url 'inventario:lista_productos' %}" class="btn btn-outline-secondary px-4">
+                        <a href="{% url 'inventario:lista_productos' %}" id="btn-cancelar" class="btn btn-outline-light px-4">
                             Cancelar
                         </a>
-                        <button type="submit" class="btn btn-warning text-dark fw-bold px-4">
+                        <button type="submit" id="btn-confirmar-trigger" class="btn btn-warning text-dark fw-bold px-4">
                             <i class="bi bi-check2-circle me-1"></i> Confirmar Descuento
                         </button>
                     </div>
@@ -92,4 +89,135 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Emergente de Confirmación de Cancelación -->
+<div class="modal fade" id="modalCancelar" tabindex="-1" aria-labelledby="modalCancelarLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-exclamation-triangle-fill fs-2"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalCancelarLabel">¿Estás seguro de Cancelar?</h5>
+                <p class="text-secondary small mb-0">
+                    Tienes información ingresada en el formulario. Si decides cancelar ahora, no se registrará el descuento de stock.
+                </p>
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    Continuar editando
+                </button>
+                <a href="{% url 'inventario:lista_productos' %}" class="btn btn-danger px-4 fw-semibold">
+                    <i class="bi bi-x-circle me-1"></i> Sí, cancelar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Emergente de Confirmación de Descuento de Stock -->
+<div class="modal fade" id="modalConfirmarDescontar" tabindex="-1" aria-labelledby="modalConfirmarDescontarLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-scissors fs-1"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalConfirmarDescontarLabel">¿Confirmar Descuento de Stock?</h5>
+                <p class="text-secondary small mb-0">
+                    Se descontarán las unidades del inventario por consumo en servicio y la operación quedará auditada en el historial.
+                </p>
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    Revisar
+                </button>
+                <button type="button" id="btn-confirmar-descontar-submit" class="btn btn-warning text-dark px-4 fw-semibold">
+                    <i class="bi bi-scissors me-1"></i> Sí, confirmar descuento
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("form-descontar-stock");
+    const btnCancelar = document.getElementById("btn-cancelar");
+    const modalCancelarEl = document.getElementById("modalCancelar");
+    const modalDescontarEl = document.getElementById("modalConfirmarDescontar");
+    const btnConfirmarDescontarSubmit = document.getElementById("btn-confirmar-descontar-submit");
+
+    if (!form) return;
+
+    const modalCancelar = modalCancelarEl ? new bootstrap.Modal(modalCancelarEl) : null;
+    const modalDescontar = modalDescontarEl ? new bootstrap.Modal(modalDescontarEl) : null;
+
+    // Snapshot del estado inicial de los campos editables
+    const campos = form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, select');
+    campos.forEach(campo => {
+        if (campo.type === 'checkbox' || campo.type === 'radio') {
+            campo.dataset.initial = String(campo.checked);
+        } else {
+            campo.dataset.initial = (campo.value || "").trim();
+        }
+    });
+
+    function tieneDatosModificados() {
+        for (let campo of campos) {
+            if (campo.type === 'checkbox' || campo.type === 'radio') {
+                if (String(campo.checked) !== campo.dataset.initial) return true;
+            } else {
+                const actual = (campo.value || "").trim();
+                if (actual !== campo.dataset.initial) return true;
+            }
+        }
+        return false;
+    }
+
+    // Validación de Cancelar
+    if (btnCancelar && modalCancelar) {
+        btnCancelar.addEventListener("click", function (e) {
+            if (tieneDatosModificados()) {
+                e.preventDefault();
+                modalCancelar.show();
+            }
+        });
+    }
+
+    // Interceptar envío de formulario para confirmación
+    let confirmacionCompletada = false;
+    form.addEventListener("submit", function (e) {
+        if (!confirmacionCompletada) {
+            e.preventDefault();
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            if (modalDescontar) {
+                modalDescontar.show();
+            } else {
+                form.submit();
+            }
+        }
+    });
+
+    if (btnConfirmarDescontarSubmit) {
+        btnConfirmarDescontarSubmit.addEventListener("click", function () {
+            confirmacionCompletada = true;
+            btnConfirmarDescontarSubmit.disabled = true;
+            btnConfirmarDescontarSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Procesando...';
+            form.submit();
+        });
+    }
+});
+</script>
 {% endblock %}

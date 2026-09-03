@@ -1,0 +1,144 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Registrar Atención de Servicio{% endblock %}
+{% block page_subtitle %}Asiente el servicio brindado por día y horario, adaptando precio y duración según la clienta.{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header py-3">
+                <h5 class="mb-0 text-light"><i class="bi bi-calendar2-plus me-2 text-accent"></i> Datos de la Atención</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    {% csrf_token %}
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Servicio a Realizar <span class="text-danger">*</span></label>
+                            {{ form.servicio }}
+                            {% if form.servicio.errors %}<div class="text-danger small mt-1">{{ form.servicio.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Profesional Asignada <span class="text-danger">*</span></label>
+                            {{ form.profesional }}
+                            {% if form.profesional.errors %}<div class="text-danger small mt-1">{{ form.profesional.errors }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Clienta Agendada (Opcional)</label>
+                            {{ form.cliente }}
+                            <small class="text-secondary">Seleccionar para vincular a su historial técnico.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Nombre de la Clienta <span class="text-danger">*</span></label>
+                            {{ form.cliente_nombre }}
+                            {% if form.cliente_nombre.errors %}<div class="text-danger small mt-1">{{ form.cliente_nombre.errors }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Teléfono / WhatsApp</label>
+                            {{ form.cliente_telefono }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Ficha de Consentimiento Informado (Si aplica)</label>
+                            {{ form.consentimiento }}
+                        </div>
+                    </div>
+
+                    <hr class="border-secondary my-3">
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Fecha de Atención <span class="text-danger">*</span></label>
+                            {{ form.fecha }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Horario de Inicio <span class="text-danger">*</span></label>
+                            {{ form.hora }}
+                        </div>
+                    </div>
+
+                    <!-- Campos personalizables por clienta -->
+                    <div class="row g-3 mb-3 p-3 rounded bg-dark border border-secondary">
+                        <div class="col-12 mb-1">
+                            <span class="badge bg-warning text-dark fw-bold">Personalización por Clienta</span>
+                            <small class="text-secondary ms-2">Ajuste el precio y plazo según el largo, volumen y porosidad del cabello.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-light fw-bold">Precio Acordado / Cobrado ($) <span class="text-danger">*</span></label>
+                            {{ form.precio_acordado }}
+                            <small class="text-secondary">Se precarga con el precio base oficial pero es editable.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-light fw-bold">Duración Real / Estimada (Minutos) <span class="text-danger">*</span></label>
+                            {{ form.duracion_minutos }}
+                            <small class="text-secondary">Tiempo que demandará la sesión.</small>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label text-light">Estado <span class="text-danger">*</span></label>
+                            {{ form.estado }}
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label text-light">Notas o Especificaciones Técnicas</label>
+                            {{ form.notas }}
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top border-secondary">
+                        <a href="{% url 'servicios:control_diario' %}" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-accent text-dark fw-bold px-4">
+                            <i class="bi bi-check-lg me-1"></i> Asentar Servicio
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{ servicios_data|json_script:"servicios-data" }}
+
+<!-- Script dinámico para autocompletar precio y duración al cambiar el selector de servicio -->
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const dataElement = document.getElementById("servicios-data");
+        const servicioData = dataElement ? JSON.parse(dataElement.textContent) : {};
+
+        const servicioSelect = document.getElementById("id_servicio_select");
+        const precioInput = document.getElementById("id_precio_acordado");
+        const duracionInput = document.getElementById("id_duracion_minutos");
+
+        if (servicioSelect && precioInput && duracionInput) {
+            servicioSelect.addEventListener("change", function () {
+                const val = this.value;
+                if (servicioData[val]) {
+                    precioInput.value = servicioData[val].precio;
+                    duracionInput.value = servicioData[val].duracion;
+                }
+            });
+        }
+
+        // Auto rellenar nombre y teléfono si se selecciona clienta de la lista
+        const clienteSelect = document.getElementById("id_cliente_select");
+        const clienteNombreInput = document.getElementById("id_cliente_nombre");
+        if (clienteSelect && clienteNombreInput) {
+            clienteSelect.addEventListener("change", function () {
+                const selectedText = this.options[this.selectedIndex].text;
+                if (this.value && (!clienteNombreInput.value || clienteNombreInput.value.trim() === "")) {
+                    const nombreLimpio = selectedText.split("(")[0].trim();
+                    clienteNombreInput.value = nombreLimpio;
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

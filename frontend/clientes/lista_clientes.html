@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Agenda de Clientas{% endblock %}
+{% block page_subtitle %}Gestión de clientas, historial técnico, cumpleaños y fidelización.{% endblock %}
+
+{% block content %}
+<!-- Alertas de Cumpleaños -->
+{% if cumpleaneras %}
+<div class="card border-warning mb-4" style="background: linear-gradient(145deg, #1f1b24, #2a2218);">
+    <div class="card-body py-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div class="d-flex align-items-center gap-3">
+            <div class="rounded-circle bg-warning text-dark p-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                <i class="bi bi-cake2-fill fs-3"></i>
+            </div>
+            <div>
+                <h5 class="mb-0 text-light fw-bold">🎂 Cumpleañeras de la Semana</h5>
+                <small class="text-secondary">¡Oportunidad para enviar saludos o beneficios exclusivos!</small>
+            </div>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            {% for c in cumpleaneras %}
+                <div class="badge bg-dark border border-warning-subtle text-light p-2 d-flex align-items-center gap-2">
+                    <span class="fw-semibold">{{ c.nombre }}</span>
+                    {% if c.es_cumpleanos_hoy %}
+                        <span class="badge bg-danger text-light animate__animated animate__pulse animate__infinite">¡Hoy! 🎉</span>
+                    {% else %}
+                        <span class="badge bg-warning text-dark">en {{ c.dias_para_cumpleanos }} días</span>
+                    {% endif %}
+                    <a href="{{ c.link_whatsapp }}?text=Hola%20{{ c.nombre|urlencode }},%20desde%20Peluquería%20Lorena%20te%20deseamos%20un%20muy%20feliz%20cumpleaños!%20Te%20esperamos%20con%20un%20regalo%20especial%20en%20tu%20próxima%20visita%20🎁"
+                       target="_blank" class="btn btn-sm btn-success py-0 px-2" title="Saludar por WhatsApp">
+                        <i class="bi bi-whatsapp"></i>
+                    </a>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Barra de Búsqueda y Botón Alta -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-3">
+        <div class="row g-3 align-items-center justify-content-between">
+            <div class="col-md-7">
+                <form method="GET" action="{% url 'clientes:lista_clientes' %}" class="d-flex gap-2">
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-search"></i></span>
+                        <input type="text" name="q" value="{{ busqueda }}" class="form-control" placeholder="Buscar por nombre, teléfono o email...">
+                    </div>
+                    <button type="submit" class="btn btn-outline-secondary px-3">Buscar</button>
+                    {% if busqueda %}
+                        <a href="{% url 'clientes:lista_clientes' %}" class="btn btn-outline-danger">Limpiar</a>
+                    {% endif %}
+                </form>
+            </div>
+            <div class="col-md-5 text-md-end">
+                <a href="{% url 'clientes:crear_cliente' %}" class="btn btn-accent fw-bold text-dark px-3 py-2">
+                    <i class="bi bi-person-plus-fill me-1"></i> Nueva Clienta
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Listado de Clientas -->
+<div class="card shadow-sm border-0">
+    <div class="card-header d-flex justify-content-between align-items-center py-3">
+        <h5 class="mb-0 text-light"><i class="bi bi-people me-2 text-accent"></i> Clientas Registradas</h5>
+        <span class="badge bg-dark text-secondary border border-secondary">{{ total_clientes }} clientas</span>
+    </div>
+
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0 align-middle">
+                <thead class="table-secondary text-secondary">
+                    <tr>
+                        <th class="ps-4">Clienta</th>
+                        <th>Contacto WhatsApp</th>
+                        <th>Cumpleaños</th>
+                        <th>Alergias / Sensibilidad</th>
+                        <th>Tratamientos Activos</th>
+                        <th class="text-end pe-4">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in clientes %}
+                        <tr>
+                            <td class="ps-4">
+                                <div class="d-flex align-items-center gap-3">
+                                    <div class="rounded-circle bg-dark text-accent border border-secondary d-flex align-items-center justify-content-center fw-bold" style="width: 38px; height: 38px;">
+                                        {{ c.nombre|slice:":1"|upper }}
+                                    </div>
+                                    <div>
+                                        <a href="{% url 'clientes:detalle_cliente' c.pk %}" class="fw-bold text-light text-decoration-none hover-accent">
+                                            {{ c.nombre }}
+                                        </a>
+                                        {% if c.email %}
+                                            <div class="text-secondary small">{{ c.email }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span>{{ c.telefono }}</span>
+                                    <a href="{{ c.link_whatsapp }}" target="_blank" class="btn btn-sm btn-outline-success py-0 px-2" title="Abrir chat en WhatsApp">
+                                        <i class="bi bi-whatsapp"></i>
+                                    </a>
+                                </div>
+                            </td>
+                            <td>
+                                {% if c.fecha_nacimiento %}
+                                    <span class="{% if c.es_cumpleanos_hoy %}badge bg-danger text-light{% else %}text-light{% endif %}">
+                                        <i class="bi bi-gift me-1"></i> {{ c.fecha_nacimiento|date:"d M" }}
+                                    </span>
+                                {% else %}
+                                    <span class="text-secondary small">No registrado</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if c.notas_alergias %}
+                                    <span class="badge bg-danger-subtle text-danger p-2" title="{{ c.notas_alergias }}">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i> Atención médica
+                                    </span>
+                                {% else %}
+                                    <span class="text-secondary small">Sin alergias declaradas</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-dark border border-secondary text-secondary">
+                                    {{ c.tratamientos_progreso.count }} tratamiento(s)
+                                </span>
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'clientes:detalle_cliente' c.pk %}" class="btn btn-accent text-dark fw-semibold" title="Ver ficha técnica completa">
+                                        <i class="bi bi-folder2-open me-1"></i> Ficha
+                                    </a>
+                                    <a href="{% url 'clientes:editar_cliente' c.pk %}" class="btn btn-outline-secondary" title="Editar datos">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-secondary">
+                                <i class="bi bi-person-x fs-1 d-block mb-2"></i>
+                                No se encontraron clientas que coincidan con la búsqueda.
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

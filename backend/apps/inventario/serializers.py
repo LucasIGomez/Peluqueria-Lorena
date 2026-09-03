@@ -91,5 +91,5 @@ class DescuentoStockSerializer(serializers.Serializer):
     motivo = serializers.CharField(required=True, max_length=500)
     tipo_movimiento = serializers.ChoiceField(
         choices=MovimientoStock.TipoMovimiento.choices,
-        default=MovimientoStock.TipoMovimiento.CONSUMO_SERVICIO,
+        default=MovimientoStock.TipoMovimiento.DESCUENTO,
     )

@@ -161,7 +161,7 @@ class TestMovimientoStockDomain:
         )
         movimiento = MovimientoStock.objects.create(
             producto=producto,
-            tipo_movimiento=MovimientoStock.TipoMovimiento.CONSUMO_SERVICIO,
+            tipo_movimiento=MovimientoStock.TipoMovimiento.DESCUENTO,
             cantidad=2,
             stock_previo=10,
             stock_posterior=8,
@@ -171,6 +171,6 @@ class TestMovimientoStockDomain:
         assert movimiento.cantidad == 2
         assert movimiento.stock_previo == 10
         assert movimiento.stock_posterior == 8
-        assert movimiento.tipo_movimiento == MovimientoStock.TipoMovimiento.CONSUMO_SERVICIO
+        assert movimiento.tipo_movimiento == MovimientoStock.TipoMovimiento.DESCUENTO
         assert "Alisado" in movimiento.motivo
         assert "Protector Térmico" in str(movimiento)

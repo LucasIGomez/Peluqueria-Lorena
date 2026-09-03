@@ -1,0 +1,170 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Cierre de Servicios e Insumos del Día{% endblock %}
+{% block page_subtitle %}Cómputo de personas atendidas por servicio y descuento masivo de stock en inventario.{% endblock %}
+
+{% block content %}
+<!-- Selector de Fecha -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <form method="GET" class="d-flex align-items-center gap-2">
+            <label class="text-secondary small fw-bold text-uppercase me-1">Fecha de Cierre:</label>
+            <input type="date" name="fecha" value="{{ fecha_str }}" class="form-control form-control-sm" style="width: 170px;" onchange="this.form.submit()">
+            <a href="{% url 'servicios:cierre_diario' %}" class="btn btn-sm btn-outline-secondary">Hoy</a>
+        </form>
+
+        <a href="{% url 'servicios:control_diario' %}?fecha={{ fecha_str }}" class="btn btn-outline-info btn-sm">
+            <i class="bi bi-clock-history me-1"></i> Ver Bitácora del Día
+        </a>
+    </div>
+</div>
+
+<!-- Resumen de Servicios Computados en el Día -->
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-light">
+                    <i class="bi bi-people-fill me-2 text-accent"></i> Cómputo de Personas por Servicio — {{ fecha|date:"d/m/Y" }}
+                </h5>
+                <span class="badge bg-dark border border-secondary text-secondary">{{ resumen|length }} servicios brindados</span>
+            </div>
+
+            <div class="card-body p-4">
+                {% if resumen %}
+                    <div class="row g-4">
+                        {% for r in resumen %}
+                            <div class="col-lg-6">
+                                <div class="card border-secondary h-100" style="background-color: #1a1c23;">
+                                    <div class="card-header py-3 d-flex justify-content-between align-items-center" style="background-color: #15171d;">
+                                        <div>
+                                            <h5 class="mb-0 text-light fw-bold">{{ r.servicio_nombre }}</h5>
+                                            <small class="text-secondary">{{ r.servicio_categoria }}</small>
+                                        </div>
+                                        <div class="text-end">
+                                            <span class="badge bg-accent text-dark fs-6 px-3 py-2 fw-bold">
+                                                {{ r.total_personas }} personas
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="card-body p-4">
+                                        <div class="d-flex justify-content-between text-secondary small mb-3 pb-2 border-bottom border-secondary">
+                                            <span>Recaudación Total: <strong class="text-light">${{ r.total_recaudado|floatformat:2 }}</strong></span>
+                                            {% if r.insumos_descontados %}
+                                                <span class="badge bg-success-subtle text-success">
+                                                    <i class="bi bi-check-circle-fill me-1"></i> Insumos Descontados
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-warning-subtle text-warning">
+                                                    <i class="bi bi-hourglass-split me-1"></i> Pendiente Descuento
+                                                </span>
+                                            {% endif %}
+                                        </div>
+
+                                        <!-- Formulario para descontar insumos de este servicio -->
+                                        <form method="POST" class="mt-3">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="servicio_id" value="{{ r.servicio_id }}">
+
+                                            <h6 class="text-secondary small fw-bold text-uppercase mb-2">
+                                                Insumos utilizados para {{ r.total_personas }} clientas:
+                                            </h6>
+
+                                            <div id="insumos-container-{{ r.servicio_id }}" class="mb-3">
+                                                <div class="row g-2 mb-2 insumo-row">
+                                                    <div class="col-8">
+                                                        <select name="producto_id[]" class="form-select form-select-sm bg-dark text-light border-secondary" required>
+                                                            <option value="">Seleccionar insumo de inventario...</option>
+                                                            {% for prod in productos %}
+                                                                <option value="{{ prod.pk }}">
+                                                                    {{ prod.nombre }} (Stock disponible: {{ prod.stock_actual }} u.)
+                                                                </option>
+                                                            {% endfor %}
+                                                        </select>
+                                                    </div>
+                                                    <div class="col-4">
+                                                        <input type="number" name="cantidad[]" class="form-control form-control-sm" placeholder="Cant. usada" min="1" required>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="d-flex justify-content-between align-items-center pt-2">
+                                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="agregarFilaInsumo('{{ r.servicio_id }}')">
+                                                    <i class="bi bi-plus me-1"></i> Agregar otro insumo
+                                                </button>
+                                                <button type="submit" class="btn btn-sm btn-warning text-dark fw-bold">
+                                                    <i class="bi bi-box-arrow-down me-1"></i> Descontar Stock
+                                                </button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5 text-secondary">
+                        <i class="bi bi-clipboard2-check fs-1 d-block mb-2"></i>
+                        <p>No hay servicios con estado "Completado" en esta fecha para computar.</p>
+                        <a href="{% url 'servicios:control_diario' %}?fecha={{ fecha_str }}" class="btn btn-sm btn-outline-secondary">
+                            Ir al Control Diario
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Historial de Descuentos Realizados en la Fecha -->
+{% if consumos_realizados %}
+<div class="card shadow-sm border-0">
+    <div class="card-header py-3">
+        <h5 class="mb-0 text-light"><i class="bi bi-journal-check me-2 text-success"></i> Insumos Descontados Registrados Hoy</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0 align-middle">
+                <thead class="table-secondary text-secondary">
+                    <tr>
+                        <th class="ps-4">Hora</th>
+                        <th>Servicio Computado</th>
+                        <th>Clientas Atendidas</th>
+                        <th>Insumo Descontado</th>
+                        <th>Cantidad Descontada</th>
+                        <th>Responsable</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for c in consumos_realizados %}
+                        <tr>
+                            <td class="ps-4">{{ c.fecha_registro|time:"H:i" }}</td>
+                            <td><strong class="text-light">{{ c.servicio.nombre }}</strong></td>
+                            <td><span class="badge bg-dark border border-secondary text-light">{{ c.cantidad_servicios_computados }} personas</span></td>
+                            <td><span class="text-accent fw-semibold">{{ c.producto.nombre }}</span></td>
+                            <td><strong class="text-warning">{{ c.cantidad }} u.</strong></td>
+                            <td>{{ c.usuario_responsable.nombre|default:"Sistema" }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Script para clonar filas de insumos dinámicamente -->
+<script>
+    function agregarFilaInsumo(servicioId) {
+        const container = document.getElementById("insumos-container-" + servicioId);
+        const primeraFila = container.querySelector(".insumo-row");
+        if (primeraFila) {
+            const nuevaFila = primeraFila.cloneNode(true);
+            nuevaFila.querySelector("input").value = "";
+            nuevaFila.querySelector("select").selectedIndex = 0;
+            container.appendChild(nuevaFila);
+        }
+    }
+</script>
+{% endblock %}

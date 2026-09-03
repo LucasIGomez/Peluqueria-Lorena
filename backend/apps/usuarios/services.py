@@ -32,23 +32,37 @@ class UsuarioService:
         email: str,
         password: str,
         rol: str = Usuario.Rol.EMPLEADA,
+        admin_pin: Optional[str] = None,
+        requiere_pin: bool = False,
         **extra_fields: Any,
     ) -> Usuario:
         """
-        Crea un nuevo usuario con contraseña hasheada.
+        Crea un nuevo usuario con contraseña hasheada y validación de PIN para Administradora.
 
         Args:
             nombre: Nombre completo del usuario.
             email: Correo electrónico único.
             password: Contraseña en texto plano.
             rol: Rol del usuario (EMPLEADA o ADMINISTRADORA).
+            admin_pin: PIN de seguridad requerido si el rol es ADMINISTRADORA.
+            requiere_pin: Si es True, exige obligatoriamente el PIN para rol ADMINISTRADORA.
             **extra_fields: Campos adicionales.
 
         Returns:
             Instancia de Usuario persistida.
+
+        Raises:
+            ValueError: Si el PIN para Administradora es inválido o no se proporciona email.
         """
-        # Las administradoras deben tener is_staff=True
+        if admin_pin is None:
+            admin_pin = extra_fields.pop("admin_pin", extra_fields.pop("adminPin", None))
+
+        # Si el rol es Administradora, validar el PIN si se requiere o si fue provisto
         if rol == Usuario.Rol.ADMINISTRADORA:
+            expected_pin = getattr(settings, "ADMIN_REGISTRATION_PIN", "1234")
+            if requiere_pin or admin_pin is not None:
+                if not admin_pin or str(admin_pin).strip() != str(expected_pin).strip():
+                    raise ValueError("El PIN de seguridad para registrar Administradora es incorrecto.")
             extra_fields.setdefault("is_staff", True)
 
         return Usuario.objects.create_user(

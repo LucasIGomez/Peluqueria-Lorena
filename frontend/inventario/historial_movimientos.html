@@ -1,28 +1,35 @@
 {% extends 'base.html' %}
 
 {% block page_title %}Historial y Auditoría de Stock{% endblock %}
-{% block page_subtitle %}Registro detallado de consumos en servicios, ventas y reposiciones.{% endblock %}
+{% block page_subtitle %}Registro cronológico de productos añadidos, eliminados, reposiciones y descuentos.{% endblock %}
 
 {% block content %}
 <div class="card mb-4">
     <div class="card-body py-3">
-        <!-- Filtros del Historial -->
-        <form method="get" class="row g-3 align-items-end">
-            <div class="col-md-5">
-                <label class="form-label small text-secondary mb-1">Filtrar por Producto</label>
-                <select name="producto" class="form-select form-select-sm">
-                    <option value="">-- Todos los productos --</option>
-                    {% for p in productos %}
-                        <option value="{{ p.pk }}" {% if producto_seleccionado and producto_seleccionado.pk == p.pk %}selected{% endif %}>
-                            {{ p.nombre }}
-                        </option>
-                    {% endfor %}
-                </select>
+        <!-- Buscador Inteligente y Filtros del Historial -->
+        <form method="get" class="row g-3 align-items-end" id="form-busqueda-historial">
+            <div class="col-md-7">
+                <label class="form-label small text-secondary mb-1">
+                    <i class="bi bi-search me-1"></i> Buscador Inteligente de Producto
+                </label>
+                <div class="position-relative">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-dark text-secondary border-secondary"><i class="bi bi-box-seam"></i></span>
+                        <input type="text" id="buscar-historial" name="q" value="{{ busqueda }}" class="form-control" placeholder="Buscar producto por nombre..." autocomplete="off">
+                        {% if busqueda %}
+                            <a href="{% url 'inventario:historial_movimientos' %}{% if tipo_seleccionado %}?tipo={{ tipo_seleccionado }}{% endif %}" class="btn btn-outline-light" title="Borrar búsqueda">
+                                <i class="bi bi-x-lg"></i>
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
-            <div class="col-md-4">
-                <label class="form-label small text-secondary mb-1">Tipo de Movimiento</label>
-                <select name="tipo" class="form-select form-select-sm">
-                    <option value="">-- Todos los tipos --</option>
+            <div class="{% if busqueda or tipo_seleccionado %}col-md-4{% else %}col-md-5{% endif %}">
+                <label class="form-label small text-secondary mb-1">
+                    <i class="bi bi-funnel me-1"></i> Tipo de Movimiento
+                </label>
+                <select id="filtro-tipo-movimiento" name="tipo" class="form-select form-select-sm">
+                    <option value="">-- Todos los tipos de movimientos --</option>
                     {% for key, label in tipos_movimiento %}
                         <option value="{{ key }}" {% if tipo_seleccionado == key %}selected{% endif %}>
                             {{ label }}
@@ -30,14 +37,13 @@
                     {% endfor %}
                 </select>
             </div>
-            <div class="col-md-3 d-flex gap-2">
-                <button type="submit" class="btn btn-sm btn-accent w-100">
-                    <i class="bi bi-funnel"></i> Filtrar
-                </button>
-                <a href="{% url 'inventario:historial_movimientos' %}" class="btn btn-sm btn-outline-secondary" title="Limpiar filtros">
-                    <i class="bi bi-x-lg"></i>
+            {% if busqueda or tipo_seleccionado %}
+            <div class="col-md-1">
+                <a href="{% url 'inventario:historial_movimientos' %}" class="btn btn-sm btn-outline-light w-100" title="Limpiar todos los filtros">
+                    <i class="bi bi-arrow-counterclockwise"></i>
                 </a>
             </div>
+            {% endif %}
         </form>
     </div>
 </div>
@@ -45,51 +51,73 @@
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0"><i class="bi bi-clock-history me-2 text-accent"></i> Registro de Movimientos</h5>
-        <a href="{% url 'inventario:lista_productos' %}" class="btn btn-sm btn-outline-secondary">
+        <a href="{% url 'inventario:lista_productos' %}" class="btn btn-sm btn-outline-light">
             <i class="bi bi-arrow-left"></i> Volver al Inventario
         </a>
     </div>
     <div class="card-body p-0">
-        <div class="table-responsive">
+        <div class="table-responsive" style="max-height: 65vh; overflow-y: scroll;">
             <table class="table table-dark table-hover mb-0 align-middle">
-                <thead>
+                <thead class="sticky-top bg-dark" style="z-index: 10;">
                     <tr>
                         <th class="ps-4">Fecha y Hora</th>
-                        <th>Tipo</th>
+                        <th>Tipo de Movimiento</th>
                         <th>Producto</th>
                         <th>Cantidad</th>
                         <th>Evolución de Stock</th>
-                        <th>Motivo / Detalle del Servicio</th>
+                        <th>Motivo / Detalle de la Operación</th>
                         <th class="pe-4">Usuario</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="tabla-movimientos-body">
                     {% for mov in movimientos %}
-                    <tr>
+                    <tr class="fila-movimiento" data-producto="{{ mov.producto.nombre|lower }}" data-tipo="{{ mov.tipo_movimiento }}">
                         <td class="ps-4 small text-secondary">
                             {{ mov.fecha|date:"d/m/Y H:i" }}
                         </td>
                         <td>
-                            {% if mov.tipo_movimiento == 'CONSUMO_SERVICIO' %}
-                                <span class="badge bg-warning text-dark"><i class="bi bi-scissors"></i> Consumo Servicio</span>
+                            {% if mov.tipo_movimiento == 'ALTA_PRODUCTO' %}
+                                <span class="badge bg-info text-dark">
+                                    <i class="bi bi-plus-circle-fill me-1"></i> Producto añadido
+                                </span>
+                            {% elif mov.tipo_movimiento == 'BAJA_PRODUCTO' %}
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-trash-fill me-1"></i> Producto eliminado
+                                </span>
                             {% elif mov.tipo_movimiento == 'REPOSICION' %}
-                                <span class="badge bg-success"><i class="bi bi-box-arrow-in-down"></i> Reposición</span>
-                            {% elif mov.tipo_movimiento == 'VENTA_DIRECTA' %}
-                                <span class="badge bg-info text-dark"><i class="bi bi-bag-check"></i> Venta Directa</span>
+                                <span class="badge bg-success">
+                                    <i class="bi bi-box-arrow-in-down me-1"></i> Reposición de Stock
+                                </span>
+                            {% elif mov.tipo_movimiento == 'CAMBIO_NOMBRE' or mov.tipo_movimiento == 'CAMBIO_DESCRIPCION' or mov.tipo_movimiento == 'CAMBIO_PRECIO' or mov.tipo_movimiento == 'CAMBIO_STOCK_MINIMO' %}
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-pencil-square me-1"></i> {{ mov.get_tipo_movimiento_display }}
+                                </span>
                             {% else %}
-                                <span class="badge bg-secondary"><i class="bi bi-sliders"></i> Ajuste Manual</span>
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-scissors me-1"></i> Descuento de Stock
+                                </span>
                             {% endif %}
                         </td>
                         <td class="fw-bold">{{ mov.producto.nombre }}</td>
                         <td>
-                            <span class="fw-bold {% if mov.tipo_movimiento == 'REPOSICION' %}text-success{% else %}text-warning{% endif %}">
-                                {% if mov.tipo_movimiento == 'REPOSICION' %}+{% else %}-{% endif %}{{ mov.cantidad }} u.
-                            </span>
+                            {% if mov.tipo_movimiento == 'REPOSICION' %}
+                                <span class="fw-bold text-success">+{{ mov.cantidad }} u.</span>
+                            {% elif mov.tipo_movimiento == 'ALTA_PRODUCTO' %}
+                                <span class="fw-bold text-info">{{ mov.cantidad }} u.</span>
+                            {% elif mov.tipo_movimiento == 'BAJA_PRODUCTO' or mov.tipo_movimiento == 'CAMBIO_NOMBRE' or mov.tipo_movimiento == 'CAMBIO_DESCRIPCION' or mov.tipo_movimiento == 'CAMBIO_PRECIO' or mov.tipo_movimiento == 'CAMBIO_STOCK_MINIMO' %}
+                                <span class="text-secondary">—</span>
+                            {% else %}
+                                <span class="fw-bold text-warning">-{{ mov.cantidad }} u.</span>
+                            {% endif %}
                         </td>
                         <td class="small">
-                            <span class="text-secondary">{{ mov.stock_previo }}</span> 
-                            <i class="bi bi-arrow-right text-secondary mx-1"></i> 
-                            <span class="fw-bold text-light">{{ mov.stock_posterior }}</span>
+                            {% if mov.tipo_movimiento == 'CAMBIO_NOMBRE' or mov.tipo_movimiento == 'CAMBIO_DESCRIPCION' or mov.tipo_movimiento == 'CAMBIO_PRECIO' or mov.tipo_movimiento == 'CAMBIO_STOCK_MINIMO' %}
+                                <span class="text-secondary">—</span>
+                            {% else %}
+                                <span class="text-secondary">{{ mov.stock_previo }}</span> 
+                                <i class="bi bi-arrow-right text-secondary mx-1"></i> 
+                                <span class="fw-bold text-light">{{ mov.stock_posterior }}</span>
+                            {% endif %}
                         </td>
                         <td class="small text-light text-opacity-75">
                             {{ mov.motivo|default:"Sin detalle" }}
@@ -106,9 +134,75 @@
                         </td>
                     </tr>
                     {% endfor %}
+                    <!-- Fila dinámica cuando no hay coincidencias en vivo -->
+                    <tr id="fila-sin-coincidencias-historial" style="display: none;">
+                        <td colspan="7" class="text-center py-4 text-secondary">
+                            <i class="bi bi-search fs-3 d-block mb-2 text-secondary opacity-50"></i>
+                            No se encontraron movimientos coincidentes con tu búsqueda en tiempo real.
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const inputBusqueda = document.getElementById("buscar-historial");
+    const selectTipo = document.getElementById("filtro-tipo-movimiento");
+    const filasMovimientos = document.querySelectorAll(".fila-movimiento");
+    const filaSinCoincidencias = document.getElementById("fila-sin-coincidencias-historial");
+
+    if (!inputBusqueda) return;
+
+    function filtrarHistorialEnVivo() {
+        const query = inputBusqueda.value.trim().toLowerCase();
+        const tipoSeleccionado = selectTipo ? selectTipo.value : "";
+        let visibles = 0;
+
+        filasMovimientos.forEach(fila => {
+            const prod = fila.getAttribute("data-producto") || "";
+            const tipo = fila.getAttribute("data-tipo") || "";
+
+            const coincideTexto = !query || prod.includes(query);
+            const coincideTipo = !tipoSeleccionado || tipo === tipoSeleccionado;
+
+            if (coincideTexto && coincideTipo) {
+                fila.style.display = "";
+                visibles++;
+            } else {
+                fila.style.display = "none";
+            }
+        });
+
+        if (filaSinCoincidencias) {
+            if (filasMovimientos.length > 0 && visibles === 0) {
+                filaSinCoincidencias.style.display = "";
+            } else {
+                filaSinCoincidencias.style.display = "none";
+            }
+        }
+    }
+
+    inputBusqueda.addEventListener("input", function () {
+        filtrarHistorialEnVivo();
+    });
+
+    if (selectTipo) {
+        selectTipo.addEventListener("change", function () {
+            filtrarHistorialEnVivo();
+        });
+    }
+
+    const formHistorial = document.getElementById("form-busqueda-historial");
+    if (formHistorial) {
+        formHistorial.addEventListener("submit", function (e) {
+            e.preventDefault();
+        });
+    }
+});
+</script>
 {% endblock %}

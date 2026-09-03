@@ -7,17 +7,28 @@
 <div class="row justify-content-center">
     <div class="col-lg-7 col-md-9">
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-header">
                 <h5 class="mb-0">
                     <i class="bi bi-box-seam me-2 text-accent"></i>
                     {{ accion }} Producto
                 </h5>
-                <a href="{% url 'inventario:lista_productos' %}" class="btn btn-sm btn-outline-secondary">
-                    <i class="bi bi-arrow-left"></i> Volver
-                </a>
             </div>
             <div class="card-body p-4">
-                <form method="post" novalidate>
+                {% if producto %}
+                    <div class="alert alert-dark border-secondary d-flex align-items-center justify-content-between mb-4">
+                        <div>
+                            <span class="text-secondary small d-block">Stock Actual en Existencia:</span>
+                            <span class="fs-5 fw-bold {% if producto.verificar_stock_minimo %}text-danger{% else %}text-success{% endif %}">
+                                {{ producto.stock_actual }} unidades
+                            </span>
+                        </div>
+                        <div class="small text-secondary text-end">
+                            <i class="bi bi-info-circle me-1"></i> Para alterar el stock disponible,<br>utiliza <em>Agregar Stock</em> o <em>Descontar Stock</em>.
+                        </div>
+                    </div>
+                {% endif %}
+
+                <form method="post" novalidate id="form-producto">
                     {% csrf_token %}
                     
                     {% if form.non_field_errors %}
@@ -64,25 +75,27 @@
                         {% endif %}
                     </div>
 
-                    <!-- Stocks: Actual y Mínimo -->
+                    <!-- Stock Inicial (solo en creación) y Stock Mínimo -->
                     <div class="row g-3 mb-4">
+                        {% if form.stock_actual %}
                         <div class="col-md-6">
                             <label for="{{ form.stock_actual.id_for_label }}" class="form-label fw-semibold">
                                 {{ form.stock_actual.label }} <span class="text-danger">*</span>
                             </label>
                             {{ form.stock_actual }}
-                            <small class="text-secondary">Unidades actualmente en existencia.</small>
+                            <small class="text-secondary">Unidades iniciales en existencia.</small>
                             {% if form.stock_actual.errors %}
                                 <div class="text-danger small mt-1">{{ form.stock_actual.errors.0 }}</div>
                             {% endif %}
                         </div>
+                        {% endif %}
 
-                        <div class="col-md-6">
+                        <div class="{% if form.stock_actual %}col-md-6{% else %}col-12{% endif %}">
                             <label for="{{ form.stock_minimo.id_for_label }}" class="form-label fw-semibold">
                                 {{ form.stock_minimo.label }} <span class="text-danger">*</span>
                             </label>
                             {{ form.stock_minimo }}
-                            <small class="text-secondary">Dispara alerta automática si baja de este valor.</small>
+                            <small class="text-secondary">Dispara alerta automática si el stock baja a este nivel o menos.</small>
                             {% if form.stock_minimo.errors %}
                                 <div class="text-danger small mt-1">{{ form.stock_minimo.errors.0 }}</div>
                             {% endif %}
@@ -91,11 +104,11 @@
 
                     <!-- Botones de Acción -->
                     <div class="d-flex justify-content-end gap-2 pt-3 border-top border-secondary border-opacity-25">
-                        <a href="{% url 'inventario:lista_productos' %}" class="btn btn-outline-secondary px-4">
+                        <a href="{% url 'inventario:lista_productos' %}" id="btn-cancelar" class="btn btn-outline-light px-4">
                             Cancelar
                         </a>
-                        <button type="submit" class="btn btn-accent px-4">
-                            <i class="bi bi-check-lg me-1"></i> Guardar Producto
+                        <button type="submit" id="btn-guardar-trigger" class="btn btn-accent px-4">
+                            <i class="bi bi-check-lg me-1"></i> Guardar Cambios
                         </button>
                     </div>
                 </form>
@@ -103,4 +116,135 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Emergente de Confirmación de Cancelación -->
+<div class="modal fade" id="modalCancelar" tabindex="-1" aria-labelledby="modalCancelarLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-exclamation-triangle-fill fs-2"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalCancelarLabel">¿Estás seguro de Cancelar?</h5>
+                <p class="text-secondary small mb-0">
+                    Tienes información ingresada en el formulario. Si decides cancelar ahora, se perderán todos los datos y cambios realizados.
+                </p>
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    Continuar editando
+                </button>
+                <a href="{% url 'inventario:lista_productos' %}" class="btn btn-danger px-4 fw-semibold">
+                    <i class="bi bi-x-circle me-1"></i> Sí, cancelar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Emergente de Confirmación de Guardar Cambios -->
+<div class="modal fade" id="modalConfirmarGuardar" tabindex="-1" aria-labelledby="modalConfirmarGuardarLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3" style="width: 60px; height: 60px; background-color: rgba(229, 193, 88, 0.15); color: var(--accent-color);">
+                    <i class="bi bi-check2-circle fs-1"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalConfirmarGuardarLabel">¿Guardar los cambios del producto?</h5>
+                <p class="text-secondary small mb-0">
+                    Se actualizarán los datos ingresados en el catálogo del inventario.
+                </p>
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    Revisar
+                </button>
+                <button type="button" id="btn-confirmar-guardar-submit" class="btn btn-accent px-4 fw-semibold">
+                    <i class="bi bi-check-lg me-1"></i> Sí, guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("form-producto");
+    const btnCancelar = document.getElementById("btn-cancelar");
+    const modalCancelarEl = document.getElementById("modalCancelar");
+    const modalGuardarEl = document.getElementById("modalConfirmarGuardar");
+    const btnConfirmarGuardarSubmit = document.getElementById("btn-confirmar-guardar-submit");
+
+    if (!form) return;
+
+    const modalCancelar = modalCancelarEl ? new bootstrap.Modal(modalCancelarEl) : null;
+    const modalGuardar = modalGuardarEl ? new bootstrap.Modal(modalGuardarEl) : null;
+
+    // Snapshot del estado inicial de los campos editables
+    const campos = form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, select');
+    campos.forEach(campo => {
+        if (campo.type === 'checkbox' || campo.type === 'radio') {
+            campo.dataset.initial = String(campo.checked);
+        } else {
+            campo.dataset.initial = (campo.value || "").trim();
+        }
+    });
+
+    function tieneDatosModificados() {
+        for (let campo of campos) {
+            if (campo.type === 'checkbox' || campo.type === 'radio') {
+                if (String(campo.checked) !== campo.dataset.initial) return true;
+            } else {
+                const actual = (campo.value || "").trim();
+                if (actual !== campo.dataset.initial) return true;
+            }
+        }
+        return false;
+    }
+
+    // Validación de Cancelar
+    if (btnCancelar && modalCancelar) {
+        btnCancelar.addEventListener("click", function (e) {
+            if (tieneDatosModificados()) {
+                e.preventDefault();
+                modalCancelar.show();
+            }
+        });
+    }
+
+    // Interceptar envío del formulario para confirmación
+    let confirmacionCompletada = false;
+    form.addEventListener("submit", function (e) {
+        if (!confirmacionCompletada) {
+            e.preventDefault();
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            if (modalGuardar) {
+                modalGuardar.show();
+            } else {
+                form.submit();
+            }
+        }
+    });
+
+    if (btnConfirmarGuardarSubmit) {
+        btnConfirmarGuardarSubmit.addEventListener("click", function () {
+            confirmacionCompletada = true;
+            btnConfirmarGuardarSubmit.disabled = true;
+            btnConfirmarGuardarSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Guardando...';
+            form.submit();
+        });
+    }
+});
+</script>
 {% endblock %}

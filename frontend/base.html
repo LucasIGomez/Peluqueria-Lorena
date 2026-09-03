@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es" data-bs-theme="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,6 +17,7 @@
             --sidebar-bg: #1a1d24;
             --card-bg: #1a1d24;
         }
+
         body {
             background-color: var(--bs-body-bg);
             color: var(--bs-body-color);
@@ -24,6 +26,7 @@
             min-height: 100vh;
             margin: 0;
         }
+
         /* Sidebar styling */
         .sidebar {
             width: 250px;
@@ -35,6 +38,7 @@
             height: 100vh;
             overflow-y: auto;
         }
+
         .sidebar-header {
             padding: 1.5rem;
             display: flex;
@@ -44,10 +48,12 @@
             font-weight: bold;
             color: var(--bs-body-color);
         }
+
         .sidebar-header i {
             color: var(--accent-color);
             font-size: 1.5rem;
         }
+
         .sidebar-profile {
             padding: 1rem;
             margin: 0 1rem;
@@ -57,35 +63,42 @@
             align-items: center;
             gap: 10px;
         }
+
         .sidebar-profile img {
             width: 40px;
             height: 40px;
             border-radius: 50%;
             object-fit: cover;
         }
+
         .sidebar-profile-info {
             line-height: 1.2;
         }
+
         .sidebar-profile-info .name {
             font-weight: bold;
             font-size: 0.9rem;
         }
+
         .sidebar-profile-info .role {
             font-size: 0.7rem;
             color: var(--accent-color);
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
+
         .sidebar-nav {
             list-style: none;
             padding: 1rem 0;
             margin: 0;
             flex-grow: 1;
         }
+
         .sidebar-nav .nav-item {
             padding: 0 1rem;
             margin-bottom: 0.5rem;
         }
+
         .sidebar-nav .nav-link {
             color: #a0a5b1;
             padding: 0.8rem 1rem;
@@ -96,13 +109,17 @@
             text-decoration: none;
             transition: all 0.2s;
         }
-        .sidebar-nav .nav-link:hover, .sidebar-nav .nav-link.active {
+
+        .sidebar-nav .nav-link:hover,
+        .sidebar-nav .nav-link.active {
             background-color: rgba(229, 193, 88, 0.1);
             color: var(--accent-color);
         }
+
         .sidebar-nav .nav-link i {
             font-size: 1.2rem;
         }
+
         /* Main content styling */
         .main-content {
             margin-left: 250px;
@@ -111,6 +128,7 @@
             display: flex;
             flex-direction: column;
         }
+
         /* Cards styling */
         .card {
             background-color: var(--card-bg);
@@ -118,35 +136,44 @@
             border-radius: 12px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
+
         .card-header {
             border-bottom: 1px solid #2a2e35;
             background-color: transparent;
             padding: 1rem 1.5rem;
             font-weight: 600;
         }
+
         .text-accent {
             color: var(--accent-color) !important;
         }
+
         .bg-accent {
             background-color: var(--accent-color) !important;
             color: #000 !important;
         }
+
         .btn-accent {
             background-color: var(--accent-color);
             color: #121418;
             font-weight: 600;
             border: none;
         }
+
         .btn-accent:hover {
             background-color: #d4b24e;
             color: #121418;
         }
-        .form-control, .form-select {
+
+        .form-control,
+        .form-select {
             background-color: #22262e;
             border: 1px solid #3c4149;
             color: #fff;
         }
-        .form-control:focus, .form-select:focus {
+
+        .form-control:focus,
+        .form-select:focus {
             background-color: #22262e;
             border-color: var(--accent-color);
             color: #fff;
@@ -155,21 +182,36 @@
     </style>
     {% block extra_css %}{% endblock %}
 </head>
+
 <body>
-    
+
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-header">
             <i class="bi bi-scissors"></i>
             <span>Lorena System</span>
         </div>
-        
+
         <div class="sidebar-profile">
-            <img src="https://ui-avatars.com/api/?name=Lorena&background=22262e&color=fff" alt="Lorena">
-            <div class="sidebar-profile-info">
-                <div class="name">Hola,<br>Lorena</div>
-                <div class="role">Administradora</div>
-            </div>
+            {% if request.user.is_authenticated %}
+                <img src="https://ui-avatars.com/api/?name={{ request.user.nombre|urlencode }}&background=22262e&color=e5c158" alt="{{ request.user.nombre }}">
+                <div class="sidebar-profile-info">
+                    <div class="name">{{ request.user.nombre }}</div>
+                    <div class="role">
+                        {% if request.user.es_administradora %}
+                            <i class="bi bi-shield-lock-fill text-warning"></i> Admin
+                        {% else %}
+                            <i class="bi bi-scissors text-accent"></i> Empleada
+                        {% endif %}
+                    </div>
+                </div>
+            {% else %}
+                <img src="https://ui-avatars.com/api/?name=Invitado&background=22262e&color=aaa" alt="Invitado">
+                <div class="sidebar-profile-info">
+                    <div class="name">Invitado</div>
+                    <div class="role text-secondary">Sin sesión</div>
+                </div>
+            {% endif %}
         </div>
 
         <ul class="sidebar-nav mt-3">
@@ -178,20 +220,74 @@
                     <i class="bi bi-grid-1x2"></i> Inicio
                 </a>
             </li>
+            <li class="nav-item text-secondary text-uppercase px-3 mt-3 mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                <i class="bi bi-scissors me-1 text-accent"></i> Salón
+            </li>
+            {% comment %} Fuera de alcance para la entrega del viernes — módulo Clientes (se desarrolla post-entrega).
             <li class="nav-item">
-                <a href="/inventario/productos/" class="nav-link {% if '/inventario' in request.path %}active{% endif %}">
-                    <i class="bi bi-box-seam"></i> Productos / Stock
+                <a href="/clientes/"
+                    class="nav-link {% if '/clientes' in request.path %}active{% endif %}">
+                    <i class="bi bi-people"></i> Agenda Clientas
                 </a>
             </li>
+            {% endcomment %}
+            <li class="nav-item">
+                <a href="/servicios/"
+                    class="nav-link {% if request.path == '/servicios/' or '/servicios/nuevo' in request.path or '/servicios/editar' in request.path %}active{% endif %}">
+                    <i class="bi bi-card-checklist"></i> Catálogo Servicios
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/servicios/control-diario/"
+                    class="nav-link {% if '/servicios/control-diario' in request.path or '/servicios/atencion' in request.path or '/servicios/consentimiento' in request.path %}active{% endif %}">
+                    <i class="bi bi-calendar-check"></i> Control Diario
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/servicios/cierre-diario/"
+                    class="nav-link {% if '/servicios/cierre-diario' in request.path %}active{% endif %}">
+                    <i class="bi bi-box-arrow-down text-warning"></i> Cierre de Insumos
+                </a>
+            </li>
+
+            <li class="nav-item text-secondary text-uppercase px-3 mt-3 mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                <i class="bi bi-box-seam me-1 text-info"></i> Inventario
+            </li>
+            <li class="nav-item">
+                <a href="/inventario/productos/"
+                    class="nav-link {% if '/inventario/productos' in request.path %}active{% endif %}">
+                    <i class="bi bi-box-seam"></i> Stock e Insumos
+                </a>
+            </li>
+            {% if request.user.is_authenticated and request.user.es_administradora %}
             <li class="nav-item">
                 <a href="/proveedores/" class="nav-link {% if '/proveedores' in request.path %}active{% endif %}">
                     <i class="bi bi-truck"></i> Proveedores
                 </a>
             </li>
+            {% endif %}
+
+            {% if request.user.is_authenticated and request.user.es_administradora %}
+                <li class="nav-item text-secondary text-uppercase px-3 mt-3 mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                    <i class="bi bi-shield-lock me-1"></i> Administración
+                </li>
+                <li class="nav-item">
+                    <a href="/usuarios/gestion/" class="nav-link {% if '/usuarios/gestion' in request.path %}active{% endif %}">
+                        <i class="bi bi-people-fill text-warning"></i> Gestión Usuarios
+                    </a>
+                </li>
+            {% endif %}
+
             <li class="nav-item mt-auto">
-                <a href="#" class="nav-link text-danger">
-                    <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
-                </a>
+                {% if request.user.is_authenticated %}
+                    <a href="/usuarios/logout/" class="nav-link text-danger">
+                        <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+                    </a>
+                {% else %}
+                    <a href="/usuarios/login/" class="nav-link text-accent">
+                        <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
+                    </a>
+                {% endif %}
             </li>
         </ul>
     </aside>
@@ -201,22 +297,41 @@
         <!-- Top bar (date, notifications) -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h3 class="mb-0 fw-bold">{% block page_title %}¡Bienvenida, Lorena! 👋{% endblock %}</h3>
-                <p class="text-secondary mb-0">{% block page_subtitle %}Aquí tienes el resumen de tu negocio hoy.{% endblock %}</p>
+                {% if request.user.is_authenticated %}
+                    <h3 class="mb-0 fw-bold">{% block page_title %}¡Bienvenida/o, {{ request.user.nombre }}! 👋{% endblock %}</h3>
+                    <p class="text-secondary mb-0">{% block page_subtitle %}Panel de control de Peluquería Lorena.{% endblock %}</p>
+                {% else %}
+                    <h3 class="mb-0 fw-bold">{% block page_title_anon %}Peluquería Lorena 👋{% endblock %}</h3>
+                    <p class="text-secondary mb-0">{% block page_subtitle_anon %}Sistema de Gestión Integral del Salón.{% endblock %}</p>
+                {% endif %}
             </div>
             <div class="d-flex align-items-center gap-3 text-secondary">
                 <span id="current-date"></span>
-                <i class="bi bi-bell fs-5"></i>
+                {% if request.user.is_authenticated %}
+                    {% if request.user.es_administradora %}
+                        <span class="badge bg-warning text-dark px-3 py-2 fw-bold">
+                            <i class="bi bi-shield-check me-1"></i> Modo Administradora
+                        </span>
+                    {% else %}
+                        <span class="badge bg-info-subtle text-info px-3 py-2">
+                            <i class="bi bi-scissors me-1"></i> Modo Empleada
+                        </span>
+                    {% endif %}
+                {% else %}
+                    <a href="/usuarios/login/" class="btn btn-sm btn-accent fw-bold text-dark px-3">
+                        <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión
+                    </a>
+                {% endif %}
             </div>
         </div>
 
         {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endfor %}
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        {% endfor %}
         {% endif %}
 
         <!-- Dynamic Content -->
@@ -232,4 +347,5 @@
     </script>
     {% block extra_js %}{% endblock %}
 </body>
+
 </html>

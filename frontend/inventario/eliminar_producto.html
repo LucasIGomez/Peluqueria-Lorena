@@ -24,7 +24,7 @@
                     {% endif %}
                 </div>
 
-                <form method="post">
+                <form method="post" id="form-eliminar-producto">
                     {% csrf_token %}
                     
                     <div class="form-check mb-4">
@@ -35,10 +35,10 @@
                     </div>
 
                     <div class="d-flex justify-content-end gap-2">
-                        <a href="{% url 'inventario:lista_productos' %}" class="btn btn-outline-secondary px-4">
+                        <a href="{% url 'inventario:lista_productos' %}" class="btn btn-outline-light px-4">
                             Cancelar
                         </a>
-                        <button type="submit" class="btn btn-danger px-4">
+                        <button type="submit" id="btn-confirmar-baja" class="btn btn-danger px-4">
                             <i class="bi bi-trash me-1"></i> Confirmar Baja
                         </button>
                     </div>
@@ -47,4 +47,110 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Emergente: Validación de Casilla No Marcada -->
+<div class="modal fade" id="modalRequierePermanente" tabindex="-1" aria-labelledby="modalRequierePermanenteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-exclamation-triangle-fill fs-2"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalRequierePermanenteLabel">Confirmación Requerida</h5>
+                <p class="text-secondary small mb-0">
+                    Para confirmar la baja de este producto, debes marcar primero la casilla <br>
+                    <strong class="text-light">"Eliminar de forma permanente de la base de datos..."</strong>.
+                </p>
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center pt-3 pb-3">
+                <button type="button" class="btn btn-accent px-4 fw-semibold" data-bs-dismiss="modal">
+                    Entendido
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Emergente: Confirmación Definitiva de Baja -->
+<div class="modal fade" id="modalConfirmarBaja" tabindex="-1" aria-labelledby="modalConfirmarBajaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger rounded-circle mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-trash3-fill fs-2"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalConfirmarBajaLabel">¿Confirmar Baja Permanente?</h5>
+                <p class="text-secondary small mb-0">
+                    Esta acción eliminará de forma definitiva el producto <strong class="text-accent">{{ producto.nombre }}</strong> del inventario y la base de datos.
+                </p>
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="button" id="btn-submit-baja-final" class="btn btn-danger px-4 fw-semibold">
+                    <i class="bi bi-trash me-1"></i> Sí, dar de baja
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("form-eliminar-producto");
+    const checkbox = document.getElementById("permanenteCheck");
+    const modalRequiereEl = document.getElementById("modalRequierePermanente");
+    const modalConfirmarEl = document.getElementById("modalConfirmarBaja");
+    const btnSubmitFinal = document.getElementById("btn-submit-baja-final");
+
+    if (!form || !checkbox) return;
+
+    const modalRequiere = modalRequiereEl ? new bootstrap.Modal(modalRequiereEl) : null;
+    const modalConfirmar = modalConfirmarEl ? new bootstrap.Modal(modalConfirmarEl) : null;
+
+    let confirmacionCompletada = false;
+
+    form.addEventListener("submit", function (e) {
+        if (!confirmacionCompletada) {
+            e.preventDefault();
+
+            // Si NO está marcada la casilla de eliminación permanente
+            if (!checkbox.checked) {
+                if (modalRequiere) {
+                    modalRequiere.show();
+                } else {
+                    alert("Debes marcar la casilla para confirmar la eliminación permanente.");
+                }
+                return;
+            }
+
+            // Si SÍ está marcada, abrir modal de confirmación final
+            if (modalConfirmar) {
+                modalConfirmar.show();
+            } else {
+                confirmacionCompletada = true;
+                form.submit();
+            }
+        }
+    });
+
+    if (btnSubmitFinal) {
+        btnSubmitFinal.addEventListener("click", function () {
+            confirmacionCompletada = true;
+            btnSubmitFinal.disabled = true;
+            btnSubmitFinal.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Eliminando...';
+            form.submit();
+        });
+    }
+});
+</script>
 {% endblock %}

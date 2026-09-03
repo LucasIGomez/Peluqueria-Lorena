@@ -49,6 +49,8 @@ LOCAL_APPS: List[str] = [
     "apps.usuarios",
     "apps.inventario",
     "apps.proveedores",
+    "apps.clientes",
+    "apps.servicios",
 ]
 
 INSTALLED_APPS: List[str] = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -182,3 +184,12 @@ EMAIL_BACKEND: str = "django.core.mail.backends.console.EmailBackend"
 # TOKEN DE RESET DE PASSWORD — expiración en horas
 # ──────────────────────────────────────────────
 PASSWORD_RESET_TOKEN_EXPIRY_HOURS: int = 24
+
+# ──────────────────────────────────────────────
+# PIN DE REGISTRO ADMINISTRATIVO & AUTH URLS
+# ──────────────────────────────────────────────
+ADMIN_REGISTRATION_PIN: str = os.environ.get("ADMIN_REGISTRATION_PIN", "1234")
+LOGIN_URL: str = "/usuarios/login/"
+LOGIN_REDIRECT_URL: str = "/"
+LOGOUT_REDIRECT_URL: str = "/usuarios/login/"
+

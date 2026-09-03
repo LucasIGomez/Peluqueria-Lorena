@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Ficha de Consentimiento Informado{% endblock %}
+{% block page_subtitle %}Protocolo obligatorio de resguardo legal y diagnóstico técnico para decoloraciones y alisados.{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="card shadow-sm border-0">
+            <div class="card-header py-3 bg-dark border-bottom border-warning-subtle d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-light">
+                    <i class="bi bi-shield-check text-warning me-2"></i> Declaración Jurada y Consentimiento para Tratamientos Químicos
+                </h5>
+                <span class="badge bg-warning text-dark fw-bold">Peluquería Lorena</span>
+            </div>
+
+            <div class="card-body p-4">
+                <div class="alert alert-warning border-warning-subtle d-flex align-items-start gap-3 mb-4" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill fs-3 text-warning"></i>
+                    <div class="small">
+                        <strong>Importante para la Clienta y la Profesional:</strong>
+                        Los procesos de decoloración y alisado modifican la estructura molecular del cabello.
+                        Existen factores biológicos y químicos previos que están fuera del control del salón (como tintes progresivos con sales metálicas, alisados incompatibles o medicación).
+                        Es indispensable declarar con total sinceridad los antecedentes para preservar la integridad de su cabello.
+                    </div>
+                </div>
+
+                <form method="POST">
+                    {% csrf_token %}
+
+                    <!-- 1. Identificación de la Clienta -->
+                    <h6 class="text-accent text-uppercase fw-bold mb-3 border-bottom border-secondary pb-2">
+                        1. Identificación de la Clienta y Procedimiento
+                    </h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Clienta Registrada (Opcional)</label>
+                            {{ form.cliente }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Nombre Completo <span class="text-danger">*</span></label>
+                            {{ form.cliente_nombre }}
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label text-light">Teléfono / WhatsApp <span class="text-danger">*</span></label>
+                            {{ form.cliente_telefono }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-light">DNI / Documento</label>
+                            {{ form.cliente_dni }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-light">Tipo de Procedimiento <span class="text-danger">*</span></label>
+                            {{ form.tipo_procedimiento }}
+                        </div>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label text-light">Profesional Responsable</label>
+                        {{ form.profesional }}
+                    </div>
+
+                    <!-- 2. Relevamiento de Factores Ajenos (Historial Químico) -->
+                    <h6 class="text-accent text-uppercase fw-bold mb-3 border-bottom border-secondary pb-2">
+                        2. Antecedentes Químicos y Factores Ajenos al Salón
+                    </h6>
+                    <div class="p-3 bg-dark rounded border border-secondary mb-4">
+                        <div class="form-check mb-3">
+                            {{ form.ha_usado_henna_o_sales_metalicas }}
+                            <label class="form-check-label text-light ms-2 fw-semibold">
+                                ¿Ha utilizado Henna, tinturas progresivas o productos con sales metálicas en los últimos 2 años?
+                            </label>
+                            <small class="text-secondary d-block ps-4">
+                                <i class="bi bi-info-circle me-1 text-danger"></i> Las sales metálicas al entrar en contacto con el peróxido/decolorante provocan reacción química violenta, sobrecalentamiento y corte químico inmediato.
+                            </small>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            {{ form.tiene_alisados_o_permanentes_previos }}
+                            <label class="form-check-label text-light ms-2 fw-semibold">
+                                ¿Se ha realizado alisados con formol, botox capilar, shock de queratina o permanente?
+                            </label>
+                            <small class="text-secondary d-block ps-4">
+                                Ciertos activos alisantes sellan la cutícula de forma irreversible y debilitan los enlaces de queratina ante un nuevo químico.
+                            </small>
+                        </div>
+
+                        <div class="mb-3 ps-4">
+                            <label class="form-label text-light small">Detalle de procesos químicos previos (marcas, fechas aproximadas):</label>
+                            {{ form.detalle_quimicos_previos }}
+                        </div>
+
+                        <div class="form-check mb-3">
+                            {{ form.tiene_decoloraciones_previas }}
+                            <label class="form-check-label text-light ms-2 fw-semibold">
+                                ¿Tiene decoloraciones o mechas anteriores en medios o puntas?
+                            </label>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            {{ form.alergias_o_sensibilidad_cuero_cabelludo }}
+                            <label class="form-check-label text-light ms-2 fw-semibold">
+                                ¿Sufre de alergias cutáneas, cuero cabelludo sensible o dermatitis?
+                            </label>
+                        </div>
+
+                        <div class="mb-3 ps-4">
+                            <label class="form-label text-light small">Especificar alergias conocidas (persulfatos, amoníaco, etc.):</label>
+                            {{ form.detalle_alergias }}
+                        </div>
+
+                        <div class="row g-3 ps-4">
+                            <div class="col-md-6 form-check">
+                                {{ form.embarazo_o_lactancia }}
+                                <label class="form-check-label text-light ms-2">
+                                    Embarazo o período de lactancia
+                                </label>
+                            </div>
+                            <div class="col-md-6 form-check">
+                                {{ form.medicacion_o_tratamiento_medico }}
+                                <label class="form-check-label text-light ms-2">
+                                    Medicación que altere la fibra (ej: tiroides, isotretinoína)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 3. Diagnóstico Técnico de la Profesional -->
+                    <h6 class="text-accent text-uppercase fw-bold mb-3 border-bottom border-secondary pb-2">
+                        3. Prueba de Mecha y Diagnóstico Técnico
+                    </h6>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <div class="form-check pt-4">
+                                {{ form.prueba_mecha_realizada }}
+                                <label class="form-check-label text-light ms-2 fw-semibold">
+                                    Prueba de Mecha Realizada
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-light">Resultado de la Prueba <span class="text-danger">*</span></label>
+                            {{ form.resultado_prueba_mecha }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-light">Elasticidad de la Fibra</label>
+                            {{ form.elasticidad_cabello }}
+                        </div>
+                    </div>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Porosidad del Cabello</label>
+                            {{ form.porosidad_cabello }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Observaciones de la Profesional</label>
+                            {{ form.observaciones }}
+                        </div>
+                    </div>
+
+                    <!-- 4. Declaración Jurada y Firma -->
+                    <h6 class="text-accent text-uppercase fw-bold mb-3 border-bottom border-secondary pb-2">
+                        4. Conformidad Expresa y Firma
+                    </h6>
+                    <div class="p-3 bg-dark rounded border border-warning-subtle mb-4">
+                        <div class="form-check mb-3">
+                            {{ form.acepta_terminos }}
+                            <label class="form-check-label text-light ms-2 fw-bold">
+                                Declaro bajo juramento que toda la información provista respecto a mi historial capilar es veraz. He sido informada de los riesgos y cuidados posteriores y autorizo a Peluquería Lorena a llevar a cabo el procedimiento.
+                            </label>
+                        </div>
+                        <div>
+                            <label class="form-label text-light small fw-semibold">Firma o Aclaración de Conformidad:</label>
+                            {{ form.firma_digital }}
+                            <small class="text-secondary">Escriba el nombre completo de la clienta o conformidad digital.</small>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top border-secondary">
+                        <a href="{% url 'servicios:control_diario' %}" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-warning text-dark fw-bold px-4">
+                            <i class="bi bi-shield-check me-1"></i> Generar Ficha de Consentimiento
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

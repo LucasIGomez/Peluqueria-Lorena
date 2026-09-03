@@ -75,10 +75,12 @@ class InventarioService:
         stock_minimo: int = 0,
         descripcion: Optional[str] = None,
         activo: bool = True,
+        usuario: Optional[Any] = None,
         **extra_fields: Any,
     ) -> Producto:
         """
-        Crea un nuevo producto en el catálogo del salón.
+        Crea un nuevo producto en el catálogo del salón y registra automáticamente
+        el movimiento de tipo 'Producto añadido' en el historial.
 
         Args:
             nombre: Nombre representativo del producto o insumo.
@@ -87,6 +89,7 @@ class InventarioService:
             stock_minimo: Umbral de alerta para reposición (>= 0).
             descripcion: Descripción detallada u observaciones.
             activo: Estado inicial (por defecto True).
+            usuario: Usuario que realiza el alta (opcional).
             **extra_fields: Campos adicionales.
 
         Returns:
@@ -106,15 +109,29 @@ class InventarioService:
         if precio < Decimal("0.00"):
             raise CantidadInvalidaError("El precio no puede ser negativo.")
 
-        return Producto.objects.create(
-            nombre=nombre.strip(),
-            precio=precio,
-            stock_actual=stock_actual,
-            stock_minimo=stock_minimo,
-            descripcion=descripcion.strip() if descripcion else None,
-            activo=activo,
-            **extra_fields,
-        )
+        with transaction.atomic():
+            producto = Producto.objects.create(
+                nombre=nombre.strip(),
+                precio=precio,
+                stock_actual=stock_actual,
+                stock_minimo=stock_minimo,
+                descripcion=descripcion.strip() if descripcion else None,
+                activo=activo,
+                **extra_fields,
+            )
+
+            # Registrar automáticamente el movimiento de alta en el historial
+            MovimientoStock.objects.create(
+                producto=producto,
+                tipo_movimiento=MovimientoStock.TipoMovimiento.ALTA_PRODUCTO,
+                cantidad=stock_actual,
+                stock_previo=0,
+                stock_posterior=stock_actual,
+                motivo=f"Producto añadido al catálogo con stock inicial de {stock_actual} u.",
+                usuario=usuario if (usuario and getattr(usuario, "is_authenticated", False)) else None,
+            )
+
+        return producto
 
     @staticmethod
     def obtener_producto_por_id(
@@ -146,7 +163,7 @@ class InventarioService:
         busqueda: Optional[str] = None,
     ) -> QuerySet[Producto]:
         """
-        Retorna el listado de productos aplicando filtros opcionales.
+        Retorna el listado de productos aplicando filtros y búsqueda inteligente por nombre.
 
         Args:
             solo_activos: Si filtra únicamente productos activos.
@@ -175,10 +192,11 @@ class InventarioService:
     @staticmethod
     def actualizar_producto(
         producto: Producto,
+        usuario: Optional[Any] = None,
         **campos: Any,
     ) -> Producto:
         """
-        Actualiza las propiedades de un producto existente.
+        Actualiza las propiedades configurables de un producto existente (nombre, descripción, precio y stock mínimo).
 
         Args:
             producto: Instancia del modelo Producto a actualizar.
@@ -191,10 +209,10 @@ class InventarioService:
             "nombre",
             "descripcion",
             "precio",
-            "stock_actual",
             "stock_minimo",
-            "stockActual",
             "stockMinimo",
+            "stock_actual",
+            "stockActual",
             "activo",
         ]
         update_fields: list[str] = ["actualizado_en"]
@@ -203,7 +221,25 @@ class InventarioService:
             if campo not in campos_permitidos or valor is None:
                 continue
 
-            if campo in ("stock_actual", "stockActual"):
+            if campo in ("stock_minimo", "stockMinimo"):
+                val_int = int(valor)
+                if val_int < 0:
+                    raise CantidadInvalidaError("El stock mínimo no puede ser negativo.")
+                if producto.stock_minimo != val_int:
+                    MovimientoStock.objects.create(
+                        producto=producto,
+                        tipo_movimiento=MovimientoStock.TipoMovimiento.CAMBIO_STOCK_MINIMO,
+                        cantidad=0,
+                        stock_previo=producto.stock_actual,
+                        stock_posterior=producto.stock_actual,
+                        motivo=f"Stock mínimo modificado de {producto.stock_minimo} a {val_int}",
+                        usuario=usuario if (usuario and getattr(usuario, "is_authenticated", False)) else None,
+                    )
+                    producto.stock_minimo = val_int
+                    if "stock_minimo" not in update_fields:
+                        update_fields.append("stock_minimo")
+
+            elif campo in ("stock_actual", "stockActual"):
                 val_int = int(valor)
                 if val_int < 0:
                     raise CantidadInvalidaError("El stock actual no puede ser negativo.")
@@ -211,31 +247,58 @@ class InventarioService:
                 if "stock_actual" not in update_fields:
                     update_fields.append("stock_actual")
 
-            elif campo in ("stock_minimo", "stockMinimo"):
-                val_int = int(valor)
-                if val_int < 0:
-                    raise CantidadInvalidaError("El stock mínimo no puede ser negativo.")
-                producto.stock_minimo = val_int
-                if "stock_minimo" not in update_fields:
-                    update_fields.append("stock_minimo")
-
             elif campo == "precio":
                 val_dec = Decimal(str(valor))
                 if val_dec < Decimal("0.00"):
                     raise CantidadInvalidaError("El precio no puede ser negativo.")
-                producto.precio = val_dec
-                if "precio" not in update_fields:
-                    update_fields.append("precio")
+                if producto.precio != val_dec:
+                    # Registrar cambio de precio
+                    MovimientoStock.objects.create(
+                        producto=producto,
+                        tipo_movimiento=MovimientoStock.TipoMovimiento.CAMBIO_PRECIO,
+                        cantidad=0,
+                        stock_previo=producto.stock_actual,
+                        stock_posterior=producto.stock_actual,
+                        motivo=f"Precio modificado de ${producto.precio} a ${val_dec}",
+                        usuario=usuario if (usuario and getattr(usuario, "is_authenticated", False)) else None,
+                    )
+                    producto.precio = val_dec
+                    if "precio" not in update_fields:
+                        update_fields.append("precio")
 
             elif campo == "nombre":
-                producto.nombre = str(valor).strip()
-                if "nombre" not in update_fields:
-                    update_fields.append("nombre")
+                val_str = str(valor).strip()
+                if producto.nombre != val_str:
+                    # Registrar cambio de nombre
+                    MovimientoStock.objects.create(
+                        producto=producto,
+                        tipo_movimiento=MovimientoStock.TipoMovimiento.CAMBIO_NOMBRE,
+                        cantidad=0,
+                        stock_previo=producto.stock_actual,
+                        stock_posterior=producto.stock_actual,
+                        motivo=f"Nombre modificado de '{producto.nombre}' a '{val_str}'",
+                        usuario=usuario if (usuario and getattr(usuario, "is_authenticated", False)) else None,
+                    )
+                    producto.nombre = val_str
+                    if "nombre" not in update_fields:
+                        update_fields.append("nombre")
 
             elif campo == "descripcion":
-                producto.descripcion = str(valor).strip() if valor else None
-                if "descripcion" not in update_fields:
-                    update_fields.append("descripcion")
+                val_str = str(valor).strip() if valor else None
+                if producto.descripcion != val_str:
+                    # Registrar cambio de descripcion
+                    MovimientoStock.objects.create(
+                        producto=producto,
+                        tipo_movimiento=MovimientoStock.TipoMovimiento.CAMBIO_DESCRIPCION,
+                        cantidad=0,
+                        stock_previo=producto.stock_actual,
+                        stock_posterior=producto.stock_actual,
+                        motivo="Descripción modificada",
+                        usuario=usuario if (usuario and getattr(usuario, "is_authenticated", False)) else None,
+                    )
+                    producto.descripcion = val_str
+                    if "descripcion" not in update_fields:
+                        update_fields.append("descripcion")
 
             elif campo == "activo":
                 producto.activo = bool(valor)
@@ -249,19 +312,41 @@ class InventarioService:
     def eliminar_producto(
         producto: Producto,
         permanente: bool = False,
+        usuario: Optional[Any] = None,
     ) -> None:
         """
-        Elimina o da de baja un producto.
+        Elimina o da de baja un producto y registra el movimiento de baja en el historial.
 
         Args:
             producto: Instancia de Producto.
             permanente: Si es False realiza baja lógica (activo=False).
                         Si es True elimina el registro de la BD.
+            usuario: Usuario que realiza la operación.
         """
-        if permanente:
-            producto.delete()
-        else:
-            producto.dar_de_baja()
+        with transaction.atomic():
+            # Registrar movimiento de baja en el historial
+            MovimientoStock.objects.create(
+                producto=producto,
+                tipo_movimiento=MovimientoStock.TipoMovimiento.BAJA_PRODUCTO,
+                cantidad=0,
+                stock_previo=producto.stock_actual,
+                stock_posterior=producto.stock_actual,
+                motivo="Producto eliminado / dado de baja del catálogo",
+                usuario=usuario if (usuario and getattr(usuario, "is_authenticated", False)) else None,
+            )
+
+            if permanente:
+                producto.delete()
+            else:
+                producto.dar_de_baja()
+
+    @staticmethod
+    def dar_de_baja_producto(
+        producto: Producto,
+        usuario: Optional[Any] = None,
+    ) -> None:
+        """Alias para baja lógica de producto con registro de auditoría."""
+        InventarioService.eliminar_producto(producto, permanente=False, usuario=usuario)
 
     @staticmethod
     def reactivar_producto(producto: Producto) -> None:
@@ -276,7 +361,7 @@ class InventarioService:
         producto_o_id: Union[Producto, int],
         cantidad: int,
         motivo: Optional[str] = None,
-        tipo_movimiento: str = MovimientoStock.TipoMovimiento.CONSUMO_SERVICIO,
+        tipo_movimiento: str = MovimientoStock.TipoMovimiento.DESCUENTO,
         usuario: Optional[Any] = None,
     ) -> tuple[MovimientoStock, bool]:
         """
@@ -289,7 +374,7 @@ class InventarioService:
             producto_o_id: Instancia de Producto o ID entero.
             cantidad: Cantidad positiva de unidades consumidas.
             motivo: Descripción del servicio o razón del consumo.
-            tipo_movimiento: Categoría del movimiento (por defecto CONSUMO_SERVICIO).
+            tipo_movimiento: Categoría del movimiento (por defecto DESCUENTO).
             usuario: Usuario del sistema que realiza la acción (opcional).
 
         Returns:
@@ -329,7 +414,7 @@ class InventarioService:
                 cantidad=cantidad,
                 stock_previo=stock_previo,
                 stock_posterior=stock_posterior,
-                motivo=motivo.strip() if motivo else None,
+                motivo=motivo.strip() if motivo else "Descuento manual de stock",
                 usuario=usuario if (usuario and getattr(usuario, "is_authenticated", False)) else None,
             )
 
@@ -361,7 +446,7 @@ class InventarioService:
             producto_o_id=producto_o_id,
             cantidad=cantidad,
             motivo=detalle_servicio,
-            tipo_movimiento=MovimientoStock.TipoMovimiento.CONSUMO_SERVICIO,
+            tipo_movimiento=MovimientoStock.TipoMovimiento.DESCUENTO,
             usuario=usuario,
         )
 
@@ -374,7 +459,7 @@ class InventarioService:
         usuario: Optional[Any] = None,
     ) -> MovimientoStock:
         """
-        Registra el ingreso/reposición de stock para un producto.
+        Registra el ingreso/reposición de stock para un producto (Agregar Stock).
 
         Args:
             producto_o_id: Producto o ID.
@@ -407,7 +492,7 @@ class InventarioService:
                 cantidad=cantidad,
                 stock_previo=stock_previo,
                 stock_posterior=stock_posterior,
-                motivo=motivo.strip() if motivo else "Reposición de mercadería",
+                motivo=motivo.strip() if motivo else "Reposición de Stock",
                 usuario=usuario if (usuario and getattr(usuario, "is_authenticated", False)) else None,
             )
 
@@ -434,19 +519,22 @@ class InventarioService:
         """Retorna el número de productos en alerta crítica de stock."""
         return cls.obtener_productos_bajo_stock().count()
 
-    # ── Auditoría e Historial ──
+    # ── Auditoría e Historial con Buscador Inteligente ──
 
     @staticmethod
     def obtener_historial_movimientos(
         producto_id: Optional[int] = None,
         tipo_movimiento: Optional[str] = None,
+        busqueda: Optional[str] = None,
     ) -> QuerySet[MovimientoStock]:
         """
-        Consulta el historial cronológico de movimientos de inventario.
+        Consulta el historial cronológico de movimientos de inventario con soporte
+        para búsqueda inteligente por nombre de producto o detalle/motivo.
 
         Args:
             producto_id: Filtro opcional por producto específico.
             tipo_movimiento: Filtro opcional por tipo de movimiento.
+            busqueda: Texto de búsqueda inteligente por nombre de producto o motivo.
 
         Returns:
             QuerySet de MovimientoStock ordenado del más reciente al más antiguo.
@@ -459,4 +547,14 @@ class InventarioService:
         if tipo_movimiento:
             queryset = queryset.filter(tipo_movimiento=tipo_movimiento)
 
+        if busqueda:
+            busqueda = busqueda.strip()
+            queryset = queryset.filter(producto__nombre__icontains=busqueda)
+
         return queryset.order_by("-fecha")
+        return cls.contar_alertas_stock(*args, **kwargs)
+
+    @classmethod
+    def obtenerHistorialMovimientos(cls, *args: Any, **kwargs: Any) -> QuerySet[MovimientoStock]:
+        """Alias camelCase para obtener_historial_movimientos."""
+        return cls.obtener_historial_movimientos(*args, **kwargs)

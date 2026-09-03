@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Desactivar Usuario{% endblock %}
+{% block page_subtitle %}Confirmación de baja lógica de usuario.{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-4">
+    <div class="col-md-6">
+        <div class="card shadow border-danger" style="background-color: #1a1d24;">
+            <div class="card-header bg-danger-subtle text-danger py-3">
+                <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i> Confirmar Desactivación de Usuario</h5>
+            </div>
+            
+            <div class="card-body p-4 text-center">
+                <div class="rounded-circle bg-dark text-danger p-3 d-inline-flex mb-3" style="width: 70px; height: 70px; align-items: center; justify-content: center;">
+                    <i class="bi bi-person-x fs-1"></i>
+                </div>
+                
+                <h4 class="text-light fw-bold mb-2">{{ usuario_target.nombre }}</h4>
+                <p class="text-secondary mb-1">Correo: <code>{{ usuario_target.email }}</code></p>
+                <p class="text-secondary mb-4">Rol actual: <span class="badge bg-secondary">{{ usuario_target.get_rol_display }}</span></p>
+                
+                <div class="alert alert-warning text-start" role="alert">
+                    <i class="bi bi-info-circle me-1"></i> <strong>Nota de Seguridad:</strong> Esta acción realizará una <em>baja lógica</em> (desactivará la cuenta para impedir nuevos inicios de sesión), preservando la integridad histórica de sus turnos y trabajos realizados.
+                </div>
+                
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-center gap-3 mt-4">
+                        <a href="{% url 'usuarios:lista_usuarios' %}" class="btn btn-secondary px-4">Cancelar</a>
+                        <button type="submit" class="btn btn-danger px-4 fw-bold">
+                            <i class="bi bi-trash me-1"></i> Confirmar Desactivación
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

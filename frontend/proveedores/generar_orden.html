@@ -1,0 +1,402 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Generar Orden de Compra{% endblock %}
+{% block page_subtitle %}Arma un pedido seleccionando productos del inventario o añadiendo nuevos.{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+    <a href="{% url 'proveedores:lista_proveedores' %}" class="btn btn-outline-light btn-sm" id="btnVolver">
+        <i class="bi bi-arrow-left"></i> Volver a Proveedores
+    </a>
+</div>
+<div class="row mb-4">
+    <div class="col-md-6">
+        <label for="buscadorProveedor" class="form-label fw-bold">Buscar Proveedor Destino</label>
+        <div class="position-relative">
+            <div class="input-group">
+                <span class="input-group-text bg-dark text-secondary border-secondary"><i class="bi bi-search"></i></span>
+                <input type="text" id="buscadorProveedor" class="form-control bg-dark text-light border-secondary" placeholder="Escribe para buscar un proveedor..." autocomplete="off">
+            </div>
+            <input type="hidden" id="proveedorSelect">
+            
+            <div id="dropdownProveedores" class="dropdown-menu w-100 bg-dark border-secondary shadow" style="display: none; max-height: 200px; overflow-y: auto; position: absolute; top: 100%; left: 0; z-index: 1000; padding: 0;">
+                {% for proveedor in proveedores %}
+                    <a href="#" class="dropdown-item text-light border-bottom border-secondary opcion-proveedor py-2" data-id="{{ proveedor.pk }}">
+                        <i class="bi bi-truck me-2 text-accent"></i>{{ proveedor.nombre }}
+                    </a>
+                {% endfor %}
+                <div id="sinResultadosProveedor" class="text-secondary p-3 text-center" style="display: none;">No se encontraron proveedores</div>
+            </div>
+        </div>
+        <div id="proveedorSeleccionadoBadge" class="mt-2" style="display: none;">
+            <span class="badge bg-success border border-success p-2">
+                <i class="bi bi-check-circle me-1"></i> Seleccionado: <span id="proveedorNombreSeleccionado" class="fw-bold"></span>
+            </span>
+            <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-2" id="btnQuitarProveedor">Cambiar</button>
+        </div>
+    </div>
+    <div class="col-md-6 d-flex align-items-end justify-content-end">
+        <button class="btn btn-success fw-bold px-4" id="btnGenerarPDF">
+            <i class="bi bi-file-earmark-pdf"></i> Generar Orden (PDF)
+        </button>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Tabla 1: Inventario -->
+    <div class="col-md-6">
+        <div class="card h-100 border-secondary">
+            <div class="card-header d-flex justify-content-between align-items-center border-secondary">
+                <h5 class="mb-0"><i class="bi bi-box-seam text-accent me-2"></i> Inventario del Sistema</h5>
+                <button type="button" class="btn btn-sm btn-outline-accent" data-bs-toggle="modal" data-bs-target="#modalNuevoProducto">
+                    <i class="bi bi-plus-lg"></i> Nuevo Insumo
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="p-3 border-bottom border-secondary bg-dark">
+                    <input type="text" id="buscadorInventario" class="form-control bg-dark text-light border-secondary" placeholder="Buscar insumo por nombre...">
+                </div>
+                <div class="table-responsive" style="max-height: 65vh; overflow-y: scroll;">
+                    <table class="table table-dark table-hover mb-0" id="tablaInventario">
+                        <thead class="sticky-top bg-dark border-secondary" style="z-index: 10;">
+                            <tr>
+                                <th>Insumo</th>
+                                <th>Stock Actual</th>
+                                <th class="text-end">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaInventarioBody">
+                            {% for producto in productos %}
+                            <tr data-id="{{ producto.pk }}" data-nombre="{{ producto.nombre|lower }}">
+                                <td class="align-middle fw-bold">{{ producto.nombre }}</td>
+                                <td class="align-middle">
+                                    {% if producto.stock_actual <= producto.stock_minimo %}
+                                        <span class="badge bg-danger">{{ producto.stock_actual }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ producto.stock_actual }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end align-middle">
+                                    <button class="btn btn-sm btn-primary btn-agregar">
+                                        <i class="bi bi-arrow-right"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="3" class="text-center text-secondary py-4">No hay insumos registrados.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla 2: Orden de Compra -->
+    <div class="col-md-6">
+        <div class="card h-100 border-primary">
+            <div class="card-header border-primary">
+                <h5 class="mb-0 text-primary"><i class="bi bi-cart me-2"></i> Insumos a Pedir</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive" style="max-height: 65vh; overflow-y: scroll;">
+                    <table class="table table-dark mb-0" id="tablaPedido">
+                        <thead class="sticky-top bg-dark border-primary" style="z-index: 10;">
+                            <tr>
+                                <th>Insumo</th>
+                                <th style="width: 120px;">Cantidad</th>
+                                <th class="text-end">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaPedidoBody">
+                            <tr id="filaVaciaPedido">
+                                <td colspan="3" class="text-center text-secondary py-5">No hay productos en la orden de compra. <br><small>Selecciona insumos de la tabla izquierda.</small></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Nuevo Producto -->
+<div class="modal fade" id="modalNuevoProducto" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content bg-dark border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-light">Registrar Nuevo Insumo Rápido</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formNuevoProducto">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label text-light fw-semibold">Nombre del Insumo <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control bg-dark text-light border-secondary" id="nuevoNombre" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-light">Descripción (Opcional)</label>
+                        <textarea class="form-control bg-dark text-light border-secondary" id="nuevaDescripcion" rows="2"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label text-light fw-semibold">Precio Ref. ($) <span class="text-danger">*</span></label>
+                            <input type="number" step="0.01" class="form-control bg-dark text-light border-secondary" id="nuevoPrecio" required placeholder="0.00" min="0">
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label text-light fw-semibold">Stock Mínimo <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control bg-dark text-light border-secondary" id="nuevoStockMin" required placeholder="5" min="0">
+                        </div>
+                    </div>
+                    <div id="modalError" class="alert alert-danger d-none py-2"></div>
+                </form>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-accent" id="btnGuardarProducto">Guardar y Añadir a la Orden</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const buscador = document.getElementById('buscadorInventario');
+        const tablaInventarioBody = document.getElementById('tablaInventarioBody');
+        const tablaPedidoBody = document.getElementById('tablaPedidoBody');
+        const filaVacia = document.getElementById('filaVaciaPedido');
+        
+        // 1. Buscador en Inventario
+        buscador.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filas = tablaInventarioBody.querySelectorAll('tr[data-nombre]');
+            filas.forEach(fila => {
+                const nombre = fila.getAttribute('data-nombre');
+                fila.style.display = nombre.includes(term) ? '' : 'none';
+            });
+        });
+
+        // 1.5 Búsqueda inteligente de Proveedores
+        const buscadorProveedor = document.getElementById('buscadorProveedor');
+        const dropdownProveedores = document.getElementById('dropdownProveedores');
+        const opcionesProveedor = document.querySelectorAll('.opcion-proveedor');
+        const sinResultadosProveedor = document.getElementById('sinResultadosProveedor');
+        const proveedorSelect = document.getElementById('proveedorSelect');
+        const badgeSeleccionado = document.getElementById('proveedorSeleccionadoBadge');
+        const nombreSeleccionado = document.getElementById('proveedorNombreSeleccionado');
+        const btnQuitarProveedor = document.getElementById('btnQuitarProveedor');
+
+        buscadorProveedor.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            let visibles = 0;
+            
+            dropdownProveedores.style.display = 'block';
+
+            opcionesProveedor.forEach(opcion => {
+                const nombre = opcion.textContent.toLowerCase();
+                if (nombre.includes(term)) {
+                    opcion.style.display = 'block';
+                    visibles++;
+                } else {
+                    opcion.style.display = 'none';
+                }
+            });
+
+            sinResultadosProveedor.style.display = visibles === 0 ? 'block' : 'none';
+        });
+
+        // Ocultar al hacer clic fuera
+        document.addEventListener('click', (e) => {
+            if (!buscadorProveedor.contains(e.target) && !dropdownProveedores.contains(e.target)) {
+                dropdownProveedores.style.display = 'none';
+            }
+        });
+
+        buscadorProveedor.addEventListener('focus', () => {
+            opcionesProveedor.forEach(op => op.style.display = 'block');
+            sinResultadosProveedor.style.display = 'none';
+            dropdownProveedores.style.display = 'block';
+            // Aplicar filtro si ya hay texto
+            if (buscadorProveedor.value.trim().length > 0) {
+                buscadorProveedor.dispatchEvent(new Event('input'));
+            }
+        });
+
+        opcionesProveedor.forEach(opcion => {
+            opcion.addEventListener('click', (e) => {
+                e.preventDefault();
+                const id = opcion.getAttribute('data-id');
+                const nombre = opcion.textContent.trim();
+                
+                proveedorSelect.value = id;
+                buscadorProveedor.value = '';
+                dropdownProveedores.style.display = 'none';
+                
+                buscadorProveedor.parentElement.style.display = 'none';
+                nombreSeleccionado.textContent = nombre;
+                badgeSeleccionado.style.display = 'block';
+            });
+        });
+
+        btnQuitarProveedor.addEventListener('click', () => {
+            proveedorSelect.value = '';
+            badgeSeleccionado.style.display = 'none';
+            buscadorProveedor.parentElement.style.display = 'flex';
+            buscadorProveedor.focus();
+        });
+
+        // 2. Función para mover de Inventario a Pedido
+        function agregarAlPedido(id, nombre) {
+            // Evitar duplicados
+            if (tablaPedidoBody.querySelector(`tr[data-pedido-id="${id}"]`)) {
+                alert('El producto ya está en la orden de compra.');
+                return;
+            }
+
+            if (filaVacia) filaVacia.style.display = 'none';
+
+            const tr = document.createElement('tr');
+            tr.setAttribute('data-pedido-id', id);
+            tr.innerHTML = `
+                <td class="align-middle fw-bold text-primary">${nombre}</td>
+                <td>
+                    <input type="number" class="form-control form-control-sm bg-dark text-light border-secondary" value="1" min="1">
+                </td>
+                <td class="text-end align-middle">
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-quitar">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </td>
+            `;
+            tablaPedidoBody.appendChild(tr);
+
+            tr.querySelector('.btn-quitar').addEventListener('click', () => {
+                tr.remove();
+                if (tablaPedidoBody.querySelectorAll('tr[data-pedido-id]').length === 0) {
+                    if (filaVacia) filaVacia.style.display = '';
+                }
+            });
+        }
+
+        // Delegación de eventos para botones "Agregar" en Inventario
+        tablaInventarioBody.addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn-agregar');
+            if (btn) {
+                const fila = btn.closest('tr');
+                const id = fila.getAttribute('data-id');
+                // Tomar el texto del nombre formateado (sin lower)
+                const nombre = fila.querySelector('td').textContent.trim();
+                agregarAlPedido(id, nombre);
+            }
+        });
+
+        // 3. Crear Producto vía AJAX
+        const btnGuardarProducto = document.getElementById('btnGuardarProducto');
+        const formNuevo = document.getElementById('formNuevoProducto');
+        const modalError = document.getElementById('modalError');
+
+        btnGuardarProducto.addEventListener('click', async () => {
+            if (!formNuevo.checkValidity()) {
+                formNuevo.reportValidity();
+                return;
+            }
+
+            const nombre = document.getElementById('nuevoNombre').value;
+            const descripcion = document.getElementById('nuevaDescripcion').value;
+            const precio = document.getElementById('nuevoPrecio').value;
+            const stockMin = document.getElementById('nuevoStockMin').value;
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            btnGuardarProducto.disabled = true;
+            modalError.classList.add('d-none');
+
+            try {
+                const res = await fetch("{% url 'proveedores:crear_producto_ajax' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ nombre, descripcion, precio, stock_minimo: stockMin })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    // Producto creado con éxito
+                    // 1. Añadir a la tabla de inventario visualmente
+                    const tr = document.createElement('tr');
+                    tr.setAttribute('data-id', data.id);
+                    tr.setAttribute('data-nombre', data.nombre.toLowerCase());
+                    tr.innerHTML = `
+                        <td class="align-middle fw-bold">${data.nombre}</td>
+                        <td class="align-middle"><span class="badge bg-danger">0</span></td>
+                        <td class="text-end align-middle">
+                            <button class="btn btn-sm btn-primary btn-agregar">
+                                <i class="bi bi-arrow-right"></i>
+                            </button>
+                        </td>
+                    `;
+                    // Insertar al inicio
+                    tablaInventarioBody.insertBefore(tr, tablaInventarioBody.firstChild);
+
+                    // 2. Añadir automáticamente a la orden
+                    agregarAlPedido(data.id, data.nombre);
+
+                    // 3. Cerrar modal y resetear
+                    const modalEl = document.getElementById('modalNuevoProducto');
+                    const modal = bootstrap.Modal.getInstance(modalEl);
+                    modal.hide();
+                    formNuevo.reset();
+                } else {
+                    modalError.textContent = data.error || 'Ocurrió un error al crear el producto.';
+                    modalError.classList.remove('d-none');
+                }
+            } catch (err) {
+                modalError.textContent = 'Error de red. Intenta nuevamente.';
+                modalError.classList.remove('d-none');
+            } finally {
+                btnGuardarProducto.disabled = false;
+            }
+        });
+
+        // 4. Botón Generar PDF (Mockup)
+        document.getElementById('btnGenerarPDF').addEventListener('click', () => {
+            const proveedor = document.getElementById('proveedorSelect').value;
+            if (!proveedor) {
+                alert('Debes seleccionar un proveedor destino.');
+                return;
+            }
+            const filas = tablaPedidoBody.querySelectorAll('tr[data-pedido-id]');
+            if (filas.length === 0) {
+                alert('La orden de compra está vacía.');
+                return;
+            }
+            alert('En el futuro, esto generará un PDF con los datos del proveedor y los ' + filas.length + ' insumos seleccionados.');
+        });
+
+        // 5. Validación antes de salir si hay productos en la orden
+        window.addEventListener('beforeunload', (e) => {
+            const cantidadProductos = tablaPedidoBody.querySelectorAll('tr[data-pedido-id]').length;
+            if (cantidadProductos > 0) {
+                // Alerta estándar del navegador para advertir pérdida de cambios
+                e.preventDefault();
+                e.returnValue = ''; 
+            }
+        });
+
+        // Evento específico para el botón volver
+        document.getElementById('btnVolver').addEventListener('click', (e) => {
+            const cantidadProductos = tablaPedidoBody.querySelectorAll('tr[data-pedido-id]').length;
+            if (cantidadProductos > 0) {
+                if (!confirm('¿Estás seguro de que deseas salir? Tienes productos seleccionados en tu orden que se perderán.')) {
+                    e.preventDefault();
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Catálogo Oficial de Servicios{% endblock %}
+{% block page_subtitle %}Tarifario de referencia de Peluquería Lorena, duraciones estimadas y protocolos requeridos.{% endblock %}
+
+{% block content %}
+<!-- Barra de Acciones y Filtros -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body py-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <!-- Pestañas de Categoría -->
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{% url 'servicios:catalogo' %}" class="btn btn-sm {% if not categoria_seleccionada %}btn-accent text-dark fw-bold{% else %}btn-outline-secondary{% endif %}">
+                Todos ({{ total_servicios }})
+            </a>
+            {% for cod, nombre in categorias %}
+                <a href="{% url 'servicios:catalogo' %}?categoria={{ cod }}" 
+                   class="btn btn-sm {% if categoria_seleccionada == cod %}btn-accent text-dark fw-bold{% else %}btn-outline-secondary{% endif %}">
+                    {{ nombre }}
+                </a>
+            {% endfor %}
+        </div>
+
+        <div class="d-flex gap-2">
+            {% if request.user.is_authenticated and request.user.es_administradora %}
+                <a href="{% url 'servicios:catalogo' %}?cargar_inicial=1" class="btn btn-sm btn-outline-warning" title="Recargar lista de precios oficial">
+                    <i class="bi bi-arrow-repeat me-1"></i> Sincronizar Tarifario
+                </a>
+                <a href="{% url 'servicios:crear_servicio' %}" class="btn btn-sm btn-accent text-dark fw-bold">
+                    <i class="bi bi-plus-lg me-1"></i> Nuevo Servicio
+                </a>
+            {% endif %}
+            <a href="{% url 'servicios:control_diario' %}" class="btn btn-sm btn-outline-info">
+                <i class="bi bi-calendar-check me-1"></i> Ver Control Diario
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Grid de Servicios -->
+<div class="row g-4">
+    {% for s in servicios %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card h-100 shadow-sm border-secondary hover-lift" style="background-color: #1a1c23;">
+                <div class="card-body p-4 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="badge bg-dark border border-secondary text-secondary small">
+                                {{ s.get_categoria_display }}
+                            </span>
+                            {% if s.requiere_consentimiento %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle small" title="Requiere ficha de consentimiento informado obligatoria">
+                                    <i class="bi bi-shield-exclamation me-1"></i> Consentimiento Legal
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        <h5 class="fw-bold text-light mb-1">{{ s.nombre }}</h5>
+                        {% if s.descripcion %}
+                            <p class="text-secondary small mb-3">{{ s.descripcion }}</p>
+                        {% endif %}
+
+                        <div class="my-3 p-3 rounded bg-dark border border-secondary">
+                            <div class="d-flex justify-content-between align-items-baseline mb-1">
+                                <span class="text-secondary small">Precio Base:</span>
+                                <span class="fs-4 fw-bold text-accent">${{ s.precio_base|floatformat:2 }}</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-secondary small">Duración Estimada:</span>
+                                <span class="badge bg-secondary-subtle text-light">
+                                    <i class="bi bi-clock me-1"></i> {{ s.duracion_estimada_minutos }} min
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pt-3 border-top border-secondary d-flex justify-content-between align-items-center">
+                        <a href="{% url 'servicios:registrar_servicio_realizado' %}?servicio={{ s.pk }}" class="btn btn-accent text-dark fw-bold btn-sm">
+                            <i class="bi bi-calendar-plus me-1"></i> Atender Hoy
+                        </a>
+                        {% if request.user.is_authenticated and request.user.es_administradora %}
+                            <a href="{% url 'servicios:editar_servicio' s.pk %}" class="btn btn-outline-secondary btn-sm" title="Editar precio base o duración">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% empty %}
+        <div class="col-12 text-center py-5 text-secondary">
+            <i class="bi bi-scissors fs-1 d-block mb-2"></i>
+            <p>No se encontraron servicios en esta categoría.</p>
+        </div>
+    {% endfor %}
+</div>
+{% endblock %}

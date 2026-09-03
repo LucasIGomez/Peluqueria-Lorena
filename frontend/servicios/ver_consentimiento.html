@@ -1,0 +1,156 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Ficha Legal de Consentimiento #{{ consentimiento.pk }}{% endblock %}
+{% block page_subtitle %}Documento digital de conformidad y diagnóstico capilar.{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <!-- Barra de Imprimir -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <a href="{% url 'servicios:control_diario' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i> Volver a Control Diario
+            </a>
+            <button onclick="window.print()" class="btn btn-warning text-dark fw-bold btn-sm">
+                <i class="bi bi-printer-fill me-1"></i> Imprimir / Guardar PDF
+            </button>
+        </div>
+
+        <!-- Ficha Imprimible -->
+        <div class="card shadow border border-secondary p-4 p-md-5" style="background-color: #1a1c23;" id="documento-legal">
+            <div class="d-flex justify-content-between align-items-center border-bottom border-warning-subtle pb-4 mb-4">
+                <div>
+                    <h3 class="fw-bold text-accent mb-0">PELUQUERÍA LORENA</h3>
+                    <span class="text-secondary small">Salón Profesional de Belleza Integral</span>
+                </div>
+                <div class="text-end">
+                    <span class="badge bg-dark border border-warning-subtle text-light px-3 py-2">
+                        Ficha #{{ consentimiento.pk }}
+                    </span>
+                    <div class="text-secondary small mt-1">Fecha: {{ consentimiento.fecha_emision|date:"d/m/Y H:i" }}</div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <h5 class="fw-bold text-light text-uppercase border-bottom border-secondary pb-2">
+                    Consentimiento Informado y Declaración Jurada Capilar
+                </h5>
+                <p class="text-secondary small">
+                    Tratamiento a realizar: <strong class="text-accent fs-6">{{ consentimiento.get_tipo_procedimiento_display }}</strong>
+                </p>
+            </div>
+
+            <!-- Datos de la Clienta -->
+            <div class="p-3 bg-dark rounded border border-secondary mb-4">
+                <div class="row g-2 small">
+                    <div class="col-md-6">
+                        <span class="text-secondary">Clienta:</span>
+                        <strong class="text-light ms-1">{{ consentimiento.cliente_nombre }}</strong>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="text-secondary">Teléfono:</span>
+                        <span class="text-light ms-1">{{ consentimiento.cliente_telefono }}</span>
+                    </div>
+                    {% if consentimiento.cliente_dni %}
+                        <div class="col-md-6">
+                            <span class="text-secondary">DNI:</span>
+                            <span class="text-light ms-1">{{ consentimiento.cliente_dni }}</span>
+                        </div>
+                    {% endif %}
+                    <div class="col-md-6">
+                        <span class="text-secondary">Profesional:</span>
+                        <strong class="text-light ms-1">{{ consentimiento.profesional.nombre|default:"Lorena Gómez" }}</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Declaraciones de Factores Ajenos -->
+            <h6 class="fw-bold text-light text-uppercase small mb-2">Antecedentes Declarados por la Clienta:</h6>
+            <div class="p-3 bg-dark rounded border border-secondary mb-4 small">
+                <ul class="list-unstyled mb-0">
+                    <li class="mb-2">
+                        • Uso de Henna o Sales Metálicas: 
+                        <strong class="{% if consentimiento.ha_usado_henna_o_sales_metalicas %}text-danger{% else %}text-success{% endif %}">
+                            {{ consentimiento.ha_usado_henna_o_sales_metalicas|yesno:"SÍ,NO" }}
+                        </strong>
+                    </li>
+                    <li class="mb-2">
+                        • Alisados, Botox o Permanentes Previos: 
+                        <strong class="{% if consentimiento.tiene_alisados_o_permanentes_previos %}text-warning{% else %}text-success{% endif %}">
+                            {{ consentimiento.tiene_alisados_o_permanentes_previos|yesno:"SÍ,NO" }}
+                        </strong>
+                        {% if consentimiento.detalle_quimicos_previos %}
+                            <span class="text-secondary d-block ps-3">Detalle: {{ consentimiento.detalle_quimicos_previos }}</span>
+                        {% endif %}
+                    </li>
+                    <li class="mb-2">
+                        • Decoloraciones Anteriores en Medios/Puntas: 
+                        <strong class="text-light">{{ consentimiento.tiene_decoloraciones_previas|yesno:"SÍ,NO" }}</strong>
+                    </li>
+                    <li class="mb-2">
+                        • Alergias Cutáneas o Cuero Cabelludo Sensible: 
+                        <strong class="{% if consentimiento.alergias_o_sensibilidad_cuero_cabelludo %}text-danger{% else %}text-success{% endif %}">
+                            {{ consentimiento.alergias_o_sensibilidad_cuero_cabelludo|yesno:"SÍ,NO" }}
+                        </strong>
+                        {% if consentimiento.detalle_alergias %}
+                            <span class="text-secondary ms-2">({{ consentimiento.detalle_alergias }})</span>
+                        {% endif %}
+                    </li>
+                    <li>
+                        • Embarazo o Lactancia: <strong class="text-light">{{ consentimiento.embarazo_o_lactancia|yesno:"SÍ,NO" }}</strong>
+                    </li>
+                </ul>
+            </div>
+
+            <!-- Diagnóstico de la Profesional -->
+            <h6 class="fw-bold text-light text-uppercase small mb-2">Diagnóstico Técnico y Prueba de Mecha:</h6>
+            <div class="p-3 bg-dark rounded border border-secondary mb-4 small">
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <span class="text-secondary">Prueba de Mecha:</span>
+                        <span class="badge {% if consentimiento.resultado_prueba_mecha == 'APTO' %}bg-success{% elif consentimiento.resultado_prueba_mecha == 'APTO_PRECAUCION' %}bg-warning text-dark{% else %}bg-danger{% endif %} ms-1">
+                            {{ consentimiento.get_resultado_prueba_mecha_display }}
+                        </span>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="text-secondary">Elasticidad de la Fibra:</span>
+                        <span class="text-light fw-bold ms-1">{{ consentimiento.get_elasticidad_cabello_display }}</span>
+                    </div>
+                    <div class="col-md-6">
+                        <span class="text-secondary">Porosidad:</span>
+                        <span class="text-light fw-bold ms-1">{{ consentimiento.get_porosidad_cabello_display }}</span>
+                    </div>
+                    {% if consentimiento.observaciones %}
+                        <div class="col-12 mt-2">
+                            <span class="text-secondary d-block">Observaciones Profesionales:</span>
+                            <span class="text-light">{{ consentimiento.observaciones }}</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Cláusula de Conformidad Legal y Firmas -->
+            <div class="p-3 rounded border border-warning-subtle mb-4 small text-secondary">
+                <p class="mb-0">
+                    <strong>Cláusula de Responsabilidad:</strong> La clienta manifiesta haber sido debidamente informada sobre las etapas, recaudos y riesgos inherentes al procedimiento químico solicitado. Declara que los datos sobre tratamientos anteriores provistos son fidedignos, asumiendo que la omisión de información técnica puede derivar en reacciones capilares imprevisibles. Se compromete asimismo a respetar el régimen de hidratación y cuidados post-tratamiento indicados por la profesional.
+                </p>
+            </div>
+
+            <div class="row pt-5 mt-4 text-center">
+                <div class="col-6">
+                    <div class="border-top border-secondary pt-2 mx-3">
+                        <strong class="text-light d-block">{{ consentimiento.firma_digital|default:consentimiento.cliente_nombre }}</strong>
+                        <small class="text-secondary">Firma / Conformidad de la Clienta</small>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="border-top border-secondary pt-2 mx-3">
+                        <strong class="text-light d-block">{{ consentimiento.profesional.nombre|default:"Lorena Gómez" }}</strong>
+                        <small class="text-secondary">Peluquería Lorena — Mat. Profesional</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

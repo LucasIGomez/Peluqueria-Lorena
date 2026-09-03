@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+
+{% block page_title %}{{ accion }}{% endblock %}
+{% block page_subtitle %}Defina tarifas, categoría y protocolo de consentimiento legal.{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0">
+            <div class="card-header py-3">
+                <h5 class="mb-0 text-light"><i class="bi bi-scissors me-2 text-accent"></i> Configuración de Servicio</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    {% csrf_token %}
+
+                    <div class="mb-3">
+                        <label class="form-label text-light">Nombre del Servicio <span class="text-danger">*</span></label>
+                        {{ form.nombre }}
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Categoría <span class="text-danger">*</span></label>
+                            {{ form.categoria }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Precio Base ($) <span class="text-danger">*</span></label>
+                            {{ form.precio_base }}
+                            <small class="text-secondary">Tarifa "desde" que se puede adaptar según la clienta.</small>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Duración Estimada (Minutos) <span class="text-danger">*</span></label>
+                            {{ form.duracion_estimada_minutos }}
+                        </div>
+                        <div class="col-md-6 d-flex align-items-center pt-4">
+                            <div class="form-check">
+                                {{ form.requiere_consentimiento }}
+                                <label class="form-check-label text-light ms-2">
+                                    Requiere Consentimiento Legal
+                                </label>
+                                <small class="text-secondary d-block">Marcar para decoloraciones y alisados químicos.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-light">Descripción del Servicio</label>
+                        {{ form.descripcion }}
+                    </div>
+
+                    <div class="form-check mb-4">
+                        {{ form.activo }}
+                        <label class="form-check-label text-light ms-2">
+                            Servicio Activo en Catálogo
+                        </label>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top border-secondary">
+                        <a href="{% url 'servicios:catalogo' %}" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-accent text-dark fw-bold px-4">
+                            <i class="bi bi-check-lg me-1"></i> Guardar Servicio
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

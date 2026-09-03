@@ -1,0 +1,338 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Ficha de Clienta: {{ cliente.nombre }}{% endblock %}
+{% block page_subtitle %}Historial técnico, tratamientos multisesión, consentimientos y atenciones.{% endblock %}
+
+{% block content %}
+<!-- Tarjeta Principal de Perfil -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-body p-4 text-center">
+                <div class="rounded-circle bg-dark text-accent border border-warning-subtle d-inline-flex align-items-center justify-content-center fw-bold fs-2 mb-3 shadow" style="width: 80px; height: 80px;">
+                    {{ cliente.nombre|slice:":1"|upper }}
+                </div>
+                <h4 class="fw-bold text-light mb-1">{{ cliente.nombre }}</h4>
+                <p class="text-secondary small mb-3">Registrada el {{ cliente.fecha_registro|date:"d/m/Y" }}</p>
+
+                <div class="d-grid gap-2 mb-3">
+                    <a href="{{ cliente.link_whatsapp }}" target="_blank" class="btn btn-success fw-bold d-flex align-items-center justify-content-center gap-2">
+                        <i class="bi bi-whatsapp fs-5"></i> Enviar WhatsApp
+                    </a>
+                    <a href="{% url 'clientes:editar_cliente' cliente.pk %}" class="btn btn-outline-secondary btn-sm">
+                        <i class="bi bi-pencil me-1"></i> Editar Datos
+                    </a>
+                </div>
+
+                <hr class="border-secondary my-3">
+
+                <div class="text-start small">
+                    <div class="mb-2">
+                        <span class="text-secondary d-block">Teléfono:</span>
+                        <span class="text-light fw-semibold">{{ cliente.telefono }}</span>
+                    </div>
+                    {% if cliente.email %}
+                        <div class="mb-2">
+                            <span class="text-secondary d-block">Correo:</span>
+                            <span class="text-light fw-semibold">{{ cliente.email }}</span>
+                        </div>
+                    {% endif %}
+                    <div class="mb-2">
+                        <span class="text-secondary d-block">Cumpleaños:</span>
+                        {% if cliente.fecha_nacimiento %}
+                            <span class="text-light fw-semibold">
+                                {{ cliente.fecha_nacimiento|date:"d F" }}
+                                {% if cliente.es_cumpleanos_hoy %}
+                                    <span class="badge bg-danger ms-1">¡Cumple Hoy! 🎂</span>
+                                {% elif cliente.cumple_proximo %}
+                                    <span class="badge bg-warning text-dark ms-1">en {{ cliente.dias_para_cumpleanos }} días</span>
+                                {% endif %}
+                            </span>
+                        {% else %}
+                            <span class="text-secondary">Sin registrar</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notas de Alergias y Preferencias -->
+    <div class="col-md-8">
+        <div class="card h-100 shadow-sm border-0">
+            <div class="card-header d-flex justify-content-between align-items-center py-3">
+                <h5 class="mb-0 text-light"><i class="bi bi-heart-pulse me-2 text-danger"></i> Diagnóstico de Salud y Preferencias</h5>
+                <div class="d-flex gap-2">
+                    <a href="{% url 'servicios:crear_consentimiento' %}?cliente={{ cliente.pk }}" class="btn btn-sm btn-outline-warning">
+                        <i class="bi bi-shield-check me-1"></i> Nuevo Consentimiento
+                    </a>
+                    <a href="{% url 'clientes:iniciar_tratamiento' cliente_pk=cliente.pk %}" class="btn btn-sm btn-accent text-dark fw-bold">
+                        <i class="bi bi-plus-circle me-1"></i> Iniciar Tratamiento
+                    </a>
+                </div>
+            </div>
+            <div class="card-body p-4">
+                {% if cliente.notas_alergias %}
+                    <div class="alert alert-danger border-danger-subtle d-flex align-items-start gap-3 mb-4" role="alert">
+                        <i class="bi bi-exclamation-octagon-fill fs-3 text-danger"></i>
+                        <div>
+                            <h6 class="alert-heading fw-bold mb-1">Alergias o Sensibilidad Capilar Declarada:</h6>
+                            <p class="mb-0">{{ cliente.notas_alergias }}</p>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="alert alert-dark border border-secondary d-flex align-items-center gap-2 mb-4">
+                        <i class="bi bi-shield-check text-success fs-4"></i>
+                        <span class="text-secondary">Sin antecedentes de alergias químicas o sensibilidad reportadas.</span>
+                    </div>
+                {% endif %}
+
+                <h6 class="text-secondary fw-semibold text-uppercase mb-2" style="font-size: 0.8rem; letter-spacing: 0.5px;">Preferencias y Estilo de la Clienta:</h6>
+                <div class="p-3 bg-dark rounded border border-secondary text-light mb-3">
+                    {% if cliente.preferencias %}
+                        {{ cliente.preferencias|linebreaks }}
+                    {% else %}
+                        <span class="text-secondary fst-italic">No se han ingresado preferencias de peinado o productos favoritos aún.</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pestañas de Historial Técnico -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header p-0 border-bottom border-secondary">
+        <ul class="nav nav-tabs border-0 px-3 pt-2" id="fichaTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active text-light" id="tratamientos-tab" data-bs-toggle="tab" data-bs-target="#tratamientos" type="button" role="tab">
+                    <i class="bi bi-layers-half me-1 text-accent"></i> Tratamientos Multisesión ({{ tratamientos.count }})
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link text-light" id="consentimientos-tab" data-bs-toggle="tab" data-bs-target="#consentimientos" type="button" role="tab">
+                    <i class="bi bi-file-earmark-medical me-1 text-warning"></i> Consentimientos Informados ({{ consentimientos.count }})
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link text-light" id="servicios-tab" data-bs-toggle="tab" data-bs-target="#servicios" type="button" role="tab">
+                    <i class="bi bi-clock-history me-1 text-info"></i> Historial de Atenciones ({{ servicios_realizados.count }})
+                </button>
+            </li>
+        </ul>
+    </div>
+
+    <div class="card-body p-4">
+        <div class="tab-content" id="fichaTabsContent">
+            
+            <!-- Tab 1: Tratamientos Multisesión -->
+            <div class="tab-pane fade show active" id="tratamientos" role="tabpanel">
+                {% for t in tratamientos %}
+                    <div class="card border-secondary mb-4" style="background-color: #16181f;">
+                        <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2 py-3">
+                            <div>
+                                <h5 class="mb-0 text-light fw-bold">{{ t.titulo_tratamiento }}</h5>
+                                <small class="text-secondary">Servicio: <strong class="text-accent">{{ t.servicio_nombre }}</strong> • Inicio: {{ t.fecha_inicio|date:"d/m/Y" }}</small>
+                            </div>
+                            <div class="d-flex align-items-center gap-3">
+                                <span class="badge {% if t.estado == 'FINALIZADO' %}bg-success{% elif t.estado == 'PAUSADO' %}bg-secondary{% else %}bg-warning text-dark{% endif %} px-3 py-2 fw-semibold">
+                                    {{ t.get_estado_display }}
+                                </span>
+                                {% if t.estado != 'FINALIZADO' %}
+                                    <a href="{% url 'clientes:registrar_evolucion' tratamiento_pk=t.pk %}" class="btn btn-sm btn-accent text-dark fw-bold">
+                                        <i class="bi bi-journal-plus me-1"></i> Registrar Sesión #{{ t.sesion_actual|add:"1" }}
+                                    </a>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="card-body p-4">
+                            <!-- Barra de Progreso -->
+                            <div class="mb-4">
+                                <div class="d-flex justify-content-between text-secondary small mb-1">
+                                    <span>Progreso: Sesión {{ t.sesion_actual }} de {{ t.total_sesiones_estimadas }} estimadas</span>
+                                    <span class="fw-bold text-accent">{{ t.porcentaje_progreso }}%</span>
+                                </div>
+                                <div class="progress" style="height: 10px; background-color: #2a2e35;">
+                                    <div class="progress-bar bg-accent" role="progressbar" style="width: {{ t.porcentaje_progreso }}%;"></div>
+                                </div>
+                            </div>
+
+                            {% if t.notas_objetivo %}
+                                <div class="mb-3 p-3 rounded bg-dark border border-secondary small">
+                                    <strong class="text-light d-block mb-1"><i class="bi bi-flag-fill text-warning me-1"></i> Objetivo Técnico:</strong>
+                                    <span class="text-secondary">{{ t.notas_objetivo }}</span>
+                                </div>
+                            {% endif %}
+
+                            <!-- Historial de Sesiones -->
+                            <h6 class="text-secondary fw-semibold text-uppercase mb-3" style="font-size: 0.75rem; letter-spacing: 0.5px;">Evolución Sesión a Sesión:</h6>
+                            <div class="timeline">
+                                {% for s in t.sesiones_evolucion.all %}
+                                    <div class="p-3 mb-3 rounded border border-secondary" style="background-color: #1e222a;">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <span class="badge bg-dark border border-warning-subtle text-accent fw-bold px-3 py-1">
+                                                Sesión #{{ s.numero_sesion }} — {{ s.fecha|date:"d/m/Y" }}
+                                            </span>
+                                            {% if s.profesional %}
+                                                <small class="text-secondary">Atendió: <strong class="text-light">{{ s.profesional.nombre }}</strong></small>
+                                            {% endif %}
+                                        </div>
+
+                                        <div class="row g-3 small">
+                                            <div class="col-md-6">
+                                                <strong class="text-light d-block">🔬 Diagnóstico de la Fibra:</strong>
+                                                <span class="text-secondary">{{ s.diagnostico_fibra }}</span>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <strong class="text-light d-block">🧪 Fórmulas y Productos Aplicados:</strong>
+                                                <span class="text-accent">{{ s.formula_quimica_utilizada }}</span>
+                                                {% if s.tiempo_exposicion_minutos %}
+                                                    <span class="text-secondary d-block">Tiempo de exposición: {{ s.tiempo_exposicion_minutos }} min</span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="col-12">
+                                                <strong class="text-light d-block">✨ Resultado Obtenido:</strong>
+                                                <span class="text-secondary">{{ s.resultado_obtenido }}</span>
+                                            </div>
+                                            {% if s.indicaciones_hogar %}
+                                                <div class="col-12">
+                                                    <strong class="text-light d-block"><i class="bi bi-house-heart text-info me-1"></i> Cuidados en el Hogar:</strong>
+                                                    <span class="text-secondary">{{ s.indicaciones_hogar }}</span>
+                                                </div>
+                                            {% endif %}
+                                            {% if s.proxima_cita_recomendada %}
+                                                <div class="col-12">
+                                                    <span class="badge bg-info-subtle text-info">
+                                                        <i class="bi bi-calendar-event me-1"></i> Próxima sesión sugerida: {{ s.proxima_cita_recomendada|date:"d/m/Y" }}
+                                                    </span>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% empty %}
+                                    <p class="text-secondary small fst-italic">Aún no se han cargado sesiones técnicas de este tratamiento.</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                {% empty %}
+                    <div class="text-center py-5 text-secondary">
+                        <i class="bi bi-layers fs-1 d-block mb-2"></i>
+                        <p>No hay tratamientos multisesión activos para esta clienta.</p>
+                        <a href="{% url 'clientes:iniciar_tratamiento' cliente_pk=cliente.pk %}" class="btn btn-sm btn-accent text-dark fw-bold">
+                            <i class="bi bi-plus-circle me-1"></i> Iniciar Proceso por Etapas
+                        </a>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Tab 2: Consentimientos Informados -->
+            <div class="tab-pane fade" id="consentimientos" role="tabpanel">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="text-secondary mb-0">Documentos Legales Firmados para Tratamientos Químicos</h6>
+                    <a href="{% url 'servicios:crear_consentimiento' %}?cliente={{ cliente.pk }}" class="btn btn-sm btn-warning text-dark fw-bold">
+                        <i class="bi bi-file-earmark-plus me-1"></i> Emitir Nuevo Consentimiento
+                    </a>
+                </div>
+
+                {% if consentimientos %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover mb-0 align-middle">
+                            <thead class="table-secondary text-secondary">
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Procedimiento</th>
+                                    <th>Prueba de Mecha</th>
+                                    <th>Resguardo Henna / Alisados</th>
+                                    <th>Profesional</th>
+                                    <th class="text-end">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for c in consentimientos %}
+                                    <tr>
+                                        <td>{{ c.fecha_emision|date:"d/m/Y H:i" }}</td>
+                                        <td><strong class="text-light">{{ c.get_tipo_procedimiento_display }}</strong></td>
+                                        <td>
+                                            {% if c.resultado_prueba_mecha == 'APTO' %}
+                                                <span class="badge bg-success-subtle text-success">Apto</span>
+                                            {% elif c.resultado_prueba_mecha == 'APTO_PRECAUCION' %}
+                                                <span class="badge bg-warning-subtle text-warning">Apto con Precaución</span>
+                                            {% else %}
+                                                <span class="badge bg-danger-subtle text-danger">No Apto</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if c.ha_usado_henna_o_sales_metalicas %}
+                                                <span class="badge bg-danger-subtle text-danger">Usó Henna</span>
+                                            {% elif c.tiene_alisados_o_permanentes_previos %}
+                                                <span class="badge bg-warning-subtle text-warning">Alisados Previos</span>
+                                            {% else %}
+                                                <span class="badge bg-dark border border-secondary text-secondary">Sin antecedentes de riesgo</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ c.profesional.nombre|default:"Lorena Gómez" }}</td>
+                                        <td class="text-end">
+                                            <a href="{% url 'servicios:ver_consentimiento' c.pk %}" class="btn btn-sm btn-outline-warning" target="_blank">
+                                                <i class="bi bi-printer me-1"></i> Ver Ficha
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5 text-secondary">
+                        <i class="bi bi-file-earmark-medical fs-1 d-block mb-2"></i>
+                        <p>No se registran consentimientos informados firmados por esta clienta.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Tab 3: Historial de Servicios -->
+            <div class="tab-pane fade" id="servicios" role="tabpanel">
+                {% if servicios_realizados %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover mb-0 align-middle">
+                            <thead class="table-secondary text-secondary">
+                                <tr>
+                                    <th>Fecha y Hora</th>
+                                    <th>Servicio</th>
+                                    <th>Precio Cobrado</th>
+                                    <th>Duración</th>
+                                    <th>Profesional</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for s in servicios_realizados %}
+                                    <tr>
+                                        <td>{{ s.fecha|date:"d/m/Y" }} {{ s.hora|time:"H:i" }}</td>
+                                        <td><strong class="text-light">{{ s.servicio.nombre }}</strong></td>
+                                        <td class="fw-bold text-accent">${{ s.precio_acordado|floatformat:2 }}</td>
+                                        <td>{{ s.duracion_minutos }} min</td>
+                                        <td>{{ s.profesional.nombre }}</td>
+                                        <td>
+                                            <span class="badge {% if s.estado == 'COMPLETADO' %}bg-success-subtle text-success{% else %}bg-secondary{% endif %}">
+                                                {{ s.get_estado_display }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5 text-secondary">
+                        <i class="bi bi-scissors fs-1 d-block mb-2"></i>
+                        <p>No hay registro de servicios completados aún para esta clienta.</p>
+                    </div>
+                {% endif %}
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

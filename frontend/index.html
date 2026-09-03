@@ -1,108 +1,229 @@
 {% extends 'base.html' %}
 
 {% block content %}
+{% if not request.user.is_authenticated %}
+    <div class="alert alert-dark border border-secondary p-4 rounded mb-4 d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="text-light mb-1"><i class="bi bi-info-circle text-accent me-2"></i> Bienvenido/a al Sistema de Peluquería Lorena</h5>
+            <p class="text-secondary mb-0">Iniciá sesión con tu cuenta para acceder a tus herramientas operativas o de gestión.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'usuarios:login' %}" class="btn btn-accent text-dark fw-bold px-3">Iniciar Sesión</a>
+            <a href="{% url 'usuarios:registro' %}" class="btn btn-outline-light px-3">Registrarse</a>
+        </div>
+    </div>
+{% endif %}
+
 <div class="row g-4 mb-4">
-    <!-- Resumen de Stats Simulado (Dashboard layout based on image) -->
-    <div class="col-md-3">
+    <!-- Servicios -->
+    <div class="col-md-4">
         <div class="card h-100 py-3">
             <div class="card-body d-flex align-items-center gap-3">
-                <div class="bg-dark rounded p-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                    <i class="bi bi-people fs-4 text-accent"></i>
+                <div class="bg-dark rounded p-3 d-flex align-items-center justify-content-center"
+                    style="width: 50px; height: 50px;">
+                    <i class="bi bi-card-checklist fs-4 text-accent"></i>
                 </div>
                 <div>
-                    <h6 class="text-secondary mb-1">Usuarios Activos</h6>
-                    <h4 class="mb-0 fw-bold">5</h4>
+                    <h6 class="text-secondary mb-1">Servicios</h6>
+                    <h4 class="mb-0 fw-bold">Catálogo y control diario</h4>
                 </div>
             </div>
         </div>
     </div>
-    
-    <div class="col-md-3">
+
+    <!-- Inventario -->
+    <div class="col-md-4">
         <div class="card h-100 py-3">
             <div class="card-body d-flex align-items-center gap-3">
-                <div class="bg-dark rounded p-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                    <i class="bi bi-calendar-event fs-4 text-accent"></i>
-                </div>
-                <div>
-                    <h6 class="text-secondary mb-1">Turnos Hoy</h6>
-                    <h4 class="mb-0 fw-bold">12</h4>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div class="col-md-3">
-        <div class="card h-100 py-3">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="bg-dark rounded p-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                <div class="bg-dark rounded p-3 d-flex align-items-center justify-content-center"
+                    style="width: 50px; height: 50px;">
                     <i class="bi bi-box-seam fs-4 text-accent"></i>
                 </div>
                 <div>
-                    <h6 class="text-secondary mb-1">Productos Vendidos</h6>
-                    <h4 class="mb-0 fw-bold">18</h4>
+                    <h6 class="text-secondary mb-1">Inventario</h6>
+                    <h4 class="mb-0 fw-bold">Stock e insumos</h4>
                 </div>
             </div>
         </div>
     </div>
-    
-    <div class="col-md-3">
-        <div class="card h-100 py-3">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="bg-dark rounded p-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                    <i class="bi bi-currency-dollar fs-4 text-accent"></i>
-                </div>
-                <div>
-                    <h6 class="text-secondary mb-1">Ingresos del Día</h6>
-                    <h4 class="mb-0 fw-bold">$45.000</h4>
+
+    {% if request.user.is_authenticated and request.user.es_administradora %}
+        <!-- Gestión (Solo Admin) -->
+        <div class="col-md-4">
+            <div class="card h-100 py-3 border-warning-subtle">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="bg-dark rounded p-3 d-flex align-items-center justify-content-center"
+                        style="width: 50px; height: 50px;">
+                        <i class="bi bi-people fs-4 text-warning"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-secondary mb-1">Gestión</h6>
+                        <h4 class="mb-0 fw-bold text-warning">Usuarios y proveedores</h4>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
+    {% else %}
+        <!-- Estado (Empleada) -->
+        <div class="col-md-4">
+            <div class="card h-100 py-3">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <div class="bg-dark rounded p-3 d-flex align-items-center justify-content-center"
+                        style="width: 50px; height: 50px;">
+                        <i class="bi bi-check2-circle fs-4 text-success"></i>
+                    </div>
+                    <div>
+                        <h6 class="text-secondary mb-1">Estado</h6>
+                        <h4 class="mb-0 fw-bold text-success">En línea</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endif %}
 </div>
 
 <div class="row g-4">
-    <!-- Placeholder para el resto del contenido del Dashboard -->
+    <!-- Control Diario y Clientas -->
     <div class="col-md-8">
         <div class="card h-100">
             <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-calendar-check me-2 text-accent"></i> Agenda de Hoy</h5>
-                <button class="btn btn-sm btn-outline-secondary text-light">Ver agenda completa</button>
+                <h5 class="mb-0"><i class="bi bi-scissors me-2 text-accent"></i> Operaciones del Salón</h5>
+                <span class="badge bg-success-subtle text-success">Módulos Activos</span>
             </div>
-            <div class="card-body text-center text-secondary d-flex flex-column justify-content-center">
-                <i class="bi bi-tools fs-1 mb-3"></i>
-                <p>La lógica de la agenda se implementará más adelante.</p>
-                <p>Por ahora nos enfocaremos en <strong>Productos y Proveedores</strong>.</p>
+            <div class="card-body p-4">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="p-3 bg-dark rounded border border-secondary h-100 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-warning text-dark fw-bold">Bitácora en Vivo</span>
+                                    <i class="bi bi-calendar-check text-accent fs-4"></i>
+                                </div>
+                                <h5 class="text-light fw-bold mb-1">Control Diario</h5>
+                                <p class="text-secondary small mb-3">Lleve el registro horario de atenciones con precios y plazos adaptados a cada clienta.</p>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'servicios:control_diario' %}" class="btn btn-sm btn-accent text-dark fw-bold">Ver Control Diario</a>
+                                <a href="{% url 'servicios:registrar_servicio_realizado' %}" class="btn btn-sm btn-outline-secondary">+ Atender</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% comment %} Fuera de alcance para la entrega del viernes — módulo Clientes (se desarrolla post-entrega).
+                    <div class="col-md-6">
+                        <div class="p-3 bg-dark rounded border border-secondary h-100 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-info text-dark fw-bold">Fidelización</span>
+                                    <i class="bi bi-people-fill text-info fs-4"></i>
+                                </div>
+                                <h5 class="text-light fw-bold mb-1">Agenda de Clientas</h5>
+                                <p class="text-secondary small mb-3">Historial técnico de procesos multisesión, consentimientos y alertas de cumpleaños.</p>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a href="/clientes/" class="btn btn-sm btn-info text-dark fw-bold">Ver Clientas</a>
+                                <a href="/clientes/nueva/" class="btn btn-sm btn-outline-secondary">+ Nueva</a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endcomment %}
+                    <div class="col-md-6">
+                        <div class="p-3 bg-dark rounded border border-secondary h-100 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-danger text-light fw-bold">Legal y Técnico</span>
+                                    <i class="bi bi-shield-check text-warning fs-4"></i>
+                                </div>
+                                <h5 class="text-light fw-bold mb-1">Consentimiento Informado</h5>
+                                <p class="text-secondary small mb-3">Fichas de resguardo legal para decoloraciones y alisados con prueba de mecha.</p>
+                            </div>
+                            <div>
+                                <a href="{% url 'servicios:crear_consentimiento' %}" class="btn btn-sm btn-warning text-dark fw-bold">Emitir Consentimiento</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 bg-dark rounded border border-secondary h-100 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-warning text-dark fw-bold">Cierre Diario</span>
+                                    <i class="bi bi-box-arrow-down text-warning fs-4"></i>
+                                </div>
+                                <h5 class="text-light fw-bold mb-1">Cierre de Insumos</h5>
+                                <p class="text-secondary small mb-3">Computa las clientas por servicio y descuenta automáticamente los insumos de inventario.</p>
+                            </div>
+                            <div>
+                                <a href="{% url 'servicios:cierre_diario' %}" class="btn btn-sm btn-outline-warning">Ir al Cierre de Caja</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    
+
+    <!-- Accesos Rápidos según Rol -->
     <div class="col-md-4">
         <div class="card h-100">
             <div class="card-header">
-                <h5 class="mb-0">Accesos Rápidos</h5>
+                <h5 class="mb-0"><i class="bi bi-lightning-charge me-1 text-accent"></i> Accesos Rápidos</h5>
             </div>
             <div class="card-body d-flex flex-column gap-3">
-                <a href="/inventario/productos/" class="btn btn-dark text-start p-3 d-flex align-items-center gap-3 border" style="border-color: #3c4149 !important;">
+                <a href="/inventario/productos/"
+                    class="btn btn-dark text-start p-3 d-flex align-items-center gap-3 border"
+                    style="border-color: #3c4149 !important;">
                     <i class="bi bi-box-seam fs-4 text-accent"></i>
                     <div>
-                        <h6 class="mb-0">Gestión de Stock</h6>
-                        <small class="text-secondary">Agregar o editar productos</small>
+                        <h6 class="mb-0">Catálogo de Insumos</h6>
+                        <small class="text-secondary">Consultar stock y precios</small>
                     </div>
                 </a>
-                <a href="/inventario/descontar-stock/" class="btn btn-dark text-start p-3 d-flex align-items-center gap-3 border" style="border-color: #3c4149 !important;">
+
+                <a href="/inventario/descontar-stock/"
+                    class="btn btn-dark text-start p-3 d-flex align-items-center gap-3 border"
+                    style="border-color: #3c4149 !important;">
                     <i class="bi bi-scissors fs-4 text-warning"></i>
                     <div>
                         <h6 class="mb-0">Descontar Insumos</h6>
-                        <small class="text-secondary">Consumo al finalizar servicio</small>
+                        <small class="text-secondary">Registrar consumo por servicio</small>
                     </div>
                 </a>
-                <a href="/proveedores/" class="btn btn-dark text-start p-3 d-flex align-items-center gap-3 border" style="border-color: #3c4149 !important;">
-                    <i class="bi bi-truck fs-4 text-accent"></i>
+
+                <a href="/inventario/reponer-stock/"
+                    class="btn btn-dark text-start p-3 d-flex align-items-center gap-3 border"
+                    style="border-color: #3c4149 !important;">
+                    <i class="bi bi-plus-circle fs-4 text-success"></i>
                     <div>
-                        <h6 class="mb-0">Proveedores</h6>
-                        <small class="text-secondary">Ver listado de proveedores</small>
+                        <h6 class="mb-0">Agregar / Reponer Stock</h6>
+                        <small class="text-secondary">Ingreso de mercadería al salón</small>
                     </div>
                 </a>
+
+                {% if request.user.is_authenticated and request.user.es_administradora %}
+                    <a href="/usuarios/gestion/" class="btn btn-dark text-start p-3 d-flex align-items-center gap-3 border border-warning-subtle">
+                        <i class="bi bi-people-fill fs-4 text-warning"></i>
+                        <div>
+                            <h6 class="mb-0 text-warning">Gestión de Usuarios</h6>
+                            <small class="text-secondary">Personal, roles y permisos</small>
+                        </div>
+                    </a>
+
+                    <a href="/proveedores/" class="btn btn-dark text-start p-3 d-flex align-items-center gap-3 border"
+                        style="border-color: #3c4149 !important;">
+                        <i class="bi bi-truck fs-4 text-accent"></i>
+                        <div>
+                            <h6 class="mb-0">Proveedores</h6>
+                            <small class="text-secondary">Contacto y pedidos a distribuidoras</small>
+                        </div>
+                    </a>
+
+                    <a href="{% url 'proveedores:generar_orden' %}" class="btn btn-dark text-start p-3 d-flex align-items-center gap-3 border border-primary-subtle">
+                        <i class="bi bi-file-earmark-plus fs-4 text-primary"></i>
+                        <div>
+                            <h6 class="mb-0 text-primary">Generar Orden de Compra</h6>
+                            <small class="text-secondary">Armar pedido a distribuidoras</small>
+                        </div>
+                    </a>
+                {% endif %}
             </div>
         </div>
     </div>

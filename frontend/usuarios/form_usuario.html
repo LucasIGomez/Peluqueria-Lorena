@@ -1,0 +1,114 @@
+{% extends 'base.html' %}
+
+{% block page_title %}{{ accion }}{% endblock %}
+{% block page_subtitle %}Gestión de credenciales y roles del personal.{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center py-3">
+    <div class="col-md-6">
+        <div class="card shadow border-0" style="background-color: #1a1d24; border: 1px solid #2a2e35 !important;">
+            <div class="card-header d-flex justify-content-between align-items-center py-3 border-bottom" style="border-color: #2a2e35 !important;">
+                <h5 class="mb-0 text-light"><i class="bi bi-person-gear me-2 text-accent"></i> {{ accion }}</h5>
+                <a href="{% url 'usuarios:lista_usuarios' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Volver a la Lista
+                </a>
+            </div>
+            
+            <div class="card-body p-4">
+                <form method="POST">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.nombre.id_for_label }}" class="form-label text-light fw-semibold">Nombre Completo</label>
+                        {{ form.nombre }}
+                        {% if form.nombre.errors %}
+                            <div class="text-danger small mt-1">{{ form.nombre.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.email.id_for_label }}" class="form-label text-light fw-semibold">Correo Electrónico</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <div class="text-danger small mt-1">{{ form.email.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.rol.id_for_label }}" class="form-label text-light fw-semibold">Rol Asignado</label>
+                        {{ form.rol }}
+                        {% if form.rol.errors %}
+                            <div class="text-danger small mt-1">{{ form.rol.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if form.admin_pin %}
+                        <div class="mb-3" id="adminPinContainer" style="display: none;">
+                            <div class="p-3 rounded bg-dark border border-warning-subtle mb-2">
+                                <label for="{{ form.admin_pin.id_for_label }}" class="form-label text-warning fw-semibold mb-1">
+                                    <i class="bi bi-shield-lock-fill me-1"></i> PIN de Seguridad Administradora
+                                </label>
+                                {{ form.admin_pin }}
+                                <small class="text-secondary d-block mt-1">Requerido si se asigna rol Administradora (por defecto: 1234).</small>
+                                {% if form.admin_pin.errors %}
+                                    <div class="text-danger small mt-1">{{ form.admin_pin.errors|striptags }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    {% if form.password %}
+                        <div class="mb-3">
+                            <label for="{{ form.password.id_for_label }}" class="form-label text-light fw-semibold">Contraseña Inicial</label>
+                            {{ form.password }}
+                            {% if form.password.errors %}
+                                <div class="text-danger small mt-1">{{ form.password.errors|striptags }}</div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    
+                    {% if form.is_active %}
+                        <div class="mb-4 form-check form-switch p-3 bg-dark rounded border border-secondary">
+                            {{ form.is_active }}
+                            <label for="{{ form.is_active.id_for_label }}" class="form-check-label text-light fw-semibold ms-2">
+                                Usuario Activo (Permite inicio de sesión)
+                            </label>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a href="{% url 'usuarios:lista_usuarios' %}" class="btn btn-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-accent fw-bold text-dark">
+                            <i class="bi bi-save me-1"></i> Guardar Cambios
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const rolSelect = document.getElementById("id_rol_select");
+        const pinContainer = document.getElementById("adminPinContainer");
+
+        function toggleAdminPin() {
+            if (rolSelect && pinContainer) {
+                if (rolSelect.value === "ADMINISTRADORA") {
+                    pinContainer.style.display = "block";
+                } else {
+                    pinContainer.style.display = "none";
+                }
+            }
+        }
+
+        if (rolSelect) {
+            rolSelect.addEventListener("change", toggleAdminPin);
+            toggleAdminPin();
+        }
+    });
+</script>
+{% endblock %}

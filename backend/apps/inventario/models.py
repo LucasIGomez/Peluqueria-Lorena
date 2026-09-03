@@ -166,10 +166,14 @@ class MovimientoStock(models.Model):
     """
 
     class TipoMovimiento(models.TextChoices):
-        CONSUMO_SERVICIO = "CONSUMO_SERVICIO", "Consumo en servicio"
-        VENTA_DIRECTA = "VENTA_DIRECTA", "Venta directa"
-        AJUSTE_MANUAL = "AJUSTE_MANUAL", "Ajuste manual"
-        REPOSICION = "REPOSICION", "Reposición de stock"
+        ALTA_PRODUCTO = "ALTA_PRODUCTO", "Producto añadido"
+        BAJA_PRODUCTO = "BAJA_PRODUCTO", "Producto eliminado"
+        REPOSICION = "REPOSICION", "Reposición de Stock"
+        DESCUENTO = "DESCUENTO", "Descuento de Stock"
+        CAMBIO_NOMBRE = "CAMBIO_NOMBRE", "Cambio de nombre"
+        CAMBIO_DESCRIPCION = "CAMBIO_DESCRIPCION", "Cambio de descripción"
+        CAMBIO_PRECIO = "CAMBIO_PRECIO", "Cambio de precio"
+        CAMBIO_STOCK_MINIMO = "CAMBIO_STOCK_MINIMO", "Cambio de stock mínimo"
 
     producto = models.ForeignKey(
         Producto,
@@ -181,7 +185,7 @@ class MovimientoStock(models.Model):
         "tipo de movimiento",
         max_length=30,
         choices=TipoMovimiento.choices,
-        default=TipoMovimiento.CONSUMO_SERVICIO,
+        default=TipoMovimiento.DESCUENTO,
     )
     cantidad = models.PositiveIntegerField(
         "cantidad",

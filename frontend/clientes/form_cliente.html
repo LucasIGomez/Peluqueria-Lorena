@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+
+{% block page_title %}{{ accion }}{% endblock %}
+{% block page_subtitle %}Complete la información de contacto, cumpleaños y preferencias.{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header py-3">
+                <h5 class="mb-0 text-light"><i class="bi bi-person-lines-fill me-2 text-accent"></i> Datos de la Clienta</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    {% csrf_token %}
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Nombre Completo <span class="text-danger">*</span></label>
+                            {{ form.nombre }}
+                            {% if form.nombre.errors %}<div class="text-danger small mt-1">{{ form.nombre.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Teléfono / WhatsApp <span class="text-danger">*</span></label>
+                            {{ form.telefono }}
+                            <small class="text-secondary">Se utilizará para el enlace directo de mensajes y turnos.</small>
+                            {% if form.telefono.errors %}<div class="text-danger small mt-1">{{ form.telefono.errors }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Correo Electrónico (Opcional)</label>
+                            {{ form.email }}
+                            {% if form.email.errors %}<div class="text-danger small mt-1">{{ form.email.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Fecha de Nacimiento (Cumpleaños)</label>
+                            {{ form.fecha_nacimiento }}
+                            <small class="text-secondary">{{ form.fecha_nacimiento.help_text }}</small>
+                            {% if form.fecha_nacimiento.errors %}<div class="text-danger small mt-1">{{ form.fecha_nacimiento.errors }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-light">
+                            <i class="bi bi-exclamation-triangle-fill text-danger me-1"></i> Alergias o Sensibilidad Capilar
+                        </label>
+                        {{ form.notas_alergias }}
+                        <small class="text-secondary">{{ form.notas_alergias.help_text }}</small>
+                        {% if form.notas_alergias.errors %}<div class="text-danger small mt-1">{{ form.notas_alergias.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label text-light">Preferencias de Estilo o Notas Adicionales</label>
+                        {{ form.preferencias }}
+                        <small class="text-secondary">{{ form.preferencias.help_text }}</small>
+                        {% if form.preferencias.errors %}<div class="text-danger small mt-1">{{ form.preferencias.errors }}</div>{% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top border-secondary">
+                        <a href="{% url 'clientes:lista_clientes' %}" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-accent text-dark fw-bold px-4">
+                            <i class="bi bi-check-lg me-1"></i> Guardar Ficha
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

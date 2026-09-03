@@ -1,0 +1,223 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Agregar Stock de Producto{% endblock %}
+{% block page_subtitle %}Registra el ingreso o reposición de existencias de un producto en el inventario.{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7 col-md-9">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="bi bi-plus-circle me-2 text-success"></i>
+                    Agregar / Reponer Stock
+                </h5>
+            </div>
+            <div class="card-body p-4">
+                {% if producto_inicial %}
+                    <div class="alert alert-dark border-secondary d-flex align-items-center justify-content-between mb-4">
+                        <div>
+                            <span class="text-secondary small d-block">Producto Seleccionado:</span>
+                            <span class="fs-5 fw-bold text-accent">{{ producto_inicial.nombre }}</span>
+                        </div>
+                        <div class="text-end">
+                            <span class="text-secondary small d-block">Stock Actual:</span>
+                            <span class="fs-5 fw-bold {% if producto_inicial.verificar_stock_minimo %}text-danger{% else %}text-success{% endif %}">
+                                {{ producto_inicial.stock_actual }} unidades
+                            </span>
+                        </div>
+                    </div>
+                {% endif %}
+
+                <form method="post" novalidate id="form-reponer-stock">
+                    {% csrf_token %}
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {% for error in form.non_field_errors %}
+                                <p class="mb-0"><i class="bi bi-exclamation-triangle-fill me-1"></i> {{ error }}</p>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+
+                    <!-- Selección de Producto -->
+                    <div class="mb-3">
+                        <label for="{{ form.producto.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.producto.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.producto }}
+                        {% if form.producto.errors %}
+                            <div class="text-danger small mt-1">{{ form.producto.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Cantidad a ingresar -->
+                    <div class="mb-3">
+                        <label for="{{ form.cantidad.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.cantidad.label }} <span class="text-danger">*</span>
+                        </label>
+                        {{ form.cantidad }}
+                        <small class="text-secondary">Unidades a sumar al stock actual.</small>
+                        {% if form.cantidad.errors %}
+                            <div class="text-danger small mt-1">{{ form.cantidad.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Motivo u Observaciones -->
+                    <div class="mb-4">
+                        <label for="{{ form.motivo.id_for_label }}" class="form-label fw-semibold">
+                            {{ form.motivo.label }}
+                        </label>
+                        {{ form.motivo }}
+                        <small class="text-secondary d-block mt-1">{{ form.motivo.help_text }}</small>
+                        {% if form.motivo.errors %}
+                            <div class="text-danger small mt-1">{{ form.motivo.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top border-secondary border-opacity-25">
+                        <a href="{% url 'inventario:lista_productos' %}" id="btn-cancelar" class="btn btn-outline-light px-4">
+                            Cancelar
+                        </a>
+                        <button type="submit" id="btn-confirmar-trigger" class="btn btn-success fw-bold px-4">
+                            <i class="bi bi-plus-lg me-1"></i> Confirmar Ingreso de Stock
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Emergente de Confirmación de Cancelación -->
+<div class="modal fade" id="modalCancelar" tabindex="-1" aria-labelledby="modalCancelarLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-exclamation-triangle-fill fs-2"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalCancelarLabel">¿Estás seguro de Cancelar?</h5>
+                <p class="text-secondary small mb-0">
+                    Tienes información ingresada en el formulario. Si decides cancelar ahora, no se registrará el ingreso de stock.
+                </p>
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    Continuar editando
+                </button>
+                <a href="{% url 'inventario:lista_productos' %}" class="btn btn-danger px-4 fw-semibold">
+                    <i class="bi bi-x-circle me-1"></i> Sí, cancelar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Emergente de Confirmación de Ingreso de Stock -->
+<div class="modal fade" id="modalConfirmarReponer" tabindex="-1" aria-labelledby="modalConfirmarReponerLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-success bg-opacity-10 text-success rounded-circle mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-box-arrow-in-down fs-1"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalConfirmarReponerLabel">¿Confirmar Ingreso de Stock?</h5>
+                <p class="text-secondary small mb-0">
+                    Se aumentará el stock actual del producto y la operación quedará auditada en el historial de movimientos.
+                </p>
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    Revisar
+                </button>
+                <button type="button" id="btn-confirmar-reponer-submit" class="btn btn-success px-4 fw-semibold">
+                    <i class="bi bi-plus-lg me-1"></i> Sí, confirmar ingreso
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("form-reponer-stock");
+    const btnCancelar = document.getElementById("btn-cancelar");
+    const modalCancelarEl = document.getElementById("modalCancelar");
+    const modalReponerEl = document.getElementById("modalConfirmarReponer");
+    const btnConfirmarReponerSubmit = document.getElementById("btn-confirmar-reponer-submit");
+
+    if (!form) return;
+
+    const modalCancelar = modalCancelarEl ? new bootstrap.Modal(modalCancelarEl) : null;
+    const modalReponer = modalReponerEl ? new bootstrap.Modal(modalReponerEl) : null;
+
+    // Snapshot del estado inicial de los campos editables
+    const campos = form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, select');
+    campos.forEach(campo => {
+        if (campo.type === 'checkbox' || campo.type === 'radio') {
+            campo.dataset.initial = String(campo.checked);
+        } else {
+            campo.dataset.initial = (campo.value || "").trim();
+        }
+    });
+
+    function tieneDatosModificados() {
+        for (let campo of campos) {
+            if (campo.type === 'checkbox' || campo.type === 'radio') {
+                if (String(campo.checked) !== campo.dataset.initial) return true;
+            } else {
+                const actual = (campo.value || "").trim();
+                if (actual !== campo.dataset.initial) return true;
+            }
+        }
+        return false;
+    }
+
+    // Validación de Cancelar
+    if (btnCancelar && modalCancelar) {
+        btnCancelar.addEventListener("click", function (e) {
+            if (tieneDatosModificados()) {
+                e.preventDefault();
+                modalCancelar.show();
+            }
+        });
+    }
+
+    // Interceptar envío de formulario para confirmación
+    let confirmacionCompletada = false;
+    form.addEventListener("submit", function (e) {
+        if (!confirmacionCompletada) {
+            e.preventDefault();
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+            if (modalReponer) {
+                modalReponer.show();
+            } else {
+                form.submit();
+            }
+        }
+    });
+
+    if (btnConfirmarReponerSubmit) {
+        btnConfirmarReponerSubmit.addEventListener("click", function () {
+            confirmacionCompletada = true;
+            btnConfirmarReponerSubmit.disabled = true;
+            btnConfirmarReponerSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Procesando...';
+            form.submit();
+        });
+    }
+});
+</script>
+{% endblock %}

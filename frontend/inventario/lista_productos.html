@@ -1,54 +1,34 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Stock e Inventario{% endblock %}
+{% block page_title %}Stock e Insumos{% endblock %}
 {% block page_subtitle %}Control de insumos y productos de Peluquería Lorena.{% endblock %}
 
 {% block content %}
-<!-- Tarjetas de Resumen y Accesos Rápidos -->
-<div class="row g-3 mb-4">
-    <div class="col-md-4">
+<!-- Tarjetas de Resumen y Accesos Rápidos Centradas -->
+<div class="row g-3 mb-4 justify-content-center">
+    <div class="col-sm-6 col-md-5 col-lg-4" style="min-width: 280px; max-width: 380px;">
         <div class="card py-2 h-100">
-            <div class="card-body d-flex align-items-center justify-content-between">
+            <div class="card-body d-flex align-items-center justify-content-between p-3">
                 <div>
                     <span class="text-secondary small">Total Productos Activos</span>
                     <h3 class="mb-0 fw-bold">{{ total_activos }}</h3>
                 </div>
-                <div class="bg-dark rounded p-3 text-accent">
+                <div class="bg-dark rounded p-3 text-accent ms-2">
                     <i class="bi bi-box-seam fs-3"></i>
                 </div>
             </div>
         </div>
     </div>
-    
-    <div class="col-md-4">
-        <div class="card py-2 h-100">
-            <div class="card-body d-flex align-items-center justify-content-between">
-                <div>
-                    <span class="text-secondary small">Último descuento de producto</span>
-                    {% if ultimo_movimiento %}
-                        <h5 class="mb-1 mt-1 fw-bold">{{ ultimo_movimiento.cantidad }} unidad(es) de "{{ ultimo_movimiento.producto.nombre }}"</h5>
-                    {% else %}
-                        <h5 class="mb-1 mt-1 text-secondary">Sin movimientos</h5>
-                    {% endif %}
-                </div>
-                <div class="bg-dark rounded p-3 text-info">
-                    <i class="bi bi-box-arrow-down fs-3"></i>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="col-md-4">
+    <div class="col-sm-6 col-md-5 col-lg-4" style="min-width: 280px; max-width: 380px;">
         <div class="card py-2 h-100">
-            <div class="card-body d-flex gap-2 justify-content-end align-items-center">
-                <a href="{% url 'inventario:crear_producto' %}" class="btn btn-accent btn-sm py-2">
-                    <i class="bi bi-plus-lg"></i> Nuevo Producto
+            <div class="card-body d-flex flex-nowrap gap-2 justify-content-center align-items-center p-3">
+                <a href="{% url 'inventario:crear_producto' %}" class="btn btn-accent btn-sm py-2 px-3 text-nowrap">
+                    <i class="bi bi-plus-lg me-1"></i> Nuevo Producto
                 </a>
-                <a href="{% url 'inventario:descontar_stock_general' %}" class="btn btn-outline-warning btn-sm py-2">
-                    <i class="bi bi-scissors"></i> Descontar Servicio
-                </a>
-                <a href="{% url 'inventario:historial_movimientos' %}" class="btn btn-outline-light btn-sm py-2" title="Ver Historial de Movimientos">
-                    <i class="bi bi-clock-history"></i> Historial
+                <a href="{% url 'inventario:historial_movimientos' %}"
+                    class="btn btn-outline-light btn-sm py-2 px-3 text-nowrap" title="Ver Historial de Movimientos">
+                    <i class="bi bi-clock-history me-1"></i> Historial
                 </a>
             </div>
         </div>
@@ -57,58 +37,85 @@
 
 <!-- RF 7.3: Banner Dinámico de Alerta de Stock Mínimo -->
 {% if total_bajo_stock > 0 %}
-<div class="alert alert-danger bg-danger bg-opacity-10 border-danger d-flex align-items-center justify-content-between mb-4 p-3 rounded-3" role="alert">
+<div class="alert alert-danger bg-danger bg-opacity-10 border-danger fade show d-flex align-items-center justify-content-between mb-4 p-3 rounded-3"
+    role="alert">
     <div class="d-flex align-items-center gap-3">
         <i class="bi bi-exclamation-octagon-fill fs-2 text-danger"></i>
         <div>
-            <h6 class="alert-heading mb-1 fw-bold text-danger">¡Atención! Hay {{ total_bajo_stock }} producto(s) en nivel de stock mínimo o inferior</h6>
+            <h6 class="alert-heading mb-1 fw-bold text-danger">¡Atención! Hay {{ total_bajo_stock }} producto(s) en
+                nivel de stock mínimo o inferior</h6>
             <div class="small text-light text-opacity-75">
                 {% for p in productos_bajo_stock %}
-                    <span class="badge bg-danger bg-opacity-75 me-1">
-                        {{ p.nombre }}: {{ p.stock_actual }} u. (Mínimo: {{ p.stock_minimo }})
-                    </span>
+                <span class="badge bg-danger bg-opacity-75 me-1">
+                    {{ p.nombre }}: {{ p.stock_actual }} u. (Mínimo: {{ p.stock_minimo }})
+                </span>
                 {% endfor %}
             </div>
         </div>
     </div>
-
+    <button type="button" class="btn-close btn-close-white ms-3" data-bs-dismiss="alert"
+        aria-label="Cerrar alerta"></button>
 </div>
 {% endif %}
 
 <!-- Tabla Principal de Productos -->
 <div class="card">
-    <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-3">
-        <div class="d-flex align-items-center gap-2">
-            <h5 class="mb-0">Listado de Productos</h5>
-            {% if filtro_bajo_stock %}
-                <span class="badge bg-danger">Filtro: Bajo Stock</span>
-            {% endif %}
-        </div>
-
-        <!-- Buscador y Filtros -->
-        <form method="get" class="d-flex align-items-center gap-2">
-            {% if filtro_bajo_stock %}
-                <input type="hidden" name="bajo_stock" value="1">
-            {% endif %}
-            <div class="input-group input-group-sm" style="max-width: 280px;">
-                <input type="text" name="q" value="{{ busqueda }}" class="form-control" placeholder="Buscar producto...">
-                <button class="btn btn-outline-secondary" type="submit"><i class="bi bi-search"></i></button>
+    <div class="card-header">
+        <div class="d-flex flex-wrap align-items-center gap-3">
+            <div class="d-flex align-items-center gap-2 text-nowrap">
+                <h5 class="mb-0">Listado de Productos</h5>
+                {% if filtro_bajo_stock %}
+                <span class="badge bg-danger text-white">Bajo Stock</span>
+                {% endif %}
             </div>
-            
-            {% if filtro_bajo_stock %}
-                <a href="{% url 'inventario:lista_productos' %}" class="btn btn-sm btn-outline-secondary">Ver Todos</a>
-            {% else %}
-                <a href="{% url 'inventario:lista_productos' %}?bajo_stock=1" class="btn btn-sm btn-outline-danger">
-                    <i class="bi bi-exclamation-triangle"></i> Solo Bajo Stock ({{ total_bajo_stock }})
+
+            <!-- Buscador y Botón Ver solo bajo stock A LA DERECHA (sin saltar de línea) -->
+            <form method="get" class="d-flex align-items-center gap-2 flex-nowrap" id="form-busqueda-productos">
+                {% if filtro_bajo_stock %}
+                <input type="hidden" name="bajo_stock" value="1">
+                {% endif %}
+                <div class="position-relative" style="width: 360px;">
+                    <div class="input-group input-group-sm">
+                        <span class="input-group-text bg-dark text-secondary border-secondary"><i
+                                class="bi bi-search"></i></span>
+                        <input type="text" id="buscar-producto" name="q" value="{{ busqueda }}" class="form-control"
+                            placeholder="Buscar producto por nombre..." autocomplete="off">
+                        {% if busqueda %}
+                        <a href="{% url 'inventario:lista_productos' %}{% if filtro_bajo_stock %}?bajo_stock=1{% endif %}"
+                            id="btn-limpiar-busqueda" class="btn btn-outline-light" title="Limpiar búsqueda">
+                            <i class="bi bi-x-lg"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Botón Ver solo bajo stock estrictamente A LA DERECHA de la barra de búsqueda -->
+                {% if filtro_bajo_stock %}
+                <a href="{% url 'inventario:lista_productos' %}{% if busqueda %}?q={{ busqueda }}{% endif %}"
+                    class="btn btn-sm fw-semibold text-white text-nowrap"
+                    style="background-color: #dc3545 !important; border-color: #dc3545 !important; color: #ffffff !important;"
+                    title="Filtro activo. Clic para ver todos los productos">
+                    <i class="bi bi-check-circle-fill me-1"></i> Ver solo bajo stock
                 </a>
-            {% endif %}
-        </form>
+                <a href="{% url 'inventario:lista_productos' %}{% if busqueda %}?q={{ busqueda }}{% endif %}"
+                    class="btn btn-sm btn-outline-light text-nowrap">
+                    Ver Todos
+                </a>
+                {% else %}
+                <a href="{% url 'inventario:lista_productos' %}?bajo_stock=1{% if busqueda %}&q={{ busqueda }}{% endif %}"
+                    class="btn btn-sm fw-semibold text-white text-nowrap"
+                    style="background-color: #dc3545 !important; border-color: #dc3545 !important; color: #ffffff !important;">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i> Ver solo bajo stock
+                </a>
+                {% endif %}
+            </form>
+        </div>
     </div>
 
     <div class="card-body p-0">
-        <div class="table-responsive">
+        <div class="table-responsive" style="max-height: 65vh; overflow-y: scroll;">
             <table class="table table-dark table-hover mb-0 align-middle">
-                <thead>
+                <thead class="sticky-top bg-dark" style="z-index: 10;">
                     <tr>
                         <th class="ps-4">Producto</th>
                         <th>Precio</th>
@@ -118,50 +125,54 @@
                         <th class="text-end pe-4">Acciones</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="tabla-productos-body">
                     {% for producto in productos %}
-                    <tr>
+                    <tr class="fila-producto" data-nombre="{{ producto.nombre|lower }}"
+                        data-desc="{{ producto.descripcion|default:''|lower }}">
                         <td class="ps-4">
-                            <div class="fw-bold">{{ producto.nombre }}</div>
+                            <div class="fw-bold col-nombre">{{ producto.nombre }}</div>
                             {% if producto.descripcion %}
-                                <small class="text-secondary">{{ producto.descripcion|truncatechars:50 }}</small>
+                            <small class="text-secondary col-desc">{{ producto.descripcion|truncatechars:50 }}</small>
                             {% endif %}
                         </td>
                         <td class="fw-semibold">${{ producto.precio }}</td>
                         <td>
-                            <span class="fs-6 fw-bold {% if producto.verificar_stock_minimo %}text-danger{% else %}text-light{% endif %}">
+                            <span
+                                class="fs-6 fw-bold {% if producto.verificar_stock_minimo %}text-danger{% else %}text-light{% endif %}">
                                 {{ producto.stock_actual }} u.
                             </span>
                         </td>
                         <td class="text-secondary">{{ producto.stock_minimo }} u.</td>
                         <td>
                             {% if producto.verificar_stock_minimo %}
-                                <span class="badge bg-danger d-inline-flex align-items-center gap-1">
-                                    <i class="bi bi-exclamation-circle-fill"></i> Bajo Stock
-                                </span>
+                            <span class="badge bg-danger d-inline-flex align-items-center gap-1">
+                                <i class="bi bi-exclamation-circle-fill"></i> Bajo Stock
+                            </span>
                             {% else %}
-                                <span class="badge bg-success d-inline-flex align-items-center gap-1">
-                                    <i class="bi bi-check-circle-fill"></i> Normal
-                                </span>
+                            <span class="badge bg-success d-inline-flex align-items-center gap-1">
+                                <i class="bi bi-check-circle-fill"></i> Normal
+                            </span>
                             {% endif %}
                         </td>
                         <td class="text-end pe-4">
+                            <!-- Botón Agregar Stock -->
+                            <a href="{% url 'inventario:reponer_stock_producto' producto.pk %}"
+                                class="btn btn-sm btn-outline-success me-1" title="Agregar Stock">
+                                <i class="bi bi-plus-lg"></i> Agregar
+                            </a>
                             <!-- RF 7.2: Descuento rápido por servicio -->
-                            <a href="{% url 'inventario:descontar_stock_producto' producto.pk %}" 
-                               class="btn btn-sm btn-outline-warning me-1" 
-                               title="Registrar consumo por servicio">
+                            <a href="{% url 'inventario:descontar_stock_producto' producto.pk %}"
+                                class="btn btn-sm btn-outline-warning me-1" title="Descontar Stock">
                                 <i class="bi bi-scissors"></i> Descontar
                             </a>
-                            <!-- RF 7.1: Editar -->
-                            <a href="{% url 'inventario:editar_producto' producto.pk %}" 
-                               class="btn btn-sm btn-outline-light me-1" 
-                               title="Editar producto">
+                            <!-- RF 7.1: Editar (Nombre, Descripción, Precio, Stock Mínimo) -->
+                            <a href="{% url 'inventario:editar_producto' producto.pk %}"
+                                class="btn btn-sm btn-outline-light me-1" title="Editar detalles del producto">
                                 <i class="bi bi-pencil"></i>
                             </a>
                             <!-- RF 7.1: Baja / Eliminar -->
-                            <a href="{% url 'inventario:eliminar_producto' producto.pk %}" 
-                               class="btn btn-sm btn-outline-danger" 
-                               title="Dar de baja producto">
+                            <a href="{% url 'inventario:eliminar_producto' producto.pk %}"
+                                class="btn btn-sm btn-outline-danger" title="Dar de baja producto">
                                 <i class="bi bi-trash"></i>
                             </a>
                         </td>
@@ -171,20 +182,76 @@
                         <td colspan="6" class="text-center py-5 text-secondary">
                             <i class="bi bi-box-seam fs-1 d-block mb-2 text-secondary opacity-50"></i>
                             {% if busqueda or filtro_bajo_stock %}
-                                No se encontraron productos con los filtros seleccionados.
-                                <br>
-                                <a href="{% url 'inventario:lista_productos' %}" class="btn btn-sm btn-outline-secondary mt-2">Limpiar Filtros</a>
+                            No se encontraron productos que coincidan con la búsqueda.
+                            <br>
+                            <a href="{% url 'inventario:lista_productos' %}"
+                                class="btn btn-sm btn-outline-light mt-2">Limpiar Filtros</a>
                             {% else %}
-                                No hay productos registrados aún en el inventario.
-                                <br>
-                                <a href="{% url 'inventario:crear_producto' %}" class="btn btn-sm btn-accent mt-2">Registrar Primer Producto</a>
+                            No hay productos registrados aún en el inventario.
+                            <br>
+                            <a href="{% url 'inventario:crear_producto' %}" class="btn btn-sm btn-accent mt-2">Registrar
+                                Primer Producto</a>
                             {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
+                    <!-- Fila dinámica cuando no hay coincidencias en vivo -->
+                    <tr id="fila-sin-coincidencias-js" style="display: none;">
+                        <td colspan="6" class="text-center py-4 text-secondary">
+                            <i class="bi bi-search fs-3 d-block mb-2 text-secondary opacity-50"></i>
+                            No se encontraron productos coincidentes con tu búsqueda en tiempo real.
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const inputBusqueda = document.getElementById("buscar-producto");
+        const filasProductos = document.querySelectorAll(".fila-producto");
+        const filaSinCoincidencias = document.getElementById("fila-sin-coincidencias-js");
+
+        if (!inputBusqueda) return;
+
+        function filtrarTablaEnVivo(termino) {
+            const query = termino.trim().toLowerCase();
+            let visibles = 0;
+
+            filasProductos.forEach(fila => {
+                const nombre = fila.getAttribute("data-nombre") || "";
+                const desc = fila.getAttribute("data-desc") || "";
+                if (!query || nombre.includes(query) || desc.includes(query)) {
+                    fila.style.display = "";
+                    visibles++;
+                } else {
+                    fila.style.display = "none";
+                }
+            });
+
+            if (filaSinCoincidencias) {
+                if (filasProductos.length > 0 && visibles === 0) {
+                    filaSinCoincidencias.style.display = "";
+                } else {
+                    filaSinCoincidencias.style.display = "none";
+                }
+            }
+        }
+
+        inputBusqueda.addEventListener("input", function () {
+            filtrarTablaEnVivo(this.value);
+        });
+
+        const formBusqueda = document.getElementById("form-busqueda-productos");
+        if (formBusqueda) {
+            formBusqueda.addEventListener("submit", function (e) {
+                e.preventDefault();
+            });
+        }
+    });
+</script>
 {% endblock %}

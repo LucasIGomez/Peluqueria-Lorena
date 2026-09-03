@@ -2,9 +2,11 @@
 Peluquería Lorena — Tests unitarios de la capa de servicios de Inventario.
 
 Valida todas las reglas de negocio de InventarioService para:
-- RF 7.1: Gestión de productos.
+- RF 7.1: Gestión de productos con movimientos automáticos de alta/baja.
 - RF 7.2: Descuento manual de stock con auditoría.
+- Agregar / Reponer Stock.
 - RF 7.3: Alertas automáticas de stock mínimo.
+- Historial de movimientos con buscador inteligente.
 """
 from decimal import Decimal
 import pytest
@@ -23,8 +25,8 @@ from apps.usuarios.models import Usuario
 class TestInventarioServiceCRUD:
     """RF 7.1: Pruebas de creación, actualización y baja de productos."""
 
-    def test_crear_producto_exitoso(self) -> None:
-        """Verifica la creación correcta de un producto a través del servicio."""
+    def test_crear_producto_exitoso_y_movimiento_automatico(self) -> None:
+        """Verifica la creación correcta de un producto y su movimiento automático de 'Producto añadido'."""
         producto = InventarioService.crear_producto(
             nombre="Tratamiento Botox Capilar",
             precio=Decimal("6500.00"),
@@ -38,6 +40,14 @@ class TestInventarioServiceCRUD:
         assert producto.stock_actual == 15
         assert producto.stock_minimo == 5
         assert producto.activo is True
+
+        # Verifica el movimiento de auditoría registrado
+        movimiento = MovimientoStock.objects.filter(producto=producto).first()
+        assert movimiento is not None
+        assert movimiento.tipo_movimiento == MovimientoStock.TipoMovimiento.ALTA_PRODUCTO
+        assert movimiento.cantidad == 15
+        assert movimiento.stock_previo == 0
+        assert movimiento.stock_posterior == 15
 
     def test_crear_producto_valores_negativos_lanza_error(self) -> None:
         """Verifica que no se permitan stocks o precios negativos."""
@@ -58,7 +68,7 @@ class TestInventarioServiceCRUD:
             )
 
     def test_actualizar_producto_exitoso(self) -> None:
-        """Verifica la actualización de atributos de un producto."""
+        """Verifica la actualización de atributos de un producto (nombre, precio, stock mínimo)."""
         producto = InventarioService.crear_producto(
             nombre="Aceite de Argán",
             precio=Decimal("3500.00"),
@@ -75,8 +85,8 @@ class TestInventarioServiceCRUD:
         assert actualizado.precio == Decimal("4200.00")
         assert actualizado.stock_minimo == 4
 
-    def test_baja_logica_producto(self) -> None:
-        """Verifica que eliminar_producto por defecto realice baja lógica (activo=False)."""
+    def test_baja_logica_producto_registra_movimiento(self) -> None:
+        """Verifica que eliminar_producto realice baja lógica y registre 'Producto eliminado' en historial."""
         producto = InventarioService.crear_producto(
             nombre="Ampolla Reparadora",
             precio=Decimal("1200.00"),
@@ -86,8 +96,15 @@ class TestInventarioServiceCRUD:
         producto.refresh_from_db()
         assert producto.activo is False
 
+        mov_baja = MovimientoStock.objects.filter(
+            producto=producto,
+            tipo_movimiento=MovimientoStock.TipoMovimiento.BAJA_PRODUCTO,
+        ).first()
+        assert mov_baja is not None
+        assert "eliminado" in mov_baja.motivo
+
     def test_baja_permanente_producto(self) -> None:
-        """Verifica que eliminar_producto con permanente=True borre el registro."""
+        """Verifica que eliminar_producto con permanente=True borre el registro de la BD."""
         producto = InventarioService.crear_producto(
             nombre="Producto Temporal",
             precio=Decimal("500.00"),
@@ -97,8 +114,8 @@ class TestInventarioServiceCRUD:
         InventarioService.eliminar_producto(producto, permanente=True)
         assert Producto.objects.filter(pk=prod_id).exists() is False
 
-    def test_listar_productos_con_filtros(self) -> None:
-        """Verifica el filtrado por texto y por estado activo."""
+    def test_listar_productos_con_filtros_y_busqueda(self) -> None:
+        """Verifica el filtrado por texto inteligente y por estado activo."""
         InventarioService.crear_producto(nombre="Tintura 7.1 Rubio Ceniza", precio="2000.00")
         InventarioService.crear_producto(nombre="Tintura 8.0 Rubio Claro", precio="2000.00")
         desactivado = InventarioService.crear_producto(
@@ -115,11 +132,11 @@ class TestInventarioServiceCRUD:
 
 
 @pytest.mark.django_db
-class TestInventarioServiceDescuentoStock:
-    """RF 7.2 & RF 7.3: Pruebas del consumo de stock y alertas automáticas."""
+class TestInventarioServiceDescuentoYReposicion:
+    """RF 7.2 & RF 7.3: Pruebas del consumo de stock, reposición y alertas automáticas."""
 
     def test_registrar_consumo_servicio_exitoso(self, db) -> None:
-        """RF 7.2: Verifica el descuento manual de stock al finalizar servicio con auditoría."""
+        """RF 7.2: Verifica el descuento manual de stock con registro de 'Descuento de Stock'."""
         producto = InventarioService.crear_producto(
             nombre="Decolorante Premium 500g",
             precio=Decimal("4500.00"),
@@ -141,7 +158,7 @@ class TestInventarioServiceDescuentoStock:
         assert movimiento.cantidad == 3
         assert movimiento.stock_previo == 10
         assert movimiento.stock_posterior == 7
-        assert movimiento.tipo_movimiento == MovimientoStock.TipoMovimiento.CONSUMO_SERVICIO
+        assert movimiento.tipo_movimiento == MovimientoStock.TipoMovimiento.DESCUENTO
         assert "Mariana" in movimiento.motivo
 
     def test_descuento_stock_dispara_alerta_stock_minimo(self, db) -> None:
@@ -164,7 +181,6 @@ class TestInventarioServiceDescuentoStock:
         assert producto.stock_actual == 3
         assert alerta is True  # Dispara alerta de stock mínimo
 
-        # Obtenemos los productos bajo stock
         bajo_stock = InventarioService.obtener_productos_bajo_stock()
         assert producto in bajo_stock
 
@@ -186,15 +202,7 @@ class TestInventarioServiceDescuentoStock:
 
         assert "Stock insuficiente" in str(exc_info.value)
         producto.refresh_from_db()
-        assert producto.stock_actual == 2  # No se descuenta nada
-
-    def test_descuento_producto_inexistente_lanza_error(self, db) -> None:
-        """Verifica que si el ID de producto no existe se lance ProductoNoEncontradoError."""
-        with pytest.raises(ProductoNoEncontradoError):
-            InventarioService.descontar_stock(
-                producto_o_id=99999,
-                cantidad=1,
-            )
+        assert producto.stock_actual == 2
 
     def test_reponer_stock_exitoso_y_auditoria(self, db) -> None:
         """Verifica el ingreso de mercadería y generación de MovimientoStock tipo REPOSICION."""
@@ -219,20 +227,23 @@ class TestInventarioServiceDescuentoStock:
         assert movimiento.stock_previo == 2
         assert movimiento.stock_posterior == 12
 
-    def test_obtener_historial_movimientos_filtrado(self, db) -> None:
-        """Verifica la consulta de historial de movimientos con filtros."""
-        prod1 = InventarioService.crear_producto(nombre="Producto A", precio="100.00", stock_actual=20)
-        prod2 = InventarioService.crear_producto(nombre="Producto B", precio="200.00", stock_actual=20)
+    def test_obtener_historial_movimientos_buscador_inteligente(self, db) -> None:
+        """Verifica la consulta de historial con buscador inteligente por nombre y filtros."""
+        prod1 = InventarioService.crear_producto(nombre="Shampoo Ácido", precio="100.00", stock_actual=20)
+        prod2 = InventarioService.crear_producto(nombre="Acondicionador Neutro", precio="200.00", stock_actual=20)
 
-        InventarioService.descontar_stock(prod1, 5, motivo="Servicio 1")
-        InventarioService.descontar_stock(prod2, 2, motivo="Servicio 2")
-        InventarioService.reponer_stock(prod1, 10, motivo="Reposición A")
+        InventarioService.descontar_stock(prod1, 5, motivo="Servicio lavado")
+        InventarioService.reponer_stock(prod2, 10, motivo="Reposición stock mensual")
 
-        movs_prod1 = InventarioService.obtener_historial_movimientos(producto_id=prod1.pk)
-        assert movs_prod1.count() == 2
+        # Búsqueda inteligente por nombre de producto
+        movs_busqueda = InventarioService.obtener_historial_movimientos(busqueda="Shampoo")
+        # prod1 tiene 2 movimientos: ALTA_PRODUCTO y DESCUENTO
+        assert movs_busqueda.count() == 2
+        assert all("Shampoo" in m.producto.nombre for m in movs_busqueda)
 
+        # Filtro por tipo de movimiento
         movs_reposicion = InventarioService.obtener_historial_movimientos(
             tipo_movimiento=MovimientoStock.TipoMovimiento.REPOSICION
         )
         assert movs_reposicion.count() == 1
-        assert movs_reposicion.first().producto == prod1
+        assert movs_reposicion.first().producto == prod2

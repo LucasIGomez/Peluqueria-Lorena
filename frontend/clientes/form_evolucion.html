@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Registrar Sesión Técnica: {{ tratamiento.titulo_tratamiento }}{% endblock %}
+{% block page_subtitle %}Carga de fórmulas aplicadas, diagnóstico de fibra y evolución para {{ tratamiento.cliente.nombre }}.{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-light"><i class="bi bi-journal-medical me-2 text-accent"></i> Registro Técnico de Sesión</h5>
+                <span class="badge bg-dark border border-secondary text-secondary">Clienta: {{ tratamiento.cliente.nombre }}</span>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST">
+                    {% csrf_token %}
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Número de Sesión <span class="text-danger">*</span></label>
+                            {{ form.numero_sesion }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Tiempo de Exposición Total (Minutos)</label>
+                            {{ form.tiempo_exposicion_minutos }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-light">Diagnóstico Previo de la Fibra <span class="text-danger">*</span></label>
+                        {{ form.diagnostico_fibra }}
+                        <small class="text-secondary">{{ form.diagnostico_fibra.help_text }}</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-light">Fórmula Química y Productos Aplicados <span class="text-danger">*</span></label>
+                        {{ form.formula_quimica_utilizada }}
+                        <small class="text-secondary">{{ form.formula_quimica_utilizada.help_text }}</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-light">Resultado Obtenido en esta Sesión <span class="text-danger">*</span></label>
+                        {{ form.resultado_obtenido }}
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Próxima Cita Sugerida</label>
+                            {{ form.proxima_cita_recomendada }}
+                            <small class="text-secondary">Espaciado recomendado para reposo de la fibra.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Indicaciones y Cuidados para el Hogar</label>
+                            {{ form.indicaciones_hogar }}
+                            <small class="text-secondary">{{ form.indicaciones_hogar.help_text }}</small>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top border-secondary">
+                        <a href="{% url 'clientes:detalle_cliente' tratamiento.cliente.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-accent text-dark fw-bold px-4">
+                            <i class="bi bi-check-lg me-1"></i> Guardar Evolución de Sesión
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
