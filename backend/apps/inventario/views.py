@@ -92,11 +92,12 @@ def crear_producto(request):
                     stock_actual=form.cleaned_data["stock_actual"],
                     stock_minimo=form.cleaned_data["stock_minimo"],
                     descripcion=form.cleaned_data.get("descripcion"),
+                    unidad_medida=form.cleaned_data.get("unidad_medida", "UNIDAD"),
                     usuario=request.user,
                 )
                 messages.success(
                     request,
-                    f"Producto '{producto.nombre}' registrado exitosamente con stock inicial de {producto.stock_actual} u.",
+                    f"Producto '{producto.nombre}' registrado exitosamente con stock inicial de {producto.stock_actual} {producto.unidad_abreviatura}.",
                 )
 
                 # RF 7.3: Alerta si se dio de alta con stock <= stock_minimo
@@ -139,6 +140,7 @@ def editar_producto(request, pk: int):
                     precio=form.cleaned_data["precio"],
                     stock_minimo=form.cleaned_data["stock_minimo"],
                     descripcion=form.cleaned_data.get("descripcion"),
+                    unidad_medida=form.cleaned_data.get("unidad_medida", producto_original.unidad_medida),
                 )
                 messages.success(
                     request,
@@ -190,7 +192,7 @@ def reponer_stock_view(request, pk: int | None = None):
                 )
                 messages.success(
                     request,
-                    f"Stock agregado exitosamente: +{cantidad} u. de '{producto.nombre}'. Stock total: {movimiento.stock_posterior} u.",
+                    f"Stock agregado exitosamente: +{cantidad} {producto.unidad_abreviatura} de '{producto.nombre}'. Stock total: {movimiento.stock_posterior} {producto.unidad_abreviatura}.",
                 )
                 return redirect("inventario:lista_productos")
             except InventarioError as e:
@@ -235,7 +237,7 @@ def descontar_stock_servicio(request, pk: int | None = None):
 
                 messages.success(
                     request,
-                    f"Consumo registrado correctamente: -{cantidad} u. de '{producto.nombre}'. Stock restante: {movimiento.stock_posterior} u.",
+                    f"Consumo registrado correctamente: -{cantidad} {producto.unidad_abreviatura} de '{producto.nombre}'. Stock restante: {movimiento.stock_posterior} {producto.unidad_abreviatura}.",
                 )
 
                 # RF 7.3: Generación de alerta automática inmediata
@@ -327,6 +329,8 @@ def sugerencias_productos(request):
             "precio": str(p.precio),
             "stock_actual": p.stock_actual,
             "stock_minimo": p.stock_minimo,
+            "unidad_medida": p.unidad_medida,
+            "unidad_abreviatura": p.unidad_abreviatura,
             "bajo_stock": p.verificar_stock_minimo(),
         }
         for p in productos[:8]

@@ -23,8 +23,9 @@
                         <div class="text-end">
                             <span class="text-secondary small d-block">Stock Actual:</span>
                             <span class="fs-5 fw-bold {% if producto_inicial.verificar_stock_minimo %}text-danger{% else %}text-success{% endif %}">
-                                {{ producto_inicial.stock_actual }} unidades
+                                {{ producto_inicial.stock_actual }} {{ producto_inicial.unidad_abreviatura }}
                             </span>
+                            <small class="text-secondary d-block">{{ producto_inicial.get_unidad_medida_display }}</small>
                         </div>
                     </div>
                 {% endif %}

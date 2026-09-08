@@ -47,6 +47,20 @@ class Producto(models.Model):
         default=0,
         db_column="stockMinimo",
     )
+    class UnidadMedida(models.TextChoices):
+        UNIDAD = "UNIDAD", "Unidades (u.)"
+        LITRO = "LITRO", "Litros (L)"
+        MILILITRO = "ML", "Mililitros (ml)"
+        KILOGRAMO = "KG", "Kilogramos (kg)"
+        GRAMO = "G", "Gramos (g)"
+
+    unidad_medida = models.CharField(
+        "unidad de medida",
+        max_length=10,
+        choices=UnidadMedida.choices,
+        default=UnidadMedida.UNIDAD,
+        help_text="Indica si el stock se cuenta en unidades o en cantidad (litros, ml, kg, g).",
+    )
     activo = models.BooleanField(
         "activo",
         default=True,
@@ -68,7 +82,18 @@ class Producto(models.Model):
         ordering = ["nombre"]
 
     def __str__(self) -> str:
-        return f"{self.nombre} (Stock: {self.stock_actual})"
+        return f"{self.nombre} (Stock: {self.stock_actual} {self.unidad_abreviatura})"
+
+    @property
+    def unidad_abreviatura(self) -> str:
+        """Abreviatura corta para mostrar junto al stock (u., L, ml, kg, g)."""
+        return {
+            "UNIDAD": "u.",
+            "LITRO": "L",
+            "ML": "ml",
+            "KG": "kg",
+            "G": "g",
+        }.get(self.unidad_medida, "u.")
 
     # ── Compatibilidad con nombres anteriores (camelCase) ──
 

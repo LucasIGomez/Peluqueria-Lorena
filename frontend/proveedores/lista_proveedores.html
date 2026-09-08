@@ -34,8 +34,15 @@
                         <td>{{ proveedor.contacto|default:"-" }}</td>
                         <td>{{ proveedor.condicionesPago|default:"-" }}</td>
                         <td class="text-end pe-4">
-                            <a href="{% url 'proveedores:editar_proveedor' proveedor.pk %}" class="btn btn-sm btn-outline-light me-2"><i class="bi bi-pencil"></i></a>
-                            <a href="{% url 'proveedores:eliminar_proveedor' proveedor.pk %}" class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></a>
+                            <a href="{% url 'proveedores:editar_proveedor' proveedor.pk %}"
+                                class="btn btn-sm btn-outline-light me-2" title="Editar proveedor"><i
+                                    class="bi bi-pencil"></i></a>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-proveedor"
+                                title="Eliminar proveedor" data-id="{{ proveedor.pk }}"
+                                data-nombre="{{ proveedor.nombre|escapejs }}"
+                                data-url="{% url 'proveedores:eliminar_proveedor' proveedor.pk %}">
+                                <i class="bi bi-trash"></i>
+                            </button>
                         </td>
                     </tr>
                     {% empty %}
@@ -48,4 +55,69 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Emergente: Confirmar eliminación de proveedor (sin recargar/cambiar de página) -->
+<div class="modal fade" id="modalEliminarProveedor" tabindex="-1" aria-labelledby="modalEliminarProveedorLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger rounded-circle mb-3"
+                    style="width: 60px; height: 60px;">
+                    <i class="bi bi-trash3-fill fs-2"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalEliminarProveedorLabel">¿Eliminar este
+                    proveedor?</h5>
+                <p class="text-secondary small mb-0">
+                    ¿Estás seguro que deseas eliminar el proveedor
+                    <strong class="text-accent" id="eliminarProveedorNombre">-</strong>?
+                    Esta acción no se puede deshacer.
+                </p>
+            </div>
+            <div
+                class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+                <form method="post" id="formEliminarProveedor" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" id="btnConfirmarEliminarProveedor" class="btn btn-danger px-4 fw-semibold">
+                        <i class="bi bi-trash me-1"></i> Sí, eliminar
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const modalEl = document.getElementById("modalEliminarProveedor");
+        const nombreEl = document.getElementById("eliminarProveedorNombre");
+        const formEl = document.getElementById("formEliminarProveedor");
+        const btnConfirmar = document.getElementById("btnConfirmarEliminarProveedor");
+        if (!modalEl || !formEl) return;
+
+        const modal = new bootstrap.Modal(modalEl);
+
+        document.querySelectorAll(".btn-eliminar-proveedor").forEach((btn) => {
+            btn.addEventListener("click", function () {
+                nombreEl.textContent = this.getAttribute("data-nombre") || "-";
+                formEl.action = this.getAttribute("data-url");
+                modal.show();
+            });
+        });
+
+        formEl.addEventListener("submit", function () {
+            btnConfirmar.disabled = true;
+            btnConfirmar.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Eliminando...';
+        });
+    });
+</script>
 {% endblock %}

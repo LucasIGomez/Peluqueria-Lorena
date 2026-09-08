@@ -19,7 +19,7 @@
                         <div>
                             <span class="text-secondary small d-block">Stock Actual en Existencia:</span>
                             <span class="fs-5 fw-bold {% if producto.verificar_stock_minimo %}text-danger{% else %}text-success{% endif %}">
-                                {{ producto.stock_actual }} unidades
+                                {{ producto.stock_actual }} {{ producto.unidad_abreviatura }}
                             </span>
                         </div>
                         <div class="small text-secondary text-end">
@@ -75,6 +75,26 @@
                         {% endif %}
                     </div>
 
+                    <!-- ¿Unidades o Cantidad? (Unidad de medida) -->
+                    <div class="mb-4 p-3 rounded-2 border border-secondary border-opacity-25 bg-dark bg-opacity-25">
+                        <label class="form-label fw-semibold mb-1">
+                            <i class="bi bi-rulers me-1 text-accent"></i>
+                            {{ form.unidad_medida.label }} <span class="text-danger">*</span>
+                        </label>
+                        <small class="text-secondary d-block mb-2">¿El stock de este producto se cuenta en <strong>unidades</strong> o en <strong>cantidad</strong> (litros, mililitros, kilos, gramos)?</small>
+                        <div class="d-flex flex-wrap gap-3" id="unidad-medida-opciones">
+                            {% for radio in form.unidad_medida %}
+                                <div class="form-check">
+                                    {{ radio.tag }}
+                                    <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% if form.unidad_medida.errors %}
+                            <div class="text-danger small mt-1">{{ form.unidad_medida.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
                     <!-- Stock Inicial (solo en creación) y Stock Mínimo -->
                     <div class="row g-3 mb-4">
                         {% if form.stock_actual %}
@@ -83,7 +103,7 @@
                                 {{ form.stock_actual.label }} <span class="text-danger">*</span>
                             </label>
                             {{ form.stock_actual }}
-                            <small class="text-secondary">Unidades iniciales en existencia.</small>
+                            <small class="text-secondary" id="ayuda-stock-actual">Unidades iniciales en existencia.</small>
                             {% if form.stock_actual.errors %}
                                 <div class="text-danger small mt-1">{{ form.stock_actual.errors.0 }}</div>
                             {% endif %}
@@ -95,7 +115,7 @@
                                 {{ form.stock_minimo.label }} <span class="text-danger">*</span>
                             </label>
                             {{ form.stock_minimo }}
-                            <small class="text-secondary">Dispara alerta automática si el stock baja a este nivel o menos.</small>
+                            <small class="text-secondary" id="ayuda-stock-minimo">Dispara alerta automática si el stock baja a este nivel o menos.</small>
                             {% if form.stock_minimo.errors %}
                                 <div class="text-danger small mt-1">{{ form.stock_minimo.errors.0 }}</div>
                             {% endif %}
@@ -245,6 +265,26 @@ document.addEventListener("DOMContentLoaded", function () {
             form.submit();
         });
     }
+
+    // ── Texto dinámico según unidad elegida (unidades vs cantidad) ──
+    const ayudaActual = document.getElementById("ayuda-stock-actual");
+    const ayudaMinimo = document.getElementById("ayuda-stock-minimo");
+    const radiosUnidad = document.querySelectorAll('input[name="unidad_medida"]');
+    const etiquetas = {
+        "UNIDAD": "unidades",
+        "LITRO": "litros (L)",
+        "ML": "mililitros (ml)",
+        "KG": "kilogramos (kg)",
+        "G": "gramos (g)"
+    };
+    function actualizarAyudas() {
+        let sel = document.querySelector('input[name="unidad_medida"]:checked');
+        const texto = etiquetas[sel ? sel.value : "UNIDAD"] || "unidades";
+        if (ayudaActual) ayudaActual.textContent = "Cantidad inicial en existencia (" + texto + ").";
+        if (ayudaMinimo) ayudaMinimo.textContent = "Dispara alerta si el stock baja a este nivel o menos (" + texto + ").";
+    }
+    radiosUnidad.forEach(r => r.addEventListener("change", actualizarAyudas));
+    actualizarAyudas();
 });
 </script>
 {% endblock %}

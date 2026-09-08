@@ -19,11 +19,12 @@ class ProductoForm(forms.ModelForm):
 
     class Meta:
         model = Producto
-        fields = ["nombre", "descripcion", "precio", "stock_actual", "stock_minimo"]
+        fields = ["nombre", "descripcion", "precio", "unidad_medida", "stock_actual", "stock_minimo"]
         labels = {
             "nombre": "Nombre del producto",
             "descripcion": "Descripción / Detalles",
             "precio": "Precio ($)",
+            "unidad_medida": "¿Cómo se mide este producto?",
             "stock_actual": "Stock Inicial",
             "stock_minimo": "Stock Mínimo (Alerta)",
         }
@@ -48,6 +49,11 @@ class ProductoForm(forms.ModelForm):
                     "step": "0.01",
                     "min": "0",
                     "placeholder": "0.00",
+                }
+            ),
+            "unidad_medida": forms.RadioSelect(
+                attrs={
+                    "class": "form-check-input",
                 }
             ),
             "stock_actual": forms.NumberInput(
@@ -106,11 +112,12 @@ class ProductoEditForm(forms.ModelForm):
 
     class Meta:
         model = Producto
-        fields = ["nombre", "descripcion", "precio", "stock_minimo"]
+        fields = ["nombre", "descripcion", "precio", "unidad_medida", "stock_minimo"]
         labels = {
             "nombre": "Nombre del producto",
             "descripcion": "Descripción / Detalles",
             "precio": "Precio ($)",
+            "unidad_medida": "¿Cómo se mide este producto?",
             "stock_minimo": "Stock Mínimo (Alerta)",
         }
         widgets = {
@@ -134,6 +141,11 @@ class ProductoEditForm(forms.ModelForm):
                     "step": "0.01",
                     "min": "0",
                     "placeholder": "0.00",
+                }
+            ),
+            "unidad_medida": forms.RadioSelect(
+                attrs={
+                    "class": "form-check-input",
                 }
             ),
             "stock_minimo": forms.NumberInput(

@@ -22,6 +22,7 @@ class ProductoSerializer(serializers.ModelSerializer):
             "nombre",
             "descripcion",
             "precio",
+            "unidad_medida",
             "stock_actual",
             "stock_minimo",
             "stockActual",

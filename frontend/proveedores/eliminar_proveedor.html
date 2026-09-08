@@ -4,23 +4,96 @@
 {% block page_subtitle %}Confirma la eliminación del proveedor.{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-6">
+<div class="row justify-content-center">
+    <div class="col-lg-6 col-md-8">
         <div class="card border-danger">
-            <div class="card-header bg-danger text-white">
-                <h5 class="mb-0"><i class="bi bi-exclamation-triangle"></i> Cuidado</h5>
+            <div class="card-header bg-danger bg-opacity-25 border-danger text-white d-flex align-items-center gap-2">
+                <i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
+                <h5 class="mb-0">Confirmar eliminación del proveedor</h5>
             </div>
-            <div class="card-body">
-                <p>¿Estás seguro que deseas eliminar el proveedor <strong>{{ proveedor.nombre }}</strong>?</p>
-                <form method="post">
+            <div class="card-body p-4">
+                <p class="fs-6 mb-3">
+                    ¿Estás seguro que deseas eliminar el proveedor
+                    <strong class="text-accent">{{ proveedor.nombre }}</strong>?
+                </p>
+                <div class="bg-dark p-3 rounded-2 mb-4 border border-secondary border-opacity-25 small text-secondary">
+                    <div><strong>Contacto:</strong> {{ proveedor.contacto|default:"-" }}</div>
+                    <div><strong>Condiciones:</strong> {{ proveedor.condicionesPago|default:"-" }}</div>
+                </div>
+
+                <form method="post" id="form-eliminar-proveedor">
                     {% csrf_token %}
-                    <div class="mt-4 d-flex gap-2">
-                        <a href="{% url 'proveedores:lista_proveedores' %}" class="btn btn-outline-secondary">Cancelar</a>
-                        <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'proveedores:lista_proveedores' %}"
+                            class="btn btn-outline-light px-4">Cancelar</a>
+                        <button type="submit" id="btn-solicitar-baja-prov" class="btn btn-danger px-4">
+                            <i class="bi bi-trash me-1"></i> Confirmar eliminación
+                        </button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Modal Emergente: Confirmación definitiva (mismo estilo que Stock e Insumos) -->
+<div class="modal fade" id="modalConfirmarBajaProv" tabindex="-1" aria-labelledby="modalConfirmarBajaProvLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger rounded-circle mb-3"
+                    style="width: 60px; height: 60px;">
+                    <i class="bi bi-trash3-fill fs-2"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalConfirmarBajaProvLabel">¿Eliminar este
+                    proveedor?</h5>
+                <p class="text-secondary small mb-0">
+                    Esta acción eliminará de forma definitiva el proveedor
+                    <strong class="text-accent">{{ proveedor.nombre }}</strong> y no se puede deshacer.
+                </p>
+            </div>
+            <div
+                class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="button" id="btn-submit-baja-prov-final" class="btn btn-danger px-4 fw-semibold">
+                    <i class="bi bi-trash me-1"></i> Sí, eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const form = document.getElementById("form-eliminar-proveedor");
+        const modalEl = document.getElementById("modalConfirmarBajaProv");
+        const btnFinal = document.getElementById("btn-submit-baja-prov-final");
+        if (!form || !modalEl) return;
+        const modal = new bootstrap.Modal(modalEl);
+        let confirmada = false;
+        form.addEventListener("submit", function (e) {
+            if (!confirmada) {
+                e.preventDefault();
+                modal.show();
+            }
+        });
+        if (btnFinal) {
+            btnFinal.addEventListener("click", function () {
+                confirmada = true;
+                btnFinal.disabled = true;
+                btnFinal.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Eliminando...';
+                form.submit();
+            });
+        }
+    });
+</script>
 {% endblock %}

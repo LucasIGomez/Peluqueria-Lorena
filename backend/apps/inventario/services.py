@@ -76,6 +76,7 @@ class InventarioService:
         descripcion: Optional[str] = None,
         activo: bool = True,
         usuario: Optional[Any] = None,
+        unidad_medida: str = "UNIDAD",
         **extra_fields: Any,
     ) -> Producto:
         """
@@ -90,6 +91,8 @@ class InventarioService:
             descripcion: Descripción detallada u observaciones.
             activo: Estado inicial (por defecto True).
             usuario: Usuario que realiza el alta (opcional).
+            unidad_medida: UNIDAD, LITRO, ML, KG o G. Define si se cuenta
+                en unidades o en cantidad (litros, etc.).
             **extra_fields: Campos adicionales.
 
         Returns:
@@ -108,6 +111,9 @@ class InventarioService:
             raise CantidadInvalidaError("El stock mínimo no puede ser negativo.")
         if precio < Decimal("0.00"):
             raise CantidadInvalidaError("El precio no puede ser negativo.")
+        unidades_validas = {c[0] for c in Producto.UnidadMedida.choices}
+        if unidad_medida not in unidades_validas:
+            raise CantidadInvalidaError("Unidad de medida inválida.")
 
         with transaction.atomic():
             producto = Producto.objects.create(
@@ -117,6 +123,7 @@ class InventarioService:
                 stock_minimo=stock_minimo,
                 descripcion=descripcion.strip() if descripcion else None,
                 activo=activo,
+                unidad_medida=unidad_medida,
                 **extra_fields,
             )
 
@@ -127,7 +134,7 @@ class InventarioService:
                 cantidad=stock_actual,
                 stock_previo=0,
                 stock_posterior=stock_actual,
-                motivo=f"Producto añadido al catálogo con stock inicial de {stock_actual} u.",
+                motivo=f"Producto añadido al catálogo con stock inicial de {stock_actual} {producto.unidad_abreviatura}.",
                 usuario=usuario if (usuario and getattr(usuario, "is_authenticated", False)) else None,
             )
 
@@ -209,6 +216,7 @@ class InventarioService:
             "nombre",
             "descripcion",
             "precio",
+            "unidad_medida",
             "stock_minimo",
             "stockMinimo",
             "stock_actual",
@@ -304,6 +312,15 @@ class InventarioService:
                 producto.activo = bool(valor)
                 if "activo" not in update_fields:
                     update_fields.append("activo")
+
+            elif campo == "unidad_medida":
+                unidades_validas = {c[0] for c in Producto.UnidadMedida.choices}
+                if valor not in unidades_validas:
+                    raise CantidadInvalidaError("Unidad de medida inválida.")
+                if producto.unidad_medida != valor:
+                    producto.unidad_medida = valor
+                    if "unidad_medida" not in update_fields:
+                        update_fields.append("unidad_medida")
 
         producto.save(update_fields=update_fields)
         return producto

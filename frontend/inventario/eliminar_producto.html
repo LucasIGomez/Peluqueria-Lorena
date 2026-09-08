@@ -17,7 +17,8 @@
                     <strong class="text-accent">{{ producto.nombre }}</strong>?
                 </p>
                 <div class="bg-dark p-3 rounded-2 mb-4 border border-secondary border-opacity-25 small text-secondary">
-                    <div><strong>Stock Actual:</strong> {{ producto.stock_actual }} unidades</div>
+                    <div><strong>Unidad de medida:</strong> {{ producto.get_unidad_medida_display }}</div>
+                    <div><strong>Stock Actual:</strong> {{ producto.stock_actual }} {{ producto.unidad_abreviatura }}</div>
                     <div><strong>Precio:</strong> ${{ producto.precio }}</div>
                     {% if producto.descripcion %}
                         <div><strong>Descripción:</strong> {{ producto.descripcion }}</div>

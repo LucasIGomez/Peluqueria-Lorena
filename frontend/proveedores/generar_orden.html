@@ -14,30 +14,37 @@
         <label for="buscadorProveedor" class="form-label fw-bold">Buscar Proveedor Destino</label>
         <div class="position-relative">
             <div class="input-group">
-                <span class="input-group-text bg-dark text-secondary border-secondary"><i class="bi bi-search"></i></span>
-                <input type="text" id="buscadorProveedor" class="form-control bg-dark text-light border-secondary" placeholder="Escribe para buscar un proveedor..." autocomplete="off">
+                <span class="input-group-text bg-dark text-secondary border-secondary"><i
+                        class="bi bi-search"></i></span>
+                <input type="text" id="buscadorProveedor" class="form-control bg-dark text-light border-secondary"
+                    placeholder="Escribe para buscar un proveedor..." autocomplete="off">
             </div>
             <input type="hidden" id="proveedorSelect">
-            
-            <div id="dropdownProveedores" class="dropdown-menu w-100 bg-dark border-secondary shadow" style="display: none; max-height: 200px; overflow-y: auto; position: absolute; top: 100%; left: 0; z-index: 1000; padding: 0;">
+
+            <div id="dropdownProveedores" class="dropdown-menu w-100 bg-dark border-secondary shadow"
+                style="display: none; max-height: 200px; overflow-y: auto; position: absolute; top: 100%; left: 0; z-index: 1000; padding: 0;">
                 {% for proveedor in proveedores %}
-                    <a href="#" class="dropdown-item text-light border-bottom border-secondary opcion-proveedor py-2" data-id="{{ proveedor.pk }}">
-                        <i class="bi bi-truck me-2 text-accent"></i>{{ proveedor.nombre }}
-                    </a>
+                <a href="#" class="dropdown-item text-light border-bottom border-secondary opcion-proveedor py-2"
+                    data-id="{{ proveedor.pk }}">
+                    <i class="bi bi-truck me-2 text-accent"></i>{{ proveedor.nombre }}
+                </a>
                 {% endfor %}
-                <div id="sinResultadosProveedor" class="text-secondary p-3 text-center" style="display: none;">No se encontraron proveedores</div>
+                <div id="sinResultadosProveedor" class="text-secondary p-3 text-center" style="display: none;">No se
+                    encontraron proveedores</div>
             </div>
         </div>
         <div id="proveedorSeleccionadoBadge" class="mt-2" style="display: none;">
             <span class="badge bg-success border border-success p-2">
-                <i class="bi bi-check-circle me-1"></i> Seleccionado: <span id="proveedorNombreSeleccionado" class="fw-bold"></span>
+                <i class="bi bi-check-circle me-1"></i> Seleccionado: <span id="proveedorNombreSeleccionado"
+                    class="fw-bold"></span>
             </span>
-            <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-2" id="btnQuitarProveedor">Cambiar</button>
+            <button type="button" class="btn btn-sm btn-link text-danger p-0 ms-2"
+                id="btnQuitarProveedor">Cambiar</button>
         </div>
     </div>
     <div class="col-md-6 d-flex align-items-end justify-content-end">
         <button class="btn btn-success fw-bold px-4" id="btnGenerarPDF">
-            <i class="bi bi-file-earmark-pdf"></i> Generar Orden (PDF)
+            <i class="bi bi-file-earmark-pdf me-1"></i> Generar Orden (PDF)
         </button>
     </div>
 </div>
@@ -48,13 +55,15 @@
         <div class="card h-100 border-secondary">
             <div class="card-header d-flex justify-content-between align-items-center border-secondary">
                 <h5 class="mb-0"><i class="bi bi-box-seam text-accent me-2"></i> Inventario del Sistema</h5>
-                <button type="button" class="btn btn-sm btn-outline-accent" data-bs-toggle="modal" data-bs-target="#modalNuevoProducto">
+                <button type="button" class="btn btn-sm btn-outline-accent" data-bs-toggle="modal"
+                    data-bs-target="#modalNuevoProducto">
                     <i class="bi bi-plus-lg"></i> Nuevo Insumo
                 </button>
             </div>
             <div class="card-body p-0">
                 <div class="p-3 border-bottom border-secondary bg-dark">
-                    <input type="text" id="buscadorInventario" class="form-control bg-dark text-light border-secondary" placeholder="Buscar insumo por nombre...">
+                    <input type="text" id="buscadorInventario" class="form-control bg-dark text-light border-secondary"
+                        placeholder="Buscar insumo por nombre...">
                 </div>
                 <div class="table-responsive" style="max-height: 65vh; overflow-y: scroll;">
                     <table class="table table-dark table-hover mb-0" id="tablaInventario">
@@ -62,7 +71,7 @@
                             <tr>
                                 <th>Insumo</th>
                                 <th>Stock Actual</th>
-                                <th class="text-end">Acción</th>
+                                <th class="text-end">Agregar al carrito</th>
                             </tr>
                         </thead>
                         <tbody id="tablaInventarioBody">
@@ -70,20 +79,22 @@
                             <tr data-id="{{ producto.pk }}" data-nombre="{{ producto.nombre|lower }}">
                                 <td class="align-middle fw-bold">{{ producto.nombre }}</td>
                                 <td class="align-middle">
-                                    {% if producto.stock_actual <= producto.stock_minimo %}
-                                        <span class="badge bg-danger">{{ producto.stock_actual }}</span>
-                                    {% else %}
+                                    {% if producto.stock_actual <= producto.stock_minimo %} <span
+                                        class="badge bg-danger">{{ producto.stock_actual }}</span>
+                                        {% else %}
                                         <span class="badge bg-secondary">{{ producto.stock_actual }}</span>
-                                    {% endif %}
+                                        {% endif %}
                                 </td>
                                 <td class="text-end align-middle">
-                                    <button class="btn btn-sm btn-primary btn-agregar">
-                                        <i class="bi bi-arrow-right"></i>
+                                    <button class="btn btn-sm btn-success btn-agregar">
+                                        <i class="bi bi-plus-lg"></i>
                                     </button>
                                 </td>
                             </tr>
                             {% empty %}
-                            <tr><td colspan="3" class="text-center text-secondary py-4">No hay insumos registrados.</td></tr>
+                            <tr>
+                                <td colspan="3" class="text-center text-secondary py-4">No hay insumos registrados.</td>
+                            </tr>
                             {% endfor %}
                         </tbody>
                     </table>
@@ -105,12 +116,13 @@
                             <tr>
                                 <th>Insumo</th>
                                 <th style="width: 120px;">Cantidad</th>
-                                <th class="text-end">Acción</th>
+                                <th class="text-end">Eliminar</th>
                             </tr>
                         </thead>
                         <tbody id="tablaPedidoBody">
                             <tr id="filaVaciaPedido">
-                                <td colspan="3" class="text-center text-secondary py-5">No hay productos en la orden de compra. <br><small>Selecciona insumos de la tabla izquierda.</small></td>
+                                <td colspan="3" class="text-center text-secondary py-5">No hay productos en la orden de
+                                    compra. <br><small>Selecciona insumos de la tabla izquierda.</small></td>
                             </tr>
                         </tbody>
                     </table>
@@ -132,29 +144,203 @@
                 <form id="formNuevoProducto">
                     {% csrf_token %}
                     <div class="mb-3">
-                        <label class="form-label text-light fw-semibold">Nombre del Insumo <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control bg-dark text-light border-secondary" id="nuevoNombre" required>
+                        <label class="form-label text-light fw-semibold">Nombre del Insumo <span
+                                class="text-danger">*</span></label>
+                        <input type="text" class="form-control bg-dark text-light border-secondary" id="nuevoNombre"
+                            required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label text-light">Descripción (Opcional)</label>
-                        <textarea class="form-control bg-dark text-light border-secondary" id="nuevaDescripcion" rows="2"></textarea>
+                        <textarea class="form-control bg-dark text-light border-secondary" id="nuevaDescripcion"
+                            rows="2"></textarea>
                     </div>
                     <div class="row">
                         <div class="col-6 mb-3">
-                            <label class="form-label text-light fw-semibold">Precio Ref. ($) <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" class="form-control bg-dark text-light border-secondary" id="nuevoPrecio" required placeholder="0.00" min="0">
+                            <label class="form-label text-light fw-semibold">Precio Ref. ($) <span
+                                    class="text-danger">*</span></label>
+                            <input type="number" step="0.01" class="form-control bg-dark text-light border-secondary"
+                                id="nuevoPrecio" required placeholder="0.00" min="0">
                         </div>
                         <div class="col-6 mb-3">
-                            <label class="form-label text-light fw-semibold">Stock Mínimo <span class="text-danger">*</span></label>
-                            <input type="number" class="form-control bg-dark text-light border-secondary" id="nuevoStockMin" required placeholder="5" min="0">
+                            <label class="form-label text-light fw-semibold">Stock Mínimo <span
+                                    class="text-danger">*</span></label>
+                            <input type="number" class="form-control bg-dark text-light border-secondary"
+                                id="nuevoStockMin" required placeholder="5" min="0">
                         </div>
                     </div>
                     <div id="modalError" class="alert alert-danger d-none py-2"></div>
                 </form>
             </div>
             <div class="modal-footer border-secondary">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-accent" id="btnGuardarProducto">Guardar y Añadir a la Orden</button>
+                <button type="button" class="btn btn-outline-secondary" id="btnCancelarInsumo">Cancelar</button>
+                <button type="button" class="btn btn-accent" id="btnGuardarProducto">Guardar y Añadir a la
+                    Orden</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Aviso genérico (proveedor faltante / carrito vacío / duplicados / errores) -->
+<div class="modal fade" id="modalAvisoOrden" tabindex="-1" aria-labelledby="modalAvisoOrdenLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3"
+                    style="width: 60px; height: 60px;">
+                    <i class="bi bi-exclamation-triangle-fill fs-2"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="avisoOrdenTitulo"><span>Aviso</span></h5>
+                <p class="text-secondary small mb-0" id="avisoOrdenMensaje">
+                    Mensaje de validación.
+                </p>
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center pt-3 pb-3">
+                <button type="button" class="btn btn-accent px-4 fw-semibold" data-bs-dismiss="modal">
+                    Entendido
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmar descarga de orden -->
+<div class="modal fade" id="modalConfirmarDescarga" tabindex="-1" aria-labelledby="modalConfirmarDescargaLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+                    style="width: 60px; height: 60px; background-color: rgba(229, 193, 88, 0.15); color: var(--accent-color);">
+                    <i class="bi bi-file-earmark-pdf fs-2"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalConfirmarDescargaLabel">¿Descargar la orden de
+                    compra?</h5>
+                <p class="text-secondary small mb-0">
+                    Se generará el archivo PDF con los datos seleccionados.
+                </p>
+                <div class="bg-dark p-3 rounded-2 mt-3 border border-secondary border-opacity-25 small text-secondary text-start">
+                    <div><strong>Proveedor:</strong> <span class="text-light"
+                            id="confirmDescargaProveedor">-</span></div>
+                    <div><strong>Insumos:</strong> <span class="text-light" id="confirmDescargaCantidad">0</span>
+                    </div>
+                </div>
+            </div>
+            <div
+                class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success px-4 fw-semibold" id="btnConfirmarDescarga">
+                    <i class="bi bi-download me-1"></i> Sí, descargar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmar guardado de nuevo insumo -->
+<div class="modal fade" id="modalConfirmarInsumo" tabindex="-1" aria-labelledby="modalConfirmarInsumoLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+                    style="width: 60px; height: 60px; background-color: rgba(229, 193, 88, 0.15); color: var(--accent-color);">
+                    <i class="bi bi-check2-circle fs-1"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalConfirmarInsumoLabel">¿Agregar este insumo a la
+                    orden?</h5>
+                <p class="text-secondary small mb-0">
+                    Se registrará el insumo y se añadirá automáticamente al carrito.
+                </p>
+                <div class="bg-dark p-3 rounded-2 mt-3 border border-secondary border-opacity-25 small text-secondary text-start">
+                    <div><strong>Nombre:</strong> <span class="text-light" id="confirmInsumoNombre">-</span></div>
+                    <div><strong>Precio ref.:</strong> <span class="text-light" id="confirmInsumoPrecio">-</span>
+                    </div>
+                    <div><strong>Stock mínimo:</strong> <span class="text-light" id="confirmInsumoStock">-</span>
+                    </div>
+                </div>
+            </div>
+            <div
+                class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">Revisar</button>
+                <button type="button" class="btn btn-accent px-4 fw-semibold" id="btnConfirmarGuardarInsumo">
+                    <i class="bi bi-check-lg me-1"></i> Sí, guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmar cancelación de nuevo insumo -->
+<div class="modal fade" id="modalCancelarInsumo" tabindex="-1" aria-labelledby="modalCancelarInsumoLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3"
+                    style="width: 60px; height: 60px;">
+                    <i class="bi bi-exclamation-triangle-fill fs-2"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalCancelarInsumoLabel">¿Estás seguro de Cancelar?
+                </h5>
+                <p class="text-secondary small mb-0">
+                    Tienes información ingresada en el formulario. Si decides cancelar ahora, se perderán todos los
+                    datos ingresados.
+                </p>
+            </div>
+            <div
+                class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    Continuar cargando
+                </button>
+                <button type="button" class="btn btn-danger px-4 fw-semibold" id="btnConfirmarCancelarInsumo">
+                    <i class="bi bi-x-circle me-1"></i> Sí, descartar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Confirmar salida con orden en curso -->
+<div class="modal fade" id="modalConfirmarSalida" tabindex="-1" aria-labelledby="modalConfirmarSalidaLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3"
+                    style="width: 60px; height: 60px;">
+                    <i class="bi bi-exclamation-triangle-fill fs-2"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalConfirmarSalidaLabel">¿Estás seguro de salir?
+                </h5>
+                <p class="text-secondary small mb-0">
+                    Tienes productos seleccionados en tu orden que se perderán si sales ahora.
+                </p>
+            </div>
+            <div
+                class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">Quedarme</button>
+                <a href="{% url 'proveedores:lista_proveedores' %}" class="btn btn-danger px-4 fw-semibold"
+                    id="btnConfirmarSalida">Sí, salir</a>
             </div>
         </div>
     </div>
@@ -168,7 +354,27 @@
         const tablaInventarioBody = document.getElementById('tablaInventarioBody');
         const tablaPedidoBody = document.getElementById('tablaPedidoBody');
         const filaVacia = document.getElementById('filaVaciaPedido');
-        
+
+        // ── Helpers de ventanas emergentes (estilo oscuro de la página) ──
+        function mostrarModal(id) {
+            const el = document.getElementById(id);
+            if (!el) return null;
+            const modal = bootstrap.Modal.getOrCreateInstance(el);
+            modal.show();
+            return modal;
+        }
+        function ocultarModal(id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const modal = bootstrap.Modal.getInstance(el);
+            if (modal) modal.hide();
+        }
+        function mostrarAviso(mensaje, titulo = 'Aviso') {
+            document.querySelector('#avisoOrdenTitulo span').textContent = titulo;
+            document.getElementById('avisoOrdenMensaje').textContent = mensaje;
+            mostrarModal('modalAvisoOrden');
+        }
+
         // 1. Buscador en Inventario
         buscador.addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase();
@@ -192,7 +398,7 @@
         buscadorProveedor.addEventListener('input', (e) => {
             const term = e.target.value.toLowerCase();
             let visibles = 0;
-            
+
             dropdownProveedores.style.display = 'block';
 
             opcionesProveedor.forEach(opcion => {
@@ -230,11 +436,11 @@
                 e.preventDefault();
                 const id = opcion.getAttribute('data-id');
                 const nombre = opcion.textContent.trim();
-                
+
                 proveedorSelect.value = id;
                 buscadorProveedor.value = '';
                 dropdownProveedores.style.display = 'none';
-                
+
                 buscadorProveedor.parentElement.style.display = 'none';
                 nombreSeleccionado.textContent = nombre;
                 badgeSeleccionado.style.display = 'block';
@@ -252,7 +458,7 @@
         function agregarAlPedido(id, nombre) {
             // Evitar duplicados
             if (tablaPedidoBody.querySelector(`tr[data-pedido-id="${id}"]`)) {
-                alert('El producto ya está en la orden de compra.');
+                mostrarAviso('El producto "' + nombre + '" ya está en la orden de compra.', 'Producto duplicado');
                 return;
             }
 
@@ -293,24 +499,43 @@
             }
         });
 
-        // 3. Crear Producto vía AJAX
+        // 3. Nuevo Insumo: Guardar con confirmación + Cancelar con validación
         const btnGuardarProducto = document.getElementById('btnGuardarProducto');
+        const btnCancelarInsumo = document.getElementById('btnCancelarInsumo');
+        const btnConfirmarGuardarInsumo = document.getElementById('btnConfirmarGuardarInsumo');
+        const btnConfirmarCancelarInsumo = document.getElementById('btnConfirmarCancelarInsumo');
         const formNuevo = document.getElementById('formNuevoProducto');
         const modalError = document.getElementById('modalError');
 
-        btnGuardarProducto.addEventListener('click', async () => {
+        function insumoTieneDatos() {
+            return document.getElementById('nuevoNombre').value.trim() !== '' ||
+                document.getElementById('nuevaDescripcion').value.trim() !== '' ||
+                document.getElementById('nuevoPrecio').value.trim() !== '' ||
+                document.getElementById('nuevoStockMin').value.trim() !== '';
+        }
+
+        btnGuardarProducto.addEventListener('click', () => {
             if (!formNuevo.checkValidity()) {
                 formNuevo.reportValidity();
                 return;
             }
+            document.getElementById('confirmInsumoNombre').textContent =
+                document.getElementById('nuevoNombre').value.trim() || '-';
+            document.getElementById('confirmInsumoPrecio').textContent =
+                '$' + (document.getElementById('nuevoPrecio').value.trim() || '0');
+            document.getElementById('confirmInsumoStock').textContent =
+                document.getElementById('nuevoStockMin').value.trim() || '0';
+            mostrarModal('modalConfirmarInsumo');
+        });
 
+        btnConfirmarGuardarInsumo.addEventListener('click', async () => {
             const nombre = document.getElementById('nuevoNombre').value;
             const descripcion = document.getElementById('nuevaDescripcion').value;
             const precio = document.getElementById('nuevoPrecio').value;
             const stockMin = document.getElementById('nuevoStockMin').value;
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-            btnGuardarProducto.disabled = true;
+            btnConfirmarGuardarInsumo.disabled = true;
             modalError.classList.add('d-none');
 
             try {
@@ -326,8 +551,7 @@
                 const data = await res.json();
 
                 if (res.ok) {
-                    // Producto creado con éxito
-                    // 1. Añadir a la tabla de inventario visualmente
+                    ocultarModal('modalConfirmarInsumo');
                     const tr = document.createElement('tr');
                     tr.setAttribute('data-id', data.id);
                     tr.setAttribute('data-nombre', data.nombre.toLowerCase());
@@ -335,66 +559,156 @@
                         <td class="align-middle fw-bold">${data.nombre}</td>
                         <td class="align-middle"><span class="badge bg-danger">0</span></td>
                         <td class="text-end align-middle">
-                            <button class="btn btn-sm btn-primary btn-agregar">
-                                <i class="bi bi-arrow-right"></i>
+                            <button class="btn btn-sm btn-success btn-agregar">
+                                <i class="bi bi-plus-lg"></i>
                             </button>
                         </td>
                     `;
-                    // Insertar al inicio
                     tablaInventarioBody.insertBefore(tr, tablaInventarioBody.firstChild);
-
-                    // 2. Añadir automáticamente a la orden
                     agregarAlPedido(data.id, data.nombre);
-
-                    // 3. Cerrar modal y resetear
-                    const modalEl = document.getElementById('modalNuevoProducto');
-                    const modal = bootstrap.Modal.getInstance(modalEl);
-                    modal.hide();
+                    ocultarModal('modalNuevoProducto');
                     formNuevo.reset();
                 } else {
+                    ocultarModal('modalConfirmarInsumo');
                     modalError.textContent = data.error || 'Ocurrió un error al crear el producto.';
                     modalError.classList.remove('d-none');
                 }
             } catch (err) {
+                ocultarModal('modalConfirmarInsumo');
                 modalError.textContent = 'Error de red. Intenta nuevamente.';
                 modalError.classList.remove('d-none');
             } finally {
-                btnGuardarProducto.disabled = false;
+                btnConfirmarGuardarInsumo.disabled = false;
             }
         });
 
-        // 4. Botón Generar PDF (Mockup)
-        document.getElementById('btnGenerarPDF').addEventListener('click', () => {
-            const proveedor = document.getElementById('proveedorSelect').value;
-            if (!proveedor) {
-                alert('Debes seleccionar un proveedor destino.');
-                return;
+        btnCancelarInsumo.addEventListener('click', () => {
+            if (insumoTieneDatos()) {
+                mostrarModal('modalCancelarInsumo');
+            } else {
+                ocultarModal('modalNuevoProducto');
             }
-            const filas = tablaPedidoBody.querySelectorAll('tr[data-pedido-id]');
-            if (filas.length === 0) {
-                alert('La orden de compra está vacía.');
-                return;
-            }
-            alert('En el futuro, esto generará un PDF con los datos del proveedor y los ' + filas.length + ' insumos seleccionados.');
         });
 
-        // 5. Validación antes de salir si hay productos en la orden
-        window.addEventListener('beforeunload', (e) => {
-            const cantidadProductos = tablaPedidoBody.querySelectorAll('tr[data-pedido-id]').length;
-            if (cantidadProductos > 0) {
-                // Alerta estándar del navegador para advertir pérdida de cambios
+        btnConfirmarCancelarInsumo.addEventListener('click', () => {
+            formNuevo.reset();
+            modalError.classList.add('d-none');
+            window._cancelandoInsumo = true;
+            ocultarModal('modalCancelarInsumo');
+            ocultarModal('modalNuevoProducto');
+            setTimeout(() => { window._cancelandoInsumo = false; }, 500);
+        });
+
+        // Si cierra el modal con la X teniendo datos, pedir confirmación también
+        document.getElementById('modalNuevoProducto').addEventListener('hide.bs.modal', (e) => {
+            if (document.getElementById('modalCancelarInsumo').classList.contains('show')) return;
+            if (document.getElementById('modalConfirmarInsumo').classList.contains('show')) return;
+            if (insumoTieneDatos() && !window._cancelandoInsumo) {
                 e.preventDefault();
-                e.returnValue = ''; 
+                mostrarModal('modalCancelarInsumo');
             }
         });
 
-        // Evento específico para el botón volver
+        // 4. Generar orden: validaciones + confirmación de descarga
+        const btnGenerarPDF = document.getElementById('btnGenerarPDF') || document.getElementById('btnGenerarDocx');
+        const btnConfirmarDescarga = document.getElementById('btnConfirmarDescarga');
+        if (btnGenerarPDF) {
+            // 4.1 Validación al pulsar Generar: muestra aviso o pide confirmación
+            btnGenerarPDF.addEventListener('click', () => {
+                // Caso 1: sin proveedor seleccionado
+                const proveedorId = document.getElementById('proveedorSelect').value;
+                if (!proveedorId) {
+                    mostrarAviso('Debes seleccionar un proveedor destino antes de generar la orden de compra.', 'Falta el proveedor');
+                    return;
+                }
+                // Caso 2: proveedor OK pero carrito vacío
+                const filas = tablaPedidoBody.querySelectorAll('tr[data-pedido-id]');
+                if (filas.length === 0) {
+                    mostrarAviso('La orden de compra está vacía. Añade al menos un insumo desde la tabla de inventario.', 'Carrito vacío');
+                    return;
+                }
+                // Caso 4: todo correcto -> confirmar descarga
+                const nombreProv = document.getElementById('proveedorNombreSeleccionado').textContent.trim() || 'Proveedor seleccionado';
+                document.getElementById('confirmDescargaProveedor').textContent = nombreProv;
+                document.getElementById('confirmDescargaCantidad').textContent = filas.length + (filas.length === 1 ? ' insumo' : ' insumos');
+                mostrarModal('modalConfirmarDescarga');
+            });
+
+            // 4.2 Confirmación: ejecuta la descarga real del PDF
+            btnConfirmarDescarga.addEventListener('click', async () => {
+                const proveedorId = document.getElementById('proveedorSelect').value;
+                const filas = tablaPedidoBody.querySelectorAll('tr[data-pedido-id]');
+                const productos = [];
+                filas.forEach(fila => {
+                    const id = fila.getAttribute('data-pedido-id');
+                    const nombre = fila.querySelector('td:first-child').textContent.trim();
+                    const inputCant = fila.querySelector('input[type="number"]');
+                    const cantidad = inputCant ? parseInt(inputCant.value, 10) || 1 : 1;
+                    productos.push({ id, nombre, cantidad });
+                });
+
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')
+                    ? document.querySelector('[name=csrfmiddlewaretoken]').value
+                    : '';
+
+                ocultarModal('modalConfirmarDescarga');
+                const originalHtml = btnGenerarPDF.innerHTML;
+                btnGenerarPDF.disabled = true;
+                btnGenerarPDF.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generando PDF...';
+
+                try {
+                    const response = await fetch("{% url 'proveedores:descargar_orden_compra' %}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({
+                            proveedor_id: proveedorId,
+                            productos: productos
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => ({}));
+                        throw new Error(errData.error || ('Error del servidor (' + response.status + ')'));
+                    }
+
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+
+                    const disposition = response.headers.get('Content-Disposition');
+                    let filename = 'Orden_Compra_Lorena.pdf';
+                    if (disposition && disposition.indexOf('filename=') !== -1) {
+                        const match = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/.exec(disposition);
+                        if (match && match[1]) {
+                            filename = match[1].replace(/['"]/g, '');
+                        }
+                    }
+
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    window.URL.revokeObjectURL(url);
+                    a.remove();
+                } catch (err) {
+                    mostrarAviso('No se pudo generar la orden de compra: ' + err.message, 'Error al generar');
+                } finally {
+                    btnGenerarPDF.disabled = false;
+                    btnGenerarPDF.innerHTML = originalHtml;
+                }
+            });
+        }
+
+        // 5. Salida con orden en curso -> ventana emergente en vez de confirm()
         document.getElementById('btnVolver').addEventListener('click', (e) => {
             const cantidadProductos = tablaPedidoBody.querySelectorAll('tr[data-pedido-id]').length;
             if (cantidadProductos > 0) {
-                if (!confirm('¿Estás seguro de que deseas salir? Tienes productos seleccionados en tu orden que se perderán.')) {
-                    e.preventDefault();
-                }
+                e.preventDefault();
+                mostrarModal('modalConfirmarSalida');
             }
         });
     });

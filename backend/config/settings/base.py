@@ -193,3 +193,17 @@ LOGIN_URL: str = "/usuarios/login/"
 LOGIN_REDIRECT_URL: str = "/"
 LOGOUT_REDIRECT_URL: str = "/usuarios/login/"
 
+# ──────────────────────────────────────────────
+# DATOS DEL SALÓN Y DE LA DUEÑA (TEMPORALES)
+# Modificar aquí cuando se cuente con los datos definitivos de la dueña.
+# ──────────────────────────────────────────────
+DATOS_PELUQUERIA = {
+    "NOMBRE_SALON": "Peluquería Lorena",
+    "NOMBRE_DUENA": os.environ.get("PELUQUERIA_DUENA_NOMBRE", "Lorena Paola Pérez"),
+    "CUIT_DUENA": os.environ.get("PELUQUERIA_DUENA_CUIT", "27-35123456-8"),
+    "TELEFONO": os.environ.get("PELUQUERIA_TELEFONO", "+54 9 11 2345-6789"),
+    "EMAIL": os.environ.get("PELUQUERIA_EMAIL", "contacto@peluquerialorena.com"),
+    "DIRECCION": os.environ.get("PELUQUERIA_DIRECCION", "Buenos Aires, Argentina"),
+}
+
+

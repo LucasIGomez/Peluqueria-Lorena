@@ -8,16 +8,156 @@
     <div class="col-md-6">
         <div class="card">
             <div class="card-body">
-                <form method="post">
+                <form method="post" id="formProveedor" novalidate>
                     {% csrf_token %}
                     {{ form.as_p }}
                     <div class="mt-4 d-flex justify-content-end gap-2">
-                        <a href="{% url 'proveedores:lista_proveedores' %}" class="btn btn-outline-secondary">Cancelar</a>
-                        <button type="submit" class="btn btn-accent"><i class="bi bi-save"></i> Guardar</button>
+                        <a href="{% url 'proveedores:lista_proveedores' %}" class="btn btn-outline-secondary"
+                            id="btnCancelarProveedor">Cancelar</a>
+                        <button type="submit" class="btn btn-accent" id="btnGuardarProveedor"><i class="bi bi-save"></i>
+                            Guardar</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 </div>
+
+<!-- Modal Emergente de Confirmación de Guardar (estilo Stock e Insumos) -->
+<div class="modal fade" id="modalConfirmarProveedor" tabindex="-1" aria-labelledby="modalConfirmarProveedorLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+                    style="width: 60px; height: 60px; background-color: rgba(229, 193, 88, 0.15); color: var(--accent-color);">
+                    <i class="bi bi-check2-circle fs-1"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalConfirmarProveedorLabel">¿Guardar los datos del
+                    proveedor?</h5>
+                <p class="text-secondary small mb-0">
+                    Se {{ accion|lower }}rá el proveedor con los datos ingresados.
+                </p>
+                <div class="bg-dark p-3 rounded-2 mt-3 border border-secondary border-opacity-25 small text-secondary text-start">
+                    <div><strong>Nombre:</strong> <span class="text-light" id="confirmProvNombre">-</span></div>
+                    <div><strong>Contacto:</strong> <span class="text-light" id="confirmProvContacto">-</span></div>
+                    <div><strong>Condiciones:</strong> <span class="text-light" id="confirmProvCondiciones">-</span>
+                    </div>
+                </div>
+            </div>
+            <div
+                class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    Revisar
+                </button>
+                <button type="button" id="btnConfirmarGuardarProveedor" class="btn btn-accent px-4 fw-semibold">
+                    <i class="bi bi-check-lg me-1"></i> Sí, guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Emergente de Confirmación de Cancelación (estilo Stock e Insumos) -->
+<div class="modal fade" id="modalCancelarProveedor" tabindex="-1" aria-labelledby="modalCancelarProveedorLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3"
+                    style="width: 60px; height: 60px;">
+                    <i class="bi bi-exclamation-triangle-fill fs-2"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalCancelarProveedorLabel">¿Estás seguro de
+                    Cancelar?</h5>
+                <p class="text-secondary small mb-0">
+                    Tienes información ingresada en el formulario. Si decides cancelar ahora, se perderán todos los
+                    datos y cambios realizados.
+                </p>
+            </div>
+            <div
+                class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    Continuar editando
+                </button>
+                <a href="{% url 'proveedores:lista_proveedores' %}" class="btn btn-danger px-4 fw-semibold">
+                    <i class="bi bi-x-circle me-1"></i> Sí, cancelar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('formProveedor');
+        const btnCancelar = document.getElementById('btnCancelarProveedor');
+        const btnConfirmarGuardar = document.getElementById('btnConfirmarGuardarProveedor');
+        if (!form) return;
+
+        const SELECTOR_CAMPOS = 'input:not([type="hidden"]), textarea, select';
+        const valoresIniciales = new Map();
+        form.querySelectorAll(SELECTOR_CAMPOS).forEach(el => {
+            valoresIniciales.set(el, el.value);
+        });
+        function formularioConDatos() {
+            for (const el of form.querySelectorAll(SELECTOR_CAMPOS)) {
+                if ((el.value || '').trim() !== '') return true;
+            }
+            return false;
+        }
+        function huboCambios() {
+            for (const [el, inicial] of valoresIniciales) {
+                if (el.value !== inicial) return true;
+            }
+            return false;
+        }
+        function valorCampo(nombre, fallback = '-') {
+            const el = form.querySelector(`[name="${nombre}"]`);
+            if (!el) return fallback;
+            const v = (el.value || '').trim();
+            return v === '' ? fallback : v;
+        }
+
+        // Guardar -> valida y pide confirmación en vez de enviar directo
+        form.addEventListener('submit', (e) => {
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                e.preventDefault();
+                return;
+            }
+            e.preventDefault();
+            document.getElementById('confirmProvNombre').textContent = valorCampo('nombre');
+            document.getElementById('confirmProvContacto').textContent = valorCampo('contacto');
+            document.getElementById('confirmProvCondiciones').textContent = valorCampo('condicionesPago');
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalConfirmarProveedor')).show();
+        });
+
+        btnConfirmarGuardar.addEventListener('click', () => {
+            form.submit();
+        });
+
+        // Cancelar -> si hay datos introducidos o cambios, preguntar antes de salir
+        // En modo Editar el form ya viene con datos: solo avisa si hubo cambios.
+        // En modo Registrar: avisa si se escribió algo.
+        const esEdicion = "{{ accion|lower }}" === "editar";
+        btnCancelar.addEventListener('click', (e) => {
+            const debePreguntar = esEdicion ? huboCambios() : formularioConDatos();
+            if (debePreguntar) {
+                e.preventDefault();
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCancelarProveedor')).show();
+            }
+        });
+    });
+</script>
 {% endblock %}

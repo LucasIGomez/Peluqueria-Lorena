@@ -47,7 +47,7 @@
             <div class="small text-light text-opacity-75">
                 {% for p in productos_bajo_stock %}
                 <span class="badge bg-danger bg-opacity-75 me-1">
-                    {{ p.nombre }}: {{ p.stock_actual }} u. (Mínimo: {{ p.stock_minimo }})
+                    {{ p.nombre }}: {{ p.stock_actual }} {{ p.unidad_abreviatura }} (Mínimo: {{ p.stock_minimo }})
                 </span>
                 {% endfor %}
             </div>
@@ -131,18 +131,19 @@
                         data-desc="{{ producto.descripcion|default:''|lower }}">
                         <td class="ps-4">
                             <div class="fw-bold col-nombre">{{ producto.nombre }}</div>
+                            <small class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-25">{{ producto.get_unidad_medida_display }}</small>
                             {% if producto.descripcion %}
-                            <small class="text-secondary col-desc">{{ producto.descripcion|truncatechars:50 }}</small>
+                            <small class="text-secondary col-desc d-block">{{ producto.descripcion|truncatechars:50 }}</small>
                             {% endif %}
                         </td>
                         <td class="fw-semibold">${{ producto.precio }}</td>
                         <td>
                             <span
                                 class="fs-6 fw-bold {% if producto.verificar_stock_minimo %}text-danger{% else %}text-light{% endif %}">
-                                {{ producto.stock_actual }} u.
+                                {{ producto.stock_actual }} {{ producto.unidad_abreviatura }}
                             </span>
                         </td>
-                        <td class="text-secondary">{{ producto.stock_minimo }} u.</td>
+                        <td class="text-secondary">{{ producto.stock_minimo }} {{ producto.unidad_abreviatura }}</td>
                         <td>
                             {% if producto.verificar_stock_minimo %}
                             <span class="badge bg-danger d-inline-flex align-items-center gap-1">
@@ -170,11 +171,17 @@
                                 class="btn btn-sm btn-outline-light me-1" title="Editar detalles del producto">
                                 <i class="bi bi-pencil"></i>
                             </a>
-                            <!-- RF 7.1: Baja / Eliminar -->
-                            <a href="{% url 'inventario:eliminar_producto' producto.pk %}"
-                                class="btn btn-sm btn-outline-danger" title="Dar de baja producto">
+                            <!-- RF 7.1: Baja / Eliminar (ventana emergente, sin cambiar de página) -->
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-producto"
+                                title="Dar de baja producto" data-id="{{ producto.pk }}"
+                                data-nombre="{{ producto.nombre|escapejs }}"
+                                data-stock="{{ producto.stock_actual }}"
+                                data-unidad="{{ producto.unidad_abreviatura }}"
+                                data-precio="{{ producto.precio }}"
+                                data-desc="{{ producto.descripcion|default:''|escapejs }}"
+                                data-url="{% url 'inventario:eliminar_producto' producto.pk %}">
                                 <i class="bi bi-trash"></i>
-                            </a>
+                            </button>
                         </td>
                     </tr>
                     {% empty %}
@@ -204,6 +211,122 @@
                     </tr>
                 </tbody>
             </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Emergente: Baja de producto (mismo contenido que la página de baja, sin navegar) -->
+<div class="modal fade" id="modalBajaProducto" tabindex="-1" aria-labelledby="modalBajaProductoLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger rounded-circle mb-3"
+                    style="width: 60px; height: 60px;">
+                    <i class="bi bi-exclamation-triangle-fill fs-2"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalBajaProductoLabel">Confirmar Baja del Producto
+                </h5>
+                <p class="text-secondary small mb-0">
+                    ¿Estás segura de que deseas dar de baja el producto
+                    <strong class="text-accent" id="bajaProductoNombre">-</strong>?
+                </p>
+                <div
+                    class="bg-dark p-3 rounded-2 mt-3 mb-3 border border-secondary border-opacity-25 small text-secondary text-start">
+                    <div><strong>Stock Actual:</strong> <span id="bajaProductoStock">-</span> <span id="bajaProductoUnidad">u.</span></div>
+                    <div><strong>Precio:</strong> $<span id="bajaProductoPrecio">-</span></div>
+                    <div id="bajaProductoDescWrap"><strong>Descripción:</strong> <span
+                            id="bajaProductoDesc">-</span></div>
+                </div>
+                <form method="post" id="formBajaProducto" class="text-start">
+                    {% csrf_token %}
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" name="permanente" value="1"
+                            id="bajaPermanenteCheck">
+                        <label class="form-check-label small text-secondary" for="bajaPermanenteCheck">
+                            Eliminar de forma permanente de la base de datos (se perderá el historial de este producto
+                            si no tiene movimientos asociados).
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div
+                class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="button" id="btnConfirmarBajaLista" class="btn btn-danger px-4 fw-semibold">
+                    <i class="bi bi-trash me-1"></i> Confirmar Baja
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Emergente: Validación de Casilla No Marcada -->
+<div class="modal fade" id="modalRequierePermanenteLista" tabindex="-1"
+    aria-labelledby="modalRequierePermanenteListaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3"
+                    style="width: 60px; height: 60px;">
+                    <i class="bi bi-exclamation-triangle-fill fs-2"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalRequierePermanenteListaLabel">Confirmación
+                    Requerida</h5>
+                <p class="text-secondary small mb-0">
+                    Para confirmar la baja de este producto, debes marcar primero la casilla <br>
+                    <strong class="text-light">"Eliminar de forma permanente de la base de datos..."</strong>.
+                </p>
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center pt-3 pb-3">
+                <button type="button" class="btn btn-accent px-4 fw-semibold" data-bs-dismiss="modal">
+                    Entendido
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Emergente: Confirmación Definitiva de Baja -->
+<div class="modal fade" id="modalConfirmarBajaLista" tabindex="-1" aria-labelledby="modalConfirmarBajaListaLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger rounded-circle mb-3"
+                    style="width: 60px; height: 60px;">
+                    <i class="bi bi-trash3-fill fs-2"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalConfirmarBajaListaLabel">¿Confirmar Baja
+                    Permanente?</h5>
+                <p class="text-secondary small mb-0">
+                    Esta acción eliminará de forma definitiva el producto <strong class="text-accent"
+                        id="confirmarBajaProductoNombre">-</strong> del inventario y la base de datos.
+                </p>
+            </div>
+            <div
+                class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    Cancelar
+                </button>
+                <button type="button" id="btnSubmitBajaFinalLista" class="btn btn-danger px-4 fw-semibold">
+                    <i class="bi bi-trash me-1"></i> Sí, dar de baja
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -250,6 +373,63 @@
         if (formBusqueda) {
             formBusqueda.addEventListener("submit", function (e) {
                 e.preventDefault();
+            });
+        }
+
+        // ── Baja de producto con ventanas emergentes (sin cambiar de página) ──
+        const modalBajaEl = document.getElementById("modalBajaProducto");
+        const modalRequiereEl = document.getElementById("modalRequierePermanenteLista");
+        const modalConfirmarEl = document.getElementById("modalConfirmarBajaLista");
+        const formBaja = document.getElementById("formBajaProducto");
+        const checkPerm = document.getElementById("bajaPermanenteCheck");
+        const btnConfirmarBaja = document.getElementById("btnConfirmarBajaLista");
+        const btnSubmitFinal = document.getElementById("btnSubmitBajaFinalLista");
+
+        if (modalBajaEl && formBaja) {
+            const modalBaja = new bootstrap.Modal(modalBajaEl);
+            const modalRequiere = modalRequiereEl ? new bootstrap.Modal(modalRequiereEl) : null;
+            const modalConfirmar = modalConfirmarEl ? new bootstrap.Modal(modalConfirmarEl) : null;
+
+            document.querySelectorAll(".btn-eliminar-producto").forEach((btn) => {
+                btn.addEventListener("click", function () {
+                    document.getElementById("bajaProductoNombre").textContent = this.getAttribute("data-nombre") || "-";
+                    document.getElementById("confirmarBajaProductoNombre").textContent = this.getAttribute("data-nombre") || "-";
+                    document.getElementById("bajaProductoStock").textContent = this.getAttribute("data-stock") || "-";
+                    document.getElementById("bajaProductoUnidad").textContent = this.getAttribute("data-unidad") || "u.";
+                    document.getElementById("bajaProductoPrecio").textContent = this.getAttribute("data-precio") || "-";
+                    const desc = (this.getAttribute("data-desc") || "").trim();
+                    document.getElementById("bajaProductoDesc").textContent = desc || "-";
+                    document.getElementById("bajaProductoDescWrap").style.display = desc ? "" : "none";
+                    formBaja.action = this.getAttribute("data-url");
+                    checkPerm.checked = false;
+                    modalBaja.show();
+                });
+            });
+
+            // "Confirmar Baja" exige la casilla, igual que en la página de baja
+            if (btnConfirmarBaja) {
+                btnConfirmarBaja.addEventListener("click", function () {
+                    if (!checkPerm.checked) {
+                        if (modalRequiere) modalRequiere.show();
+                        return;
+                    }
+                    if (modalConfirmar) modalConfirmar.show();
+                });
+            }
+
+            if (btnSubmitFinal) {
+                btnSubmitFinal.addEventListener("click", function () {
+                    btnSubmitFinal.disabled = true;
+                    btnSubmitFinal.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Eliminando...';
+                    formBaja.submit();
+                });
+            }
+
+            modalBajaEl.addEventListener("hidden.bs.modal", function () {
+                if (btnSubmitFinal) {
+                    btnSubmitFinal.disabled = false;
+                    btnSubmitFinal.innerHTML = '<i class="bi bi-trash me-1"></i> Sí, dar de baja';
+                }
             });
         }
     });
