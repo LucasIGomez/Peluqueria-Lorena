@@ -54,11 +54,17 @@
 
                     <!-- Cantidad a descontar -->
                     <div class="mb-3">
-                        <label for="{{ form.cantidad.id_for_label }}" class="form-label fw-semibold">
-                            {{ form.cantidad.label }} <span class="text-danger">*</span>
+                        <label for="{{ form.cantidad.id_for_label }}" class="form-label fw-semibold" id="label-cantidad">
+                            Cantidad consumida (<span id="unidad-cantidad">{% if producto_inicial %}{{ producto_inicial.unidad_plural }}{% else %}unidades{% endif %}</span>) <span class="text-danger">*</span>
                         </label>
                         {{ form.cantidad }}
-                        <small class="text-secondary">Unidades utilizadas en la sesión o servicio.</small>
+                        <small class="text-secondary" id="ayuda-cantidad">
+                            {% if producto_inicial and producto_inicial.unidad_medida != 'UNIDAD' %}
+                                Cantidad en {{ producto_inicial.unidad_plural }} utilizada en la sesión o servicio.
+                            {% else %}
+                                Unidades utilizadas en la sesión o servicio.
+                            {% endif %}
+                        </small>
                         {% if form.cantidad.errors %}
                             <div class="text-danger small mt-1">{{ form.cantidad.errors.0 }}</div>
                         {% endif %}
@@ -132,7 +138,7 @@
                 </div>
                 <h5 class="modal-title fw-bold mb-2 text-light" id="modalConfirmarDescontarLabel">¿Confirmar Descuento de Stock?</h5>
                 <p class="text-secondary small mb-0">
-                    Se descontarán las unidades del inventario por consumo en servicio y la operación quedará auditada en el historial.
+                    Se descontarán <strong class="text-warning" id="modal-desc-cantidad">1</strong> <strong class="text-warning" id="modal-desc-unidad">{% if producto_inicial %}{{ producto_inicial.unidad_plural }}{% else %}unidades{% endif %}</strong> del inventario por consumo en servicio y la operación quedará auditada en el historial.
                 </p>
             </div>
             <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
@@ -146,6 +152,8 @@
         </div>
     </div>
 </div>
+
+{{ productos_unidades|json_script:"productos-unidades" }}
 {% endblock %}
 
 {% block extra_js %}
@@ -156,6 +164,39 @@ document.addEventListener("DOMContentLoaded", function () {
     const modalCancelarEl = document.getElementById("modalCancelar");
     const modalDescontarEl = document.getElementById("modalConfirmarDescontar");
     const btnConfirmarDescontarSubmit = document.getElementById("btn-confirmar-descontar-submit");
+
+    const productosDataEl = document.getElementById("productos-unidades");
+    const productosData = productosDataEl ? JSON.parse(productosDataEl.textContent) : {};
+    const selectProducto = document.getElementById("id_producto");
+    const unidadSpan = document.getElementById("unidad-cantidad");
+    const ayudaCantidad = document.getElementById("ayuda-cantidad");
+    const inputCantidad = document.getElementById("id_cantidad");
+    const modalDescCant = document.getElementById("modal-desc-cantidad");
+    const modalDescUnidad = document.getElementById("modal-desc-unidad");
+
+    function actualizarUnidad() {
+        const prodId = selectProducto ? selectProducto.value : null;
+        const info = prodId && productosData[prodId] ? productosData[prodId] : null;
+        const plural = info ? info.plural : "unidades";
+        const esUnidad = !info || info.unidad === "UNIDAD";
+
+        if (unidadSpan) {
+            unidadSpan.textContent = plural;
+        }
+        if (ayudaCantidad) {
+            ayudaCantidad.textContent = esUnidad
+                ? "Unidades utilizadas en la sesión o servicio."
+                : `Cantidad en ${plural} utilizada en la sesión o servicio.`;
+        }
+        if (inputCantidad) {
+            inputCantidad.placeholder = esUnidad ? "Ej: 2 (unidades)" : `Ej: 250 (${plural})`;
+        }
+    }
+
+    if (selectProducto) {
+        selectProducto.addEventListener("change", actualizarUnidad);
+        actualizarUnidad();
+    }
 
     if (!form) return;
 
@@ -202,6 +243,12 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!form.checkValidity()) {
                 form.reportValidity();
                 return;
+            }
+            if (modalDescCant && inputCantidad) {
+                modalDescCant.textContent = inputCantidad.value || "1";
+            }
+            if (modalDescUnidad && unidadSpan) {
+                modalDescUnidad.textContent = unidadSpan.textContent;
             }
             if (modalDescontar) {
                 modalDescontar.show();

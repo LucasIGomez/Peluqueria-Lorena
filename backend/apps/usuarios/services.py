@@ -32,37 +32,30 @@ class UsuarioService:
         email: str,
         password: str,
         rol: str = Usuario.Rol.EMPLEADA,
-        admin_pin: Optional[str] = None,
-        requiere_pin: bool = False,
+        dni: Optional[str] = None,
         **extra_fields: Any,
     ) -> Usuario:
         """
-        Crea un nuevo usuario con contraseña hasheada y validación de PIN para Administradora.
+        Crea un nuevo usuario con contraseña hasheada.
+
+        La creación de usuarios es exclusiva de la Administradora (se controla
+        en la vista / permiso). La contraseña de acceso es el DNI de la persona.
 
         Args:
             nombre: Nombre completo del usuario.
             email: Correo electrónico único.
-            password: Contraseña en texto plano.
+            password: Contraseña en texto plano (normalmente el DNI).
             rol: Rol del usuario (EMPLEADA o ADMINISTRADORA).
-            admin_pin: PIN de seguridad requerido si el rol es ADMINISTRADORA.
-            requiere_pin: Si es True, exige obligatoriamente el PIN para rol ADMINISTRADORA.
+            dni: DNI de la persona; se guarda como dato y se usa como contraseña.
             **extra_fields: Campos adicionales.
 
         Returns:
             Instancia de Usuario persistida.
 
         Raises:
-            ValueError: Si el PIN para Administradora es inválido o no se proporciona email.
+            ValueError: Si no se proporciona email.
         """
-        if admin_pin is None:
-            admin_pin = extra_fields.pop("admin_pin", extra_fields.pop("adminPin", None))
-
-        # Si el rol es Administradora, validar el PIN si se requiere o si fue provisto
         if rol == Usuario.Rol.ADMINISTRADORA:
-            expected_pin = getattr(settings, "ADMIN_REGISTRATION_PIN", "1234")
-            if requiere_pin or admin_pin is not None:
-                if not admin_pin or str(admin_pin).strip() != str(expected_pin).strip():
-                    raise ValueError("El PIN de seguridad para registrar Administradora es incorrecto.")
             extra_fields.setdefault("is_staff", True)
 
         return Usuario.objects.create_user(
@@ -70,6 +63,7 @@ class UsuarioService:
             nombre=nombre,
             password=password,
             rol=rol,
+            dni=dni,
             **extra_fields,
         )
 
@@ -121,13 +115,18 @@ class UsuarioService:
         Returns:
             Instancia de Usuario actualizada.
         """
-        campos_actualizables = ["nombre", "email", "rol"]
+        campos_actualizables = ["nombre", "email", "rol", "dni"]
         update_fields: list[str] = []
 
         for campo, valor in campos.items():
             if campo in campos_actualizables and valor is not None:
                 setattr(usuario, campo, valor)
                 update_fields.append(campo)
+
+        # Si cambió el DNI, actualizar también la contraseña (el DNI es la clave).
+        if "dni" in update_fields and usuario.dni:
+            usuario.set_password(usuario.dni)
+            update_fields.append("password")
 
         # Si se cambia a administradora, activar is_staff
         if "rol" in update_fields:

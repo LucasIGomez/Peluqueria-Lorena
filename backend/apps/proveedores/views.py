@@ -90,10 +90,10 @@ def descargar_orden_compra(request):
 
     # Datos institucionales del salón / dueña (configurados en settings.DATOS_PELUQUERIA)
     datos_salon = getattr(settings, 'DATOS_PELUQUERIA', {})
-    duena_nombre = datos_salon.get('NOMBRE_DUENA', 'Lorena Paola Pérez')
-    duena_cuit = datos_salon.get('CUIT_DUENA', '27-35123456-8')
-    peluqueria_telefono = datos_salon.get('TELEFONO', '+54 9 11 2345-6789')
-    duena_email = datos_salon.get('EMAIL', 'contacto@peluquerialorena.com')
+    duena_nombre = datos_salon.get('NOMBRE_DUENA', 'Lorena Yanil Ortigoza')
+    duena_cuit = datos_salon.get('CUIT_DUENA', '27-29327958-1')
+    peluqueria_telefono = datos_salon.get('TELEFONO', '+54 9 297 534-9278')
+    duena_email = datos_salon.get('EMAIL', 'lrnortigoza@gmail.com')
     fecha_emision = timezone.now().strftime('%d/%m/%Y')
 
     proveedor_nombre = proveedor.nombre if proveedor else "Sin asignar"
@@ -101,9 +101,14 @@ def descargar_orden_compra(request):
 
     productos = []
     for item in items_raw:
+        cantidad = item.get('cantidad', 1)
+        unidad = str(item.get('unidad') or '').strip()
+        nombre = str(item.get('nombre', '')).strip()
         productos.append({
-            'nombre': str(item.get('nombre', '')).strip(),
-            'cantidad': item.get('cantidad', 1)
+            'nombre': nombre,
+            'cantidad': f"{cantidad} {unidad}".strip() if unidad else cantidad,
+            'cantidad_num': cantidad,
+            'unidad': unidad,
         })
 
     # Rutas candidatas para la plantilla Word
@@ -181,15 +186,26 @@ def crear_producto_ajax(request):
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
+            unidad = (data.get('unidad_medida') or 'UNIDAD')
+            unidades_validas = {c[0] for c in Producto.UnidadMedida.choices}
+            if unidad not in unidades_validas:
+                return JsonResponse({'error': 'Unidad de medida inválida.'}, status=400)
             producto = InventarioService.crear_producto(
                 nombre=data.get('nombre'),
                 descripcion=data.get('descripcion'),
                 precio=data.get('precio', 0),
                 stock_actual=0,
                 stock_minimo=data.get('stock_minimo', 5),
+                unidad_medida=unidad,
                 usuario=request.user
             )
-            return JsonResponse({'id': producto.pk, 'nombre': producto.nombre})
+            return JsonResponse({
+                'id': producto.pk,
+                'nombre': producto.nombre,
+                'unidad_medida': producto.unidad_medida,
+                'unidad_display': producto.get_unidad_medida_display(),
+                'unidad_abreviatura': producto.unidad_abreviatura,
+            })
         except InventarioError as e:
             return JsonResponse({'error': str(e)}, status=400)
         except Exception as e:

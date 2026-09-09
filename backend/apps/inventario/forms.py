@@ -74,11 +74,21 @@ class ProductoForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Unidad de medida: por defecto Unidades; no obligatoria para
+        # compatibilidad con envíos antiguos / tests sin el campo.
+        self.fields["unidad_medida"].required = False
+        self.fields["unidad_medida"].initial = Producto.UnidadMedida.UNIDAD
         if not self.instance.pk:
             self.fields["stock_actual"].initial = None
             self.fields["stock_minimo"].initial = None
             self.fields["stock_actual"].required = False
             self.fields["stock_minimo"].required = False
+
+    def clean_unidad_medida(self) -> str:
+        unidad = self.cleaned_data.get("unidad_medida")
+        if not unidad:
+            return Producto.UnidadMedida.UNIDAD
+        return unidad
 
     def clean_precio(self) -> Decimal:
         precio = self.cleaned_data.get("precio")
@@ -163,6 +173,20 @@ class ProductoEditForm(forms.ModelForm):
             raise ValidationError("El precio no puede ser un valor negativo.")
         return precio
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["unidad_medida"].required = False
+        if not self.initial.get("unidad_medida") and getattr(self.instance, "unidad_medida", None):
+            self.initial["unidad_medida"] = self.instance.unidad_medida
+
+    def clean_unidad_medida(self) -> str:
+        unidad = self.cleaned_data.get("unidad_medida")
+        if not unidad:
+            if getattr(self.instance, "unidad_medida", None):
+                return self.instance.unidad_medida
+            return Producto.UnidadMedida.UNIDAD
+        return unidad
+
     def clean_stock_minimo(self) -> int:
         stock = self.cleaned_data.get("stock_minimo")
         if stock is None:
@@ -200,6 +224,19 @@ class AgregarStockForm(forms.Form):
         help_text="Opcional: Detalle de la compra o ingreso de mercadería.",
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        prod = self.initial.get("producto")
+        if isinstance(prod, Producto):
+            self.fields["cantidad"].label = f"Cantidad a agregar ({prod.unidad_plural})"
+        elif isinstance(prod, (int, str)) and prod:
+            try:
+                p = Producto.objects.filter(pk=prod).first()
+                if p:
+                    self.fields["cantidad"].label = f"Cantidad a agregar ({p.unidad_plural})"
+            except Exception:
+                pass
+
 
 class ConsumoServicioForm(forms.Form):
     """
@@ -232,6 +269,19 @@ class ConsumoServicioForm(forms.Form):
         help_text="Indica el servicio, clienta o tratamiento donde se utilizó el insumo.",
     )
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        prod = self.initial.get("producto")
+        if isinstance(prod, Producto):
+            self.fields["cantidad"].label = f"Cantidad consumida ({prod.unidad_plural})"
+        elif isinstance(prod, (int, str)) and prod:
+            try:
+                p = Producto.objects.filter(pk=prod).first()
+                if p:
+                    self.fields["cantidad"].label = f"Cantidad consumida ({p.unidad_plural})"
+            except Exception:
+                pass
+
     def clean(self) -> dict:
         cleaned_data = super().clean()
         producto = cleaned_data.get("producto")
@@ -241,6 +291,6 @@ class ConsumoServicioForm(forms.Form):
             if producto.stock_actual < cantidad:
                 raise ValidationError(
                     f"No hay suficiente stock disponible de '{producto.nombre}'. "
-                    f"Existencia actual: {producto.stock_actual} unidades, solicitadas: {cantidad}."
+                    f"Existencia actual: {producto.stock_actual} {producto.unidad_abreviatura}, solicitadas: {cantidad} {producto.unidad_abreviatura}."
                 )
         return cleaned_data

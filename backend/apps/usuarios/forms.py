@@ -1,15 +1,38 @@
 """
 Peluquería Lorena — Formularios del módulo de Usuarios.
 
-Define los formularios Django para login, registro con validación de PIN
-y gestión administrativa (CRUD) de usuarios.
+Define los formularios Django para login y para la gestión administrativa
+(alta / edición) de usuarios. El alta de usuarios es exclusiva de la
+Administradora; la contraseña de acceso de cada persona es su DNI.
 """
 from __future__ import annotations
 
-from typing import Any
 from django import forms
-from django.conf import settings
+
 from .models import Usuario
+
+
+def _validar_formato_dni(dni: str) -> str:
+    """Normaliza y valida el formato del DNI (solo dígitos, 7 u 8)."""
+    dni = (dni or "").strip().replace(".", "").replace(" ", "")
+    if not dni.isdigit() or not (7 <= len(dni) <= 8):
+        raise forms.ValidationError(
+            "El DNI debe tener 7 u 8 dígitos, sin puntos ni espacios."
+        )
+    if len(set(dni)) == 1:
+        # Rechaza DNI triviales como 00000000 (el de la cuenta inicial) o 11111111.
+        raise forms.ValidationError("El DNI ingresado no es válido.")
+    return dni
+
+
+def _validar_nombre(nombre: str) -> str:
+    """Valida que el nombre tenga contenido real (mín. 2 caracteres y una letra)."""
+    nombre = (nombre or "").strip()
+    if len(nombre) < 2 or not any(c.isalpha() for c in nombre):
+        raise forms.ValidationError(
+            "Ingresá un nombre válido (al menos 2 caracteres y una letra)."
+        )
+    return nombre
 
 
 class LoginForm(forms.Form):
@@ -27,6 +50,7 @@ class LoginForm(forms.Form):
     )
     password = forms.CharField(
         label="Contraseña",
+        max_length=128,
         widget=forms.PasswordInput(
             attrs={
                 "class": "form-control",
@@ -36,128 +60,33 @@ class LoginForm(forms.Form):
     )
 
 
-class RegistroForm(forms.Form):
-    """Formulario público para registro de nuevos usuarios."""
+class UsuarioAdminForm(forms.ModelForm):
+    """Formulario para que la Administradora dé de alta un usuario."""
 
-    nombre = forms.CharField(
-        label="Nombre Completo",
-        max_length=255,
+    dni = forms.CharField(
+        label="DNI",
+        max_length=15,
         widget=forms.TextInput(
             attrs={
                 "class": "form-control",
-                "placeholder": "Ej: Lorena Gómez",
+                "placeholder": "Ej: 40123456",
+                "inputmode": "numeric",
             }
         ),
-    )
-    email = forms.EmailField(
-        label="Correo Electrónico",
-        widget=forms.EmailInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "correo@peluquerialorena.com",
-            }
-        ),
-    )
-    rol = forms.ChoiceField(
-        label="Rol en el Sistema",
-        choices=Usuario.Rol.choices,
-        initial=Usuario.Rol.EMPLEADA,
-        widget=forms.Select(
-            attrs={
-                "class": "form-select",
-                "id": "id_rol_select",
-            }
-        ),
-    )
-    admin_pin = forms.CharField(
-        label="PIN de Administradora (Solo si el rol es Administradora)",
-        required=False,
-        widget=forms.PasswordInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "PIN de seguridad",
-                "id": "id_admin_pin_input",
-            }
-        ),
-        help_text="Requerido únicamente para activar cuenta de Administradora (por defecto: 1234).",
-    )
-    password = forms.CharField(
-        label="Contraseña",
-        min_length=8,
-        widget=forms.PasswordInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "Mínimo 8 caracteres",
-            }
-        ),
-    )
-    confirm_password = forms.CharField(
-        label="Confirmar Contraseña",
-        min_length=8,
-        widget=forms.PasswordInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "Repetí tu contraseña",
-            }
-        ),
-    )
-
-    def clean_email(self) -> str:
-        email = self.cleaned_data["email"].strip().lower()
-        if Usuario.objects.filter(email=email).exists():
-            raise forms.ValidationError("Ya existe un usuario registrado con este correo electrónico.")
-        return email
-
-    def clean(self) -> dict[str, Any]:
-        cleaned_data = super().clean()
-        password = cleaned_data.get("password")
-        confirm_password = cleaned_data.get("confirm_password")
-        rol = cleaned_data.get("rol")
-        admin_pin = cleaned_data.get("admin_pin")
-
-        if password and confirm_password and password != confirm_password:
-            self.add_error("confirm_password", "Las contraseñas no coinciden.")
-
-        if rol == Usuario.Rol.ADMINISTRADORA:
-            expected_pin = getattr(settings, "ADMIN_REGISTRATION_PIN", "1234")
-            if not admin_pin or str(admin_pin).strip() != str(expected_pin).strip():
-                self.add_error("admin_pin", "El PIN de seguridad de Administradora es incorrecto.")
-
-        return cleaned_data
-
-
-class UsuarioAdminForm(forms.ModelForm):
-    """Formulario para que la Administradora cree usuarios desde el panel de gestión."""
-
-    password = forms.CharField(
-        label="Contraseña Inicial",
-        min_length=8,
-        widget=forms.PasswordInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "Mínimo 8 caracteres",
-            }
-        ),
-    )
-    admin_pin = forms.CharField(
-        label="PIN de Administradora",
-        required=False,
-        widget=forms.PasswordInput(
-            attrs={
-                "class": "form-control",
-                "placeholder": "PIN (si el rol es Administradora)",
-            }
-        ),
+        help_text="Sin puntos. Será la contraseña con la que la persona inicia sesión.",
     )
 
     class Meta:
         model = Usuario
-        fields = ["nombre", "email", "rol"]
+        fields = ["nombre", "email", "rol", "dni"]
         widgets = {
             "nombre": forms.TextInput(attrs={"class": "form-control"}),
             "email": forms.EmailInput(attrs={"class": "form-control"}),
             "rol": forms.Select(attrs={"class": "form-select", "id": "id_rol_select"}),
         }
+
+    def clean_nombre(self) -> str:
+        return _validar_nombre(self.cleaned_data.get("nombre"))
 
     def clean_email(self) -> str:
         email = self.cleaned_data["email"].strip().lower()
@@ -165,28 +94,88 @@ class UsuarioAdminForm(forms.ModelForm):
             raise forms.ValidationError("Ya existe un usuario con este correo electrónico.")
         return email
 
-    def clean(self) -> dict[str, Any]:
-        cleaned_data = super().clean()
-        rol = cleaned_data.get("rol")
-        admin_pin = cleaned_data.get("admin_pin")
-
-        if rol == Usuario.Rol.ADMINISTRADORA:
-            expected_pin = getattr(settings, "ADMIN_REGISTRATION_PIN", "1234")
-            if not admin_pin or str(admin_pin).strip() != str(expected_pin).strip():
-                self.add_error("admin_pin", "El PIN de seguridad de Administradora es incorrecto.")
-
-        return cleaned_data
+    def clean_dni(self) -> str:
+        dni = _validar_formato_dni(self.cleaned_data.get("dni"))
+        if Usuario.objects.filter(dni=dni).exists():
+            raise forms.ValidationError("Ya existe un usuario registrado con este DNI.")
+        return dni
 
 
 class UsuarioEditForm(forms.ModelForm):
     """Formulario para que la Administradora edite los datos de un usuario."""
 
+    dni = forms.CharField(
+        label="DNI",
+        max_length=15,
+        widget=forms.TextInput(
+            attrs={
+                "class": "form-control",
+                "placeholder": "Ej: 40123456",
+                "inputmode": "numeric",
+            }
+        ),
+        help_text="Si lo cambiás, también cambia la contraseña de acceso de la persona.",
+    )
+
     class Meta:
         model = Usuario
-        fields = ["nombre", "email", "rol", "is_active"]
+        fields = ["nombre", "email", "rol", "dni", "is_active"]
         widgets = {
             "nombre": forms.TextInput(attrs={"class": "form-control"}),
             "email": forms.EmailInput(attrs={"class": "form-control"}),
             "rol": forms.Select(attrs={"class": "form-select"}),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
+
+    def clean_nombre(self) -> str:
+        return _validar_nombre(self.cleaned_data.get("nombre"))
+
+    def clean_email(self) -> str:
+        email = self.cleaned_data["email"].strip().lower()
+        if (
+            Usuario.objects.filter(email=email)
+            .exclude(pk=self.instance.pk)
+            .exists()
+        ):
+            raise forms.ValidationError("Ya existe otro usuario con este correo electrónico.")
+        return email
+
+    def clean_dni(self) -> str:
+        dni = _validar_formato_dni(self.cleaned_data.get("dni"))
+        if (
+            Usuario.objects.filter(dni=dni)
+            .exclude(pk=self.instance.pk)
+            .exists()
+        ):
+            raise forms.ValidationError("Ya existe otro usuario registrado con este DNI.")
+        return dni
+
+    def clean(self) -> dict:
+        """Impide dejar el sistema sin ninguna administradora activa."""
+        cleaned = super().clean()
+        if not self.instance.pk:
+            return cleaned
+
+        era_admin_activa = (
+            self.instance.rol == Usuario.Rol.ADMINISTRADORA and self.instance.is_active
+        )
+        if era_admin_activa:
+            sigue_admin_activa = (
+                cleaned.get("rol") == Usuario.Rol.ADMINISTRADORA
+                and cleaned.get("is_active", False)
+            )
+            if not sigue_admin_activa:
+                hay_otra = (
+                    Usuario.objects.filter(
+                        rol=Usuario.Rol.ADMINISTRADORA, is_active=True
+                    )
+                    .exclude(pk=self.instance.pk)
+                    .exists()
+                )
+                if not hay_otra:
+                    raise forms.ValidationError(
+                        "No podés dejar el sistema sin ninguna administradora activa. "
+                        "Designá otra administradora antes de cambiar el rol o "
+                        "desactivar esta cuenta."
+                    )
+        return cleaned

@@ -88,6 +88,10 @@
                                 <span class="badge bg-success">
                                     <i class="bi bi-box-arrow-in-down me-1"></i> Reposición de Stock
                                 </span>
+                            {% elif mov.tipo_movimiento == 'CAMBIO_UNIDAD_MEDIDA' %}
+                                <span class="badge bg-primary">
+                                    <i class="bi bi-rulers me-1"></i> {{ mov.get_tipo_movimiento_display }}
+                                </span>
                             {% elif mov.tipo_movimiento == 'CAMBIO_NOMBRE' or mov.tipo_movimiento == 'CAMBIO_DESCRIPCION' or mov.tipo_movimiento == 'CAMBIO_PRECIO' or mov.tipo_movimiento == 'CAMBIO_STOCK_MINIMO' %}
                                 <span class="badge bg-secondary">
                                     <i class="bi bi-pencil-square me-1"></i> {{ mov.get_tipo_movimiento_display }}
@@ -104,14 +108,14 @@
                                 <span class="fw-bold text-success">+{{ mov.cantidad }} {{ mov.producto.unidad_abreviatura }}</span>
                             {% elif mov.tipo_movimiento == 'ALTA_PRODUCTO' %}
                                 <span class="fw-bold text-info">{{ mov.cantidad }} {{ mov.producto.unidad_abreviatura }}</span>
-                            {% elif mov.tipo_movimiento == 'BAJA_PRODUCTO' or mov.tipo_movimiento == 'CAMBIO_NOMBRE' or mov.tipo_movimiento == 'CAMBIO_DESCRIPCION' or mov.tipo_movimiento == 'CAMBIO_PRECIO' or mov.tipo_movimiento == 'CAMBIO_STOCK_MINIMO' %}
+                            {% elif mov.tipo_movimiento == 'BAJA_PRODUCTO' or mov.tipo_movimiento == 'CAMBIO_NOMBRE' or mov.tipo_movimiento == 'CAMBIO_DESCRIPCION' or mov.tipo_movimiento == 'CAMBIO_PRECIO' or mov.tipo_movimiento == 'CAMBIO_STOCK_MINIMO' or mov.tipo_movimiento == 'CAMBIO_UNIDAD_MEDIDA' %}
                                 <span class="text-secondary">—</span>
                             {% else %}
                                 <span class="fw-bold text-warning">-{{ mov.cantidad }} {{ mov.producto.unidad_abreviatura }}</span>
                             {% endif %}
                         </td>
                         <td class="small">
-                            {% if mov.tipo_movimiento == 'CAMBIO_NOMBRE' or mov.tipo_movimiento == 'CAMBIO_DESCRIPCION' or mov.tipo_movimiento == 'CAMBIO_PRECIO' or mov.tipo_movimiento == 'CAMBIO_STOCK_MINIMO' %}
+                            {% if mov.tipo_movimiento == 'CAMBIO_NOMBRE' or mov.tipo_movimiento == 'CAMBIO_DESCRIPCION' or mov.tipo_movimiento == 'CAMBIO_PRECIO' or mov.tipo_movimiento == 'CAMBIO_STOCK_MINIMO' or mov.tipo_movimiento == 'CAMBIO_UNIDAD_MEDIDA' %}
                                 <span class="text-secondary">—</span>
                             {% else %}
                                 <span class="text-secondary">{{ mov.stock_previo }}</span> 

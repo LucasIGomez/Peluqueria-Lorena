@@ -1,12 +1,11 @@
 """
-Peluquería Lorena — Tests de integración para Registro, Login y Gestión de Usuarios.
+Peluquería Lorena — Tests de integración para Login y Gestión de Usuarios.
 
 Verifica:
-1. Registro con validación de PIN para rol ADMINISTRADORA (PIN=1234).
-2. Registro de EMPLEADA sin necesidad de PIN.
-3. Inicio de sesión Web (Login) y recuperación de datos y rol en sesión.
-4. Restricción de acceso al panel de Gestión de Usuarios (exclusivo Administradora).
-5. Operaciones CRUD de usuarios por parte de la Administradora.
+1. El registro público ya no existe (solo la Administradora crea usuarios).
+2. Inicio de sesión Web (Login) y recuperación de datos y rol en sesión.
+3. Restricción de acceso al panel de Gestión de Usuarios (exclusivo Administradora).
+4. Alta / edición / baja de usuarios por parte de la Administradora, usando el DNI como contraseña.
 """
 import pytest
 from django.urls import reverse
@@ -15,86 +14,28 @@ from tests.factories.usuario_factory import AdministradoraFactory, EmpleadaFacto
 
 
 @pytest.mark.django_db
-class TestRegistroUsuariosWeb:
-    """Pruebas del formulario de registro público de usuarios."""
+class TestRegistroPublicoDeshabilitado:
+    """El auto-registro de usuarios fue eliminado."""
 
-    def test_registro_empleada_exitoso_sin_pin(self, client) -> None:
-        """Una empleada se registra exitosamente sin ingresar PIN de administradora."""
-        url = reverse("usuarios:registro")
-        data = {
-            "nombre": "Florencia Peluquera",
-            "email": "florencia@peluquerialorena.com",
-            "rol": Usuario.Rol.EMPLEADA,
-            "admin_pin": "",
-            "password": "PasswordSegura123!",
-            "confirm_password": "PasswordSegura123!",
-        }
-        response = client.post(url, data, follow=True)
+    def test_no_hay_nombre_de_url_registro(self) -> None:
+        """El name 'usuarios:registro' ya no puede resolverse."""
+        from django.urls import NoReverseMatch
+
+        with pytest.raises(NoReverseMatch):
+            reverse("usuarios:registro")
+
+    def test_registro_no_sirve_formulario(self, client) -> None:
+        """/usuarios/registro/ ya no devuelve un formulario de registro."""
+        response = client.get("/usuarios/registro/")
+        assert response.status_code != 200
+
+    def test_pantalla_login_no_ofrece_registrarse(self, client) -> None:
+        """La pantalla de login ya no tiene el link para auto-registrarse."""
+        response = client.get(reverse("usuarios:login"))
         assert response.status_code == 200
-
-        # Verificar que se persistió en la base de datos
-        usuario = Usuario.objects.filter(email="florencia@peluquerialorena.com").first()
-        assert usuario is not None
-        assert usuario.nombre == "Florencia Peluquera"
-        assert usuario.rol == Usuario.Rol.EMPLEADA
-        assert usuario.es_empleada is True
-        assert usuario.es_administradora is False
-        assert usuario.is_staff is False
-        assert usuario.check_password("PasswordSegura123!") is True
-
-    def test_registro_administradora_con_pin_correcto(self, client) -> None:
-        """Una administradora se registra exitosamente ingresando el PIN de seguridad 1234."""
-        url = reverse("usuarios:registro")
-        data = {
-            "nombre": "Lorena Dueña",
-            "email": "lorena@peluquerialorena.com",
-            "rol": Usuario.Rol.ADMINISTRADORA,
-            "admin_pin": "1234",
-            "password": "LorenaPassword123!",
-            "confirm_password": "LorenaPassword123!",
-        }
-        response = client.post(url, data, follow=True)
-        assert response.status_code == 200
-
-        usuario = Usuario.objects.filter(email="lorena@peluquerialorena.com").first()
-        assert usuario is not None
-        assert usuario.nombre == "Lorena Dueña"
-        assert usuario.rol == Usuario.Rol.ADMINISTRADORA
-        assert usuario.es_administradora is True
-        assert usuario.is_staff is True
-        assert usuario.check_password("LorenaPassword123!") is True
-
-    def test_registro_administradora_con_pin_incorrecto_falla(self, client) -> None:
-        """El intento de registrar Administradora con PIN incorrecto se rechaza y no se guarda."""
-        url = reverse("usuarios:registro")
-        data = {
-            "nombre": "Intruso",
-            "email": "intruso@test.com",
-            "rol": Usuario.Rol.ADMINISTRADORA,
-            "admin_pin": "9999",  # PIN erróneo
-            "password": "Password123!",
-            "confirm_password": "Password123!",
-        }
-        response = client.post(url, data)
-        assert response.status_code == 200
-
-        # No debe haberse guardado en la base de datos
-        assert Usuario.objects.filter(email="intruso@test.com").exists() is False
-
-    def test_registro_administradora_sin_pin_falla(self, client) -> None:
-        """El intento de registrar Administradora sin PIN se rechaza."""
-        url = reverse("usuarios:registro")
-        data = {
-            "nombre": "Sin Pin",
-            "email": "sinpin@test.com",
-            "rol": Usuario.Rol.ADMINISTRADORA,
-            "admin_pin": "",
-            "password": "Password123!",
-            "confirm_password": "Password123!",
-        }
-        response = client.post(url, data)
-        assert response.status_code == 200
-        assert Usuario.objects.filter(email="sinpin@test.com").exists() is False
+        cuerpo = response.content.decode("utf-8").lower()
+        assert "registrate" not in cuerpo
+        assert "/usuarios/registro/" not in cuerpo
 
 
 @pytest.mark.django_db
@@ -184,8 +125,7 @@ class TestGestionUsuariosPermisosYCRUD:
             "nombre": "Mariana Manicura",
             "email": "mariana@peluquerialorena.com",
             "rol": Usuario.Rol.EMPLEADA,
-            "password": "PasswordMariana123!",
-            "admin_pin": "",
+            "dni": "40123456",
         }
         response = client.post(url, data, follow=True)
         assert response.status_code == 200
@@ -194,11 +134,16 @@ class TestGestionUsuariosPermisosYCRUD:
         assert nuevo_user is not None
         assert nuevo_user.nombre == "Mariana Manicura"
         assert nuevo_user.rol == Usuario.Rol.EMPLEADA
+        assert nuevo_user.dni == "40123456"
+        # El DNI es la contraseña de acceso
+        assert nuevo_user.check_password("40123456") is True
 
     def test_administradora_edita_usuario_existente(self, client) -> None:
         """La administradora modifica el nombre y rol de un usuario."""
         admin = AdministradoraFactory(email="admin.editora@test.com")
-        empleada = EmpleadaFactory(email="empleada.para.editar@test.com", nombre="Nombre Viejo")
+        empleada = EmpleadaFactory(
+            email="empleada.para.editar@test.com", nombre="Nombre Viejo", dni="30111222"
+        )
         client.force_login(admin)
 
         url = reverse("usuarios:editar_usuario", kwargs={"pk": empleada.pk})
@@ -206,6 +151,7 @@ class TestGestionUsuariosPermisosYCRUD:
             "nombre": "Nombre Corregido",
             "email": "empleada.para.editar@test.com",
             "rol": Usuario.Rol.EMPLEADA,
+            "dni": "30111222",
             "is_active": True,
         }
         response = client.post(url, data, follow=True)
@@ -226,3 +172,114 @@ class TestGestionUsuariosPermisosYCRUD:
 
         empleada.refresh_from_db()
         assert empleada.is_active is False
+
+
+@pytest.mark.django_db
+class TestValidacionesGestionUsuarios:
+    """Validaciones del alta/edición de usuarios."""
+
+    def _login_admin(self, client):
+        # Partimos de una única administradora conocida (la migración crea una
+        # cuenta semilla que acá no queremos que interfiera con los conteos).
+        Usuario.objects.filter(rol=Usuario.Rol.ADMINISTRADORA).delete()
+        admin = AdministradoraFactory(email="admin.valida@test.com")
+        client.force_login(admin)
+        return admin
+
+    def test_dni_trivial_es_rechazado(self, client) -> None:
+        self._login_admin(client)
+        response = client.post(
+            reverse("usuarios:crear_usuario"),
+            {"nombre": "Ana Perez", "email": "ana@test.com", "rol": Usuario.Rol.EMPLEADA, "dni": "00000000"},
+        )
+        assert response.status_code == 200
+        assert Usuario.objects.filter(email="ana@test.com").exists() is False
+
+    def test_dni_con_letras_es_rechazado(self, client) -> None:
+        self._login_admin(client)
+        response = client.post(
+            reverse("usuarios:crear_usuario"),
+            {"nombre": "Ana Perez", "email": "ana2@test.com", "rol": Usuario.Rol.EMPLEADA, "dni": "40ABC123"},
+        )
+        assert response.status_code == 200
+        assert Usuario.objects.filter(email="ana2@test.com").exists() is False
+
+    def test_nombre_invalido_es_rechazado(self, client) -> None:
+        self._login_admin(client)
+        response = client.post(
+            reverse("usuarios:crear_usuario"),
+            {"nombre": "1", "email": "ana3@test.com", "rol": Usuario.Rol.EMPLEADA, "dni": "40555666"},
+        )
+        assert response.status_code == 200
+        assert Usuario.objects.filter(email="ana3@test.com").exists() is False
+
+    def test_editar_normaliza_el_email(self, client) -> None:
+        self._login_admin(client)
+        emp = EmpleadaFactory(email="emp.norm@test.com", nombre="Original", dni="35111000")
+        response = client.post(
+            reverse("usuarios:editar_usuario", kwargs={"pk": emp.pk}),
+            {
+                "nombre": "Original",
+                "email": "  EMP.Norm@TEST.com  ",
+                "rol": Usuario.Rol.EMPLEADA,
+                "dni": "35111000",
+                "is_active": True,
+            },
+            follow=True,
+        )
+        assert response.status_code == 200
+        emp.refresh_from_db()
+        assert emp.email == "emp.norm@test.com"
+
+    def test_no_se_puede_degradar_a_la_ultima_administradora(self, client) -> None:
+        """Editar la única admin activa cambiándole el rol se rechaza."""
+        admin = self._login_admin(client)
+        response = client.post(
+            reverse("usuarios:editar_usuario", kwargs={"pk": admin.pk}),
+            {
+                "nombre": admin.nombre,
+                "email": admin.email,
+                "rol": Usuario.Rol.EMPLEADA,
+                "dni": "36999888",
+                "is_active": True,
+            },
+        )
+        assert response.status_code == 200
+        admin.refresh_from_db()
+        assert admin.rol == Usuario.Rol.ADMINISTRADORA
+
+    def test_no_se_puede_desactivar_a_la_ultima_administradora(self, client) -> None:
+        """Editar la única admin activa desactivándola se rechaza."""
+        admin = self._login_admin(client)
+        response = client.post(
+            reverse("usuarios:editar_usuario", kwargs={"pk": admin.pk}),
+            {
+                "nombre": admin.nombre,
+                "email": admin.email,
+                "rol": Usuario.Rol.ADMINISTRADORA,
+                "dni": "36999888",
+                "is_active": False,
+            },
+        )
+        assert response.status_code == 200
+        admin.refresh_from_db()
+        assert admin.is_active is True
+
+    def test_se_puede_degradar_una_admin_si_hay_otra(self, client) -> None:
+        """Si hay más de una admin activa, degradar a una está permitido."""
+        self._login_admin(client)
+        otra = AdministradoraFactory(email="otra.admin.ok@test.com", nombre="Otra Admin", dni="37222333")
+        response = client.post(
+            reverse("usuarios:editar_usuario", kwargs={"pk": otra.pk}),
+            {
+                "nombre": "Otra Admin",
+                "email": "otra.admin.ok@test.com",
+                "rol": Usuario.Rol.EMPLEADA,
+                "dni": "37222333",
+                "is_active": True,
+            },
+            follow=True,
+        )
+        assert response.status_code == 200
+        otra.refresh_from_db()
+        assert otra.rol == Usuario.Rol.EMPLEADA

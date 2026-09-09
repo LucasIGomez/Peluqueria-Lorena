@@ -186,24 +186,22 @@ EMAIL_BACKEND: str = "django.core.mail.backends.console.EmailBackend"
 PASSWORD_RESET_TOKEN_EXPIRY_HOURS: int = 24
 
 # ──────────────────────────────────────────────
-# PIN DE REGISTRO ADMINISTRATIVO & AUTH URLS
+# AUTH URLS
 # ──────────────────────────────────────────────
-ADMIN_REGISTRATION_PIN: str = os.environ.get("ADMIN_REGISTRATION_PIN", "1234")
 LOGIN_URL: str = "/usuarios/login/"
 LOGIN_REDIRECT_URL: str = "/"
 LOGOUT_REDIRECT_URL: str = "/usuarios/login/"
 
 # ──────────────────────────────────────────────
-# DATOS DEL SALÓN Y DE LA DUEÑA (TEMPORALES)
-# Modificar aquí cuando se cuente con los datos definitivos de la dueña.
+# DATOS DEL SALÓN Y DE LA DUEÑA
 # ──────────────────────────────────────────────
 DATOS_PELUQUERIA = {
     "NOMBRE_SALON": "Peluquería Lorena",
-    "NOMBRE_DUENA": os.environ.get("PELUQUERIA_DUENA_NOMBRE", "Lorena Paola Pérez"),
-    "CUIT_DUENA": os.environ.get("PELUQUERIA_DUENA_CUIT", "27-35123456-8"),
-    "TELEFONO": os.environ.get("PELUQUERIA_TELEFONO", "+54 9 11 2345-6789"),
-    "EMAIL": os.environ.get("PELUQUERIA_EMAIL", "contacto@peluquerialorena.com"),
-    "DIRECCION": os.environ.get("PELUQUERIA_DIRECCION", "Buenos Aires, Argentina"),
+    "NOMBRE_DUENA": os.environ.get("PELUQUERIA_DUENA_NOMBRE", "Lorena Yanil Ortigoza"),
+    "CUIT_DUENA": os.environ.get("PELUQUERIA_DUENA_CUIT", "27-29327958-1"),
+    "TELEFONO": os.environ.get("PELUQUERIA_TELEFONO", "+54 9 297 534-9278"),
+    "EMAIL": os.environ.get("PELUQUERIA_EMAIL", "lrnortigoza@gmail.com"),
+    "DIRECCION": os.environ.get("PELUQUERIA_DIRECCION", "Comodoro Rivadavia, Chubut, Argentina"),
 }
 
 

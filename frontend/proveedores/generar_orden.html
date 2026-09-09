@@ -76,13 +76,13 @@
                         </thead>
                         <tbody id="tablaInventarioBody">
                             {% for producto in productos %}
-                            <tr data-id="{{ producto.pk }}" data-nombre="{{ producto.nombre|lower }}">
-                                <td class="align-middle fw-bold">{{ producto.nombre }}</td>
+                            <tr data-id="{{ producto.pk }}" data-nombre="{{ producto.nombre|lower }}" data-unidad="{{ producto.unidad_abreviatura }}" data-unidad-codigo="{{ producto.unidad_medida }}">
+                                <td class="align-middle fw-bold">{{ producto.nombre }} <small class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-25 ms-1">{{ producto.get_unidad_medida_display }}</small></td>
                                 <td class="align-middle">
                                     {% if producto.stock_actual <= producto.stock_minimo %} <span
-                                        class="badge bg-danger">{{ producto.stock_actual }}</span>
+                                        class="badge bg-danger">{{ producto.stock_actual }} {{ producto.unidad_abreviatura }}</span>
                                         {% else %}
-                                        <span class="badge bg-secondary">{{ producto.stock_actual }}</span>
+                                        <span class="badge bg-secondary">{{ producto.stock_actual }} {{ producto.unidad_abreviatura }}</span>
                                         {% endif %}
                                 </td>
                                 <td class="text-end align-middle">
@@ -154,6 +154,35 @@
                         <textarea class="form-control bg-dark text-light border-secondary" id="nuevaDescripcion"
                             rows="2"></textarea>
                     </div>
+                    <div class="mb-3 p-3 rounded-2 border border-secondary border-opacity-25 bg-dark bg-opacity-25">
+                        <label class="form-label text-light fw-semibold mb-1">
+                            <i class="bi bi-rulers me-1 text-accent"></i>
+                            ¿Cómo se mide este insumo? <span class="text-danger">*</span>
+                        </label>
+                        <small class="text-secondary d-block mb-2">¿El stock se cuenta en <strong>unidades</strong> o en <strong>cantidad</strong> (litros, ml, kg, g)?</small>
+                        <div class="d-flex flex-wrap gap-3" id="nuevaUnidadOpciones">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="nuevaUnidad" id="unidadUNIDAD" value="UNIDAD" checked>
+                                <label class="form-check-label text-light" for="unidadUNIDAD">Unidades (u.)</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="nuevaUnidad" id="unidadLITRO" value="LITRO">
+                                <label class="form-check-label text-light" for="unidadLITRO">Litros (L)</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="nuevaUnidad" id="unidadML" value="ML">
+                                <label class="form-check-label text-light" for="unidadML">Mililitros (ml)</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="nuevaUnidad" id="unidadKG" value="KG">
+                                <label class="form-check-label text-light" for="unidadKG">Kilogramos (kg)</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="nuevaUnidad" id="unidadG" value="G">
+                                <label class="form-check-label text-light" for="unidadG">Gramos (g)</label>
+                            </div>
+                        </div>
+                    </div>
                     <div class="row">
                         <div class="col-6 mb-3">
                             <label class="form-label text-light fw-semibold">Precio Ref. ($) <span
@@ -166,6 +195,7 @@
                                     class="text-danger">*</span></label>
                             <input type="number" class="form-control bg-dark text-light border-secondary"
                                 id="nuevoStockMin" required placeholder="5" min="0">
+                            <small class="text-secondary" id="ayudaNuevoStockMin">Alerta en unidades.</small>
                         </div>
                     </div>
                     <div id="modalError" class="alert alert-danger d-none py-2"></div>
@@ -265,6 +295,7 @@
                 </p>
                 <div class="bg-dark p-3 rounded-2 mt-3 border border-secondary border-opacity-25 small text-secondary text-start">
                     <div><strong>Nombre:</strong> <span class="text-light" id="confirmInsumoNombre">-</span></div>
+                    <div><strong>Unidad:</strong> <span class="text-light" id="confirmInsumoUnidad">-</span></div>
                     <div><strong>Precio ref.:</strong> <span class="text-light" id="confirmInsumoPrecio">-</span>
                     </div>
                     <div><strong>Stock mínimo:</strong> <span class="text-light" id="confirmInsumoStock">-</span>
@@ -455,7 +486,13 @@
         });
 
         // 2. Función para mover de Inventario a Pedido
-        function agregarAlPedido(id, nombre) {
+        const UNIDAD_LABELS = { 'UNIDAD': 'Unidades (u.)', 'LITRO': 'Litros (L)', 'ML': 'Mililitros (ml)', 'KG': 'Kilogramos (kg)', 'G': 'Gramos (g)' };
+        const UNIDAD_ABREV = { 'UNIDAD': 'u.', 'LITRO': 'L', 'ML': 'ml', 'KG': 'kg', 'G': 'g' };
+        function resolverUnidadAbrev(codigo, abreviatura) {
+            if (abreviatura) return abreviatura;
+            return UNIDAD_ABREV[codigo] || 'u.';
+        }
+        function agregarAlPedido(id, nombre, unidadCodigo, abreviaturaParam) {
             // Evitar duplicados
             if (tablaPedidoBody.querySelector(`tr[data-pedido-id="${id}"]`)) {
                 mostrarAviso('El producto "' + nombre + '" ya está en la orden de compra.', 'Producto duplicado');
@@ -464,12 +501,17 @@
 
             if (filaVacia) filaVacia.style.display = 'none';
 
+            const abrev = resolverUnidadAbrev(unidadCodigo, abreviaturaParam);
             const tr = document.createElement('tr');
             tr.setAttribute('data-pedido-id', id);
+            tr.setAttribute('data-unidad', abrev);
             tr.innerHTML = `
-                <td class="align-middle fw-bold text-primary">${nombre}</td>
+                <td class="align-middle fw-bold text-primary">${nombre} <small class="text-secondary">(${abrev})</small></td>
                 <td>
-                    <input type="number" class="form-control form-control-sm bg-dark text-light border-secondary" value="1" min="1">
+                    <div class="input-group input-group-sm">
+                        <input type="number" class="form-control form-control-sm bg-dark text-light border-secondary" value="1" min="1">
+                        <span class="input-group-text bg-dark text-secondary border-secondary">${abrev}</span>
+                    </div>
                 </td>
                 <td class="text-end align-middle">
                     <button type="button" class="btn btn-sm btn-outline-danger btn-quitar">
@@ -493,9 +535,10 @@
             if (btn) {
                 const fila = btn.closest('tr');
                 const id = fila.getAttribute('data-id');
-                // Tomar el texto del nombre formateado (sin lower)
-                const nombre = fila.querySelector('td').textContent.trim();
-                agregarAlPedido(id, nombre);
+                // Nombre sin el badge de unidad
+                const celda = fila.querySelector('td');
+                const soloNombre = celda ? (celda.childNodes[0] ? celda.childNodes[0].textContent.trim() : celda.textContent.trim()) : '';
+                agregarAlPedido(id, soloNombre || fila.querySelector('td').textContent.trim(), fila.getAttribute('data-unidad-codigo'), fila.getAttribute('data-unidad'));
             }
         });
 
@@ -508,23 +551,44 @@
         const modalError = document.getElementById('modalError');
 
         function insumoTieneDatos() {
+            const unidadSel = document.querySelector('input[name="nuevaUnidad"]:checked');
             return document.getElementById('nuevoNombre').value.trim() !== '' ||
                 document.getElementById('nuevaDescripcion').value.trim() !== '' ||
                 document.getElementById('nuevoPrecio').value.trim() !== '' ||
-                document.getElementById('nuevoStockMin').value.trim() !== '';
+                document.getElementById('nuevoStockMin').value.trim() !== '' ||
+                (unidadSel && unidadSel.value !== 'UNIDAD');
         }
+
+        function unidadSeleccionada() {
+            const sel = document.querySelector('input[name="nuevaUnidad"]:checked');
+            return sel ? sel.value : 'UNIDAD';
+        }
+
+        const ayudaNuevoStockMin = document.getElementById('ayudaNuevoStockMin');
+        function actualizarAyudaNuevo() {
+            const cod = unidadSeleccionada();
+            const etiquetas = { 'UNIDAD': 'unidades', 'LITRO': 'litros (L)', 'ML': 'mililitros (ml)', 'KG': 'kilogramos (kg)', 'G': 'gramos (g)' };
+            const texto = etiquetas[cod] || 'unidades';
+            if (ayudaNuevoStockMin) ayudaNuevoStockMin.textContent = cod === 'UNIDAD'
+                ? 'Alerta en unidades.'
+                : 'Alerta en cantidades (' + texto + ').';
+        }
+        document.querySelectorAll('input[name="nuevaUnidad"]').forEach(r => r.addEventListener('change', actualizarAyudaNuevo));
+        actualizarAyudaNuevo();
 
         btnGuardarProducto.addEventListener('click', () => {
             if (!formNuevo.checkValidity()) {
                 formNuevo.reportValidity();
                 return;
             }
+            const cod = unidadSeleccionada();
             document.getElementById('confirmInsumoNombre').textContent =
                 document.getElementById('nuevoNombre').value.trim() || '-';
+            document.getElementById('confirmInsumoUnidad').textContent = UNIDAD_LABELS[cod] || cod;
             document.getElementById('confirmInsumoPrecio').textContent =
                 '$' + (document.getElementById('nuevoPrecio').value.trim() || '0');
             document.getElementById('confirmInsumoStock').textContent =
-                document.getElementById('nuevoStockMin').value.trim() || '0';
+                (document.getElementById('nuevoStockMin').value.trim() || '0') + ' ' + (UNIDAD_ABREV[cod] || 'u.');
             mostrarModal('modalConfirmarInsumo');
         });
 
@@ -533,6 +597,7 @@
             const descripcion = document.getElementById('nuevaDescripcion').value;
             const precio = document.getElementById('nuevoPrecio').value;
             const stockMin = document.getElementById('nuevoStockMin').value;
+            const unidad_medida = unidadSeleccionada();
             const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
             btnConfirmarGuardarInsumo.disabled = true;
@@ -545,19 +610,22 @@
                         'Content-Type': 'application/json',
                         'X-CSRFToken': csrfToken
                     },
-                    body: JSON.stringify({ nombre, descripcion, precio, stock_minimo: stockMin })
+                    body: JSON.stringify({ nombre, descripcion, precio, stock_minimo: stockMin, unidad_medida })
                 });
 
                 const data = await res.json();
 
                 if (res.ok) {
                     ocultarModal('modalConfirmarInsumo');
+                    const abrev = data.unidad_abreviatura || UNIDAD_ABREV[data.unidad_medida] || 'u.';
                     const tr = document.createElement('tr');
                     tr.setAttribute('data-id', data.id);
                     tr.setAttribute('data-nombre', data.nombre.toLowerCase());
+                    tr.setAttribute('data-unidad', abrev);
+                    tr.setAttribute('data-unidad-codigo', data.unidad_medida || 'UNIDAD');
                     tr.innerHTML = `
-                        <td class="align-middle fw-bold">${data.nombre}</td>
-                        <td class="align-middle"><span class="badge bg-danger">0</span></td>
+                        <td class="align-middle fw-bold">${data.nombre} <small class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-25 ms-1">${data.unidad_display || abrev}</small></td>
+                        <td class="align-middle"><span class="badge bg-danger">0 ${abrev}</span></td>
                         <td class="text-end align-middle">
                             <button class="btn btn-sm btn-success btn-agregar">
                                 <i class="bi bi-plus-lg"></i>
@@ -565,9 +633,10 @@
                         </td>
                     `;
                     tablaInventarioBody.insertBefore(tr, tablaInventarioBody.firstChild);
-                    agregarAlPedido(data.id, data.nombre);
+                    agregarAlPedido(data.id, data.nombre, data.unidad_medida, abrev);
                     ocultarModal('modalNuevoProducto');
                     formNuevo.reset();
+                    actualizarAyudaNuevo();
                 } else {
                     ocultarModal('modalConfirmarInsumo');
                     modalError.textContent = data.error || 'Ocurrió un error al crear el producto.';
@@ -593,6 +662,7 @@
         btnConfirmarCancelarInsumo.addEventListener('click', () => {
             formNuevo.reset();
             modalError.classList.add('d-none');
+            actualizarAyudaNuevo();
             window._cancelandoInsumo = true;
             ocultarModal('modalCancelarInsumo');
             ocultarModal('modalNuevoProducto');
@@ -641,10 +711,14 @@
                 const productos = [];
                 filas.forEach(fila => {
                     const id = fila.getAttribute('data-pedido-id');
-                    const nombre = fila.querySelector('td:first-child').textContent.trim();
+                    const unidad = fila.getAttribute('data-unidad') || 'u.';
+                    const celdaNombre = fila.querySelector('td:first-child');
+                    // Quitar el sufijo " (u.)" agregado visualmente
+                    let nombre = celdaNombre ? celdaNombre.textContent.trim() : '';
+                    nombre = nombre.replace(/\s*\([^)]*\)\s*$/, '').trim();
                     const inputCant = fila.querySelector('input[type="number"]');
                     const cantidad = inputCant ? parseInt(inputCant.value, 10) || 1 : 1;
-                    productos.push({ id, nombre, cantidad });
+                    productos.push({ id, nombre, cantidad, unidad });
                 });
 
                 const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')

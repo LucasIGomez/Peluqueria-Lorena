@@ -4,12 +4,12 @@ Peluquería Lorena — Vistas (Views) del módulo de Usuarios.
 Implementa:
 1. Vistas Web SSR (Plantillas Django + Bootstrap 5):
    - Login y Logout de usuarios.
-   - Registro público con validación de PIN para Administradora.
-   - Panel de Gestión de Usuarios (CRUD exclusivo para Administradoras).
+   - Panel de Gestión de Usuarios (alta / edición / baja, exclusivo Administradora).
+     El alta de usuarios la hace únicamente la Administradora; la contraseña
+     de acceso de cada persona es su DNI.
 2. Endpoints de la API REST (DRF):
    - UsuarioViewSet: CRUD completo de usuarios (solo Administradora).
    - LoginView: Autenticación JWT con datos del usuario.
-   - RegistroAPIView: Registro público vía API con validación de PIN.
    - PerfilView: Lectura/edición del perfil del usuario autenticado.
    - PasswordResetRequestView & PasswordResetConfirmView.
 """
@@ -19,6 +19,7 @@ from typing import Any
 from django.contrib import messages
 from django.contrib.auth import login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.decorators import method_decorator
 from rest_framework import status, viewsets
@@ -29,14 +30,13 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenRefreshView  # noqa: F401
 
-from .forms import LoginForm, RegistroForm, UsuarioAdminForm, UsuarioEditForm
+from .forms import LoginForm, UsuarioAdminForm, UsuarioEditForm
 from .models import Usuario
 from .permissions import EsAdministradora
 from .serializers import (
     PasswordResetConfirmSerializer,
     PasswordResetRequestSerializer,
     PerfilUpdateSerializer,
-    RegistroSerializer,
     UsuarioCreateSerializer,
     UsuarioSerializer,
     UsuarioUpdateSerializer,
@@ -66,6 +66,11 @@ def login_view(request):
             try:
                 usuario = Usuario.objects.get(email=email)
             except Usuario.DoesNotExist:
+                usuario = None
+
+            # Se verifican primero las credenciales y recién después el estado
+            # de la cuenta, para no revelar qué correos están registrados.
+            if usuario is None or not usuario.check_password(password):
                 messages.error(request, "Correo electrónico o contraseña incorrectos.")
                 return render(request, "usuarios/login.html", {"form": form})
 
@@ -73,15 +78,11 @@ def login_view(request):
                 messages.error(request, "Esta cuenta ha sido desactivada. Contactá a la administración.")
                 return render(request, "usuarios/login.html", {"form": form})
 
-            if usuario.check_password(password):
-                # Iniciar sesión Django
-                auth_login(request, usuario)
-                usuario.iniciar_sesion()
-                messages.success(request, f"¡Bienvenida, {usuario.nombre}! Has iniciado sesión como {usuario.get_rol_display()}.")
-                next_url = request.GET.get("next") or "index"
-                return redirect(next_url)
-            else:
-                messages.error(request, "Correo electrónico o contraseña incorrectos.")
+            auth_login(request, usuario)
+            usuario.iniciar_sesion()
+            messages.success(request, f"¡Bienvenida, {usuario.nombre}! Has iniciado sesión como {usuario.get_rol_display()}.")
+            next_url = request.GET.get("next") or "index"
+            return redirect(next_url)
     else:
         form = LoginForm()
 
@@ -95,39 +96,6 @@ def logout_view(request):
     auth_logout(request)
     messages.info(request, "Sesión cerrada correctamente.")
     return redirect("usuarios:login")
-
-
-def registro_view(request):
-    """
-    Vista Web para registro de nuevos usuarios.
-    Si el rol elegido es Administradora, exige y valida el PIN de seguridad.
-    """
-    if request.user.is_authenticated and not request.user.es_administradora:
-        return redirect("index")
-
-    if request.method == "POST":
-        form = RegistroForm(request.POST)
-        if form.is_valid():
-            try:
-                usuario = UsuarioService.crear_usuario(
-                    nombre=form.cleaned_data["nombre"],
-                    email=form.cleaned_data["email"],
-                    password=form.cleaned_data["password"],
-                    rol=form.cleaned_data["rol"],
-                    admin_pin=form.cleaned_data.get("admin_pin"),
-                    requiere_pin=True,
-                )
-                messages.success(
-                    request,
-                    f"¡Cuenta creada con éxito para {usuario.nombre}! Ya podés iniciar sesión.",
-                )
-                return redirect("usuarios:login")
-            except ValueError as e:
-                messages.error(request, str(e))
-    else:
-        form = RegistroForm()
-
-    return render(request, "usuarios/registro.html", {"form": form})
 
 
 # ──────────────────────────────────────────────────────────────
@@ -168,18 +136,22 @@ def crear_usuario_view(request):
     if request.method == "POST":
         form = UsuarioAdminForm(request.POST)
         if form.is_valid():
+            dni = form.cleaned_data["dni"]
             try:
                 usuario = UsuarioService.crear_usuario(
                     nombre=form.cleaned_data["nombre"],
                     email=form.cleaned_data["email"],
-                    password=form.cleaned_data["password"],
+                    password=dni,
                     rol=form.cleaned_data["rol"],
-                    admin_pin=form.cleaned_data.get("admin_pin"),
-                    requiere_pin=True,
+                    dni=dni,
                 )
-                messages.success(request, f"Usuario '{usuario.nombre}' ({usuario.get_rol_display()}) creado exitosamente.")
+                messages.success(
+                    request,
+                    f"Usuario '{usuario.nombre}' ({usuario.get_rol_display()}) creado. "
+                    f"Inicia sesión con su correo y su DNI como contraseña.",
+                )
                 return redirect("usuarios:lista_usuarios")
-            except ValueError as e:
+            except (ValueError, IntegrityError) as e:
                 messages.error(request, str(e))
     else:
         form = UsuarioAdminForm()
@@ -198,18 +170,20 @@ def editar_usuario_view(request, pk: int):
     if request.method == "POST":
         form = UsuarioEditForm(request.POST, instance=usuario)
         if form.is_valid():
-            usuario_actualizado = form.save(commit=False)
+            dni_cambio = form.cleaned_data["dni"] != (usuario.dni or "")
             UsuarioService.actualizar_usuario(
                 usuario=usuario,
-                nombre=usuario_actualizado.nombre,
-                email=usuario_actualizado.email,
-                rol=usuario_actualizado.rol,
+                nombre=form.cleaned_data["nombre"],
+                email=form.cleaned_data["email"],
+                rol=form.cleaned_data["rol"],
+                dni=form.cleaned_data["dni"],
             )
             # Guardar estado activo si cambió
             usuario.is_active = form.cleaned_data["is_active"]
             usuario.save(update_fields=["is_active"])
 
-            messages.success(request, f"Datos de '{usuario.nombre}' actualizados correctamente.")
+            extra = " Su nueva contraseña es el DNI ingresado." if dni_cambio else ""
+            messages.success(request, f"Datos de '{usuario.nombre}' actualizados correctamente.{extra}")
             return redirect("usuarios:lista_usuarios")
     else:
         form = UsuarioEditForm(instance=usuario)
@@ -233,6 +207,19 @@ def eliminar_usuario_view(request, pk: int):
         messages.error(request, "No podés desactivar tu propia cuenta administradora.")
         return redirect("usuarios:lista_usuarios")
 
+    if usuario.rol == Usuario.Rol.ADMINISTRADORA and usuario.is_active:
+        hay_otra_admin = (
+            Usuario.objects.filter(rol=Usuario.Rol.ADMINISTRADORA, is_active=True)
+            .exclude(pk=usuario.pk)
+            .exists()
+        )
+        if not hay_otra_admin:
+            messages.error(
+                request,
+                "No podés dar de baja a la única administradora activa del sistema.",
+            )
+            return redirect("usuarios:lista_usuarios")
+
     if request.method == "POST":
         nombre = usuario.nombre
         UsuarioService.eliminar_usuario(usuario)
@@ -245,7 +232,6 @@ def eliminar_usuario_view(request, pk: int):
 # ── Alias camelCase para vistas Web ──
 loginView = login_view
 logoutView = logout_view
-registroView = registro_view
 listaUsuariosView = lista_usuarios_view
 crearUsuarioView = crear_usuario_view
 editarUsuarioView = editar_usuario_view
@@ -275,27 +261,6 @@ class UsuarioViewSet(viewsets.ModelViewSet):
 
     def perform_destroy(self, instance: Usuario) -> None:
         UsuarioService.eliminar_usuario(instance)
-
-
-class RegistroAPIView(APIView):
-    """
-    Endpoint API para registro público de usuarios.
-    POST /api/v1/usuarios/auth/registro/
-    """
-
-    permission_classes = [AllowAny]
-
-    def post(self, request: Request) -> Response:
-        serializer = RegistroSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        usuario = serializer.save()
-        return Response(
-            {
-                "mensaje": f"Usuario {usuario.nombre} registrado con éxito.",
-                "usuario": UsuarioSerializer(usuario).data,
-            },
-            status=status.HTTP_201_CREATED,
-        )
 
 
 class LoginView(APIView):

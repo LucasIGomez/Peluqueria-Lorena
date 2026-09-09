@@ -54,11 +54,17 @@
 
                     <!-- Cantidad a ingresar -->
                     <div class="mb-3">
-                        <label for="{{ form.cantidad.id_for_label }}" class="form-label fw-semibold">
-                            {{ form.cantidad.label }} <span class="text-danger">*</span>
+                        <label for="{{ form.cantidad.id_for_label }}" class="form-label fw-semibold" id="label-cantidad">
+                            Cantidad a agregar (<span id="unidad-cantidad">{% if producto_inicial %}{{ producto_inicial.unidad_plural }}{% else %}unidades{% endif %}</span>) <span class="text-danger">*</span>
                         </label>
                         {{ form.cantidad }}
-                        <small class="text-secondary">Unidades a sumar al stock actual.</small>
+                        <small class="text-secondary" id="ayuda-cantidad">
+                            {% if producto_inicial and producto_inicial.unidad_medida != 'UNIDAD' %}
+                                Cantidad en {{ producto_inicial.unidad_plural }} a sumar al stock actual.
+                            {% else %}
+                                Unidades a sumar al stock actual.
+                            {% endif %}
+                        </small>
                         {% if form.cantidad.errors %}
                             <div class="text-danger small mt-1">{{ form.cantidad.errors.0 }}</div>
                         {% endif %}
@@ -132,7 +138,7 @@
                 </div>
                 <h5 class="modal-title fw-bold mb-2 text-light" id="modalConfirmarReponerLabel">¿Confirmar Ingreso de Stock?</h5>
                 <p class="text-secondary small mb-0">
-                    Se aumentará el stock actual del producto y la operación quedará auditada en el historial de movimientos.
+                    Se sumarán <strong class="text-success" id="modal-rep-cantidad">1</strong> <strong class="text-success" id="modal-rep-unidad">{% if producto_inicial %}{{ producto_inicial.unidad_plural }}{% else %}unidades{% endif %}</strong> al stock actual y la operación quedará auditada en el historial de movimientos.
                 </p>
             </div>
             <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
@@ -146,6 +152,8 @@
         </div>
     </div>
 </div>
+
+{{ productos_unidades|json_script:"productos-unidades" }}
 {% endblock %}
 
 {% block extra_js %}
@@ -156,6 +164,39 @@ document.addEventListener("DOMContentLoaded", function () {
     const modalCancelarEl = document.getElementById("modalCancelar");
     const modalReponerEl = document.getElementById("modalConfirmarReponer");
     const btnConfirmarReponerSubmit = document.getElementById("btn-confirmar-reponer-submit");
+
+    const productosDataEl = document.getElementById("productos-unidades");
+    const productosData = productosDataEl ? JSON.parse(productosDataEl.textContent) : {};
+    const selectProducto = document.getElementById("id_producto");
+    const unidadSpan = document.getElementById("unidad-cantidad");
+    const ayudaCantidad = document.getElementById("ayuda-cantidad");
+    const inputCantidad = document.getElementById("id_cantidad");
+    const modalRepCant = document.getElementById("modal-rep-cantidad");
+    const modalRepUnidad = document.getElementById("modal-rep-unidad");
+
+    function actualizarUnidad() {
+        const prodId = selectProducto ? selectProducto.value : null;
+        const info = prodId && productosData[prodId] ? productosData[prodId] : null;
+        const plural = info ? info.plural : "unidades";
+        const esUnidad = !info || info.unidad === "UNIDAD";
+
+        if (unidadSpan) {
+            unidadSpan.textContent = plural;
+        }
+        if (ayudaCantidad) {
+            ayudaCantidad.textContent = esUnidad
+                ? "Unidades a sumar al stock actual."
+                : `Cantidad en ${plural} a sumar al stock actual.`;
+        }
+        if (inputCantidad) {
+            inputCantidad.placeholder = esUnidad ? "Ej: 10 (unidades)" : `Ej: 5 (${plural})`;
+        }
+    }
+
+    if (selectProducto) {
+        selectProducto.addEventListener("change", actualizarUnidad);
+        actualizarUnidad();
+    }
 
     if (!form) return;
 
@@ -202,6 +243,12 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!form.checkValidity()) {
                 form.reportValidity();
                 return;
+            }
+            if (modalRepCant && inputCantidad) {
+                modalRepCant.textContent = inputCantidad.value || "1";
+            }
+            if (modalRepUnidad && unidadSpan) {
+                modalRepUnidad.textContent = unidadSpan.textContent;
             }
             if (modalReponer) {
                 modalReponer.show();

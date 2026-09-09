@@ -121,6 +121,17 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
         "nombre completo",
         max_length=255,
     )
+    dni = models.CharField(
+        "DNI",
+        max_length=15,
+        unique=True,
+        null=True,
+        blank=True,
+        help_text=(
+            "Documento Nacional de Identidad. Es la contraseña de acceso del "
+            "usuario (definida por la Administradora al crear la cuenta)."
+        ),
+    )
     rol = models.CharField(
         "rol",
         max_length=20,

@@ -38,23 +38,12 @@ class UsuarioSerializer(serializers.ModelSerializer):
 
 class UsuarioCreateSerializer(serializers.ModelSerializer):
     """
-    Serializer de escritura para crear usuarios.
+    Serializer de escritura para crear usuarios (solo Administradora).
 
-    Recibe la contraseña en texto plano y valida el PIN de Administradora si aplica.
+    El DNI se guarda como dato y además es la contraseña de acceso.
     """
 
-    password = serializers.CharField(
-        write_only=True,
-        min_length=8,
-        style={"input_type": "password"},
-    )
-    admin_pin = serializers.CharField(
-        write_only=True,
-        required=False,
-        allow_blank=True,
-        style={"input_type": "password"},
-        help_text="PIN requerido únicamente para registrar usuario con rol ADMINISTRADORA.",
-    )
+    dni = serializers.CharField(write_only=True, min_length=7, max_length=8)
 
     class Meta:
         model = Usuario
@@ -62,78 +51,54 @@ class UsuarioCreateSerializer(serializers.ModelSerializer):
             "id",
             "email",
             "nombre",
-            "password",
             "rol",
-            "admin_pin",
-        ]       
+            "dni",
+        ]
         read_only_fields = ["id"]
 
-    def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
-        """Valida que si el rol es Administradora se provea el PIN correcto."""
-        from django.conf import settings
+    def validate_nombre(self, value: str) -> str:
+        value = (value or "").strip()
+        if len(value) < 2 or not any(c.isalpha() for c in value):
+            raise serializers.ValidationError(
+                "Ingresá un nombre válido (al menos 2 caracteres y una letra)."
+            )
+        return value
 
-        rol = attrs.get("rol", Usuario.Rol.EMPLEADA)
-        admin_pin = attrs.get("admin_pin")
+    def validate_email(self, value: str) -> str:
+        value = value.strip().lower()
+        if Usuario.objects.filter(email=value).exists():
+            raise serializers.ValidationError("Ya existe un usuario con este correo electrónico.")
+        return value
 
-        if rol == Usuario.Rol.ADMINISTRADORA:
-            expected_pin = getattr(settings, "ADMIN_REGISTRATION_PIN", "1234")
-            if not admin_pin or str(admin_pin).strip() != str(expected_pin).strip():
-                raise serializers.ValidationError(
-                    {"admin_pin": "El PIN de seguridad de Administradora es incorrecto."}
-                )
-        return attrs
-
-    def create(self, validated_data: Dict[str, Any]) -> Usuario:
-        """Crea el usuario usando el service para hashear la contraseña."""
-        from .services import UsuarioService
-
-        return UsuarioService.crear_usuario(**validated_data)
-
-
-class RegistroSerializer(serializers.Serializer):
-    """
-    Serializer para registro público de nuevos usuarios.
-    """
-
-    nombre = serializers.CharField(max_length=255)
-    email = serializers.EmailField()
-    password = serializers.CharField(min_length=8, style={"input_type": "password"})
-    confirm_password = serializers.CharField(min_length=8, style={"input_type": "password"})
-    rol = serializers.ChoiceField(choices=Usuario.Rol.choices, default=Usuario.Rol.EMPLEADA)
-    admin_pin = serializers.CharField(required=False, allow_blank=True, style={"input_type": "password"})
-
-    def validate(self, attrs: Dict[str, Any]) -> Dict[str, Any]:
-        from django.conf import settings
-
-        if attrs["password"] != attrs["confirm_password"]:
-            raise serializers.ValidationError({"confirm_password": "Las contraseñas no coinciden."})
-
-        if Usuario.objects.filter(email=attrs["email"]).exists():
-            raise serializers.ValidationError({"email": "Ya existe un usuario registrado con este correo electrónico."})
-
-        if attrs["rol"] == Usuario.Rol.ADMINISTRADORA:
-            expected_pin = getattr(settings, "ADMIN_REGISTRATION_PIN", "1234")
-            admin_pin = attrs.get("admin_pin")
-            if not admin_pin or str(admin_pin).strip() != str(expected_pin).strip():
-                raise serializers.ValidationError(
-                    {"admin_pin": "El PIN de seguridad de Administradora es incorrecto."}
-                )
-
-        return attrs
+    def validate_dni(self, value: str) -> str:
+        value = value.strip().replace(".", "").replace(" ", "")
+        if not value.isdigit() or not (7 <= len(value) <= 8):
+            raise serializers.ValidationError("El DNI debe tener 7 u 8 dígitos.")
+        if len(set(value)) == 1:
+            raise serializers.ValidationError("El DNI ingresado no es válido.")
+        if Usuario.objects.filter(dni=value).exists():
+            raise serializers.ValidationError("Ya existe un usuario con este DNI.")
+        return value
 
     def create(self, validated_data: Dict[str, Any]) -> Usuario:
+        """Crea el usuario usando el service (el DNI es la contraseña)."""
         from .services import UsuarioService
 
-        validated_data.pop("confirm_password", None)
-        return UsuarioService.crear_usuario(**validated_data)
-
+        dni = validated_data["dni"]
+        return UsuarioService.crear_usuario(
+            nombre=validated_data["nombre"],
+            email=validated_data["email"],
+            password=dni,
+            rol=validated_data.get("rol", Usuario.Rol.EMPLEADA),
+            dni=dni,
+        )
 
 
 class UsuarioUpdateSerializer(serializers.ModelSerializer):
     """
     Serializer para actualización parcial de usuarios.
 
-    No permite modificar la contraseña por esta vía.
+    No permite modificar la contraseña ni el DNI por esta vía.
     """
 
     class Meta:
@@ -145,6 +110,43 @@ class UsuarioUpdateSerializer(serializers.ModelSerializer):
             "rol",
         ]
         read_only_fields = ["id"]
+
+    def validate_nombre(self, value: str) -> str:
+        value = (value or "").strip()
+        if len(value) < 2 or not any(c.isalpha() for c in value):
+            raise serializers.ValidationError(
+                "Ingresá un nombre válido (al menos 2 caracteres y una letra)."
+            )
+        return value
+
+    def validate_email(self, value: str) -> str:
+        value = value.strip().lower()
+        qs = Usuario.objects.filter(email=value)
+        if self.instance:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise serializers.ValidationError("Ya existe otro usuario con este correo electrónico.")
+        return value
+
+    def validate_rol(self, value: str) -> str:
+        # No permitir degradar a la última administradora activa.
+        instancia = self.instance
+        if (
+            instancia
+            and instancia.rol == Usuario.Rol.ADMINISTRADORA
+            and instancia.is_active
+            and value != Usuario.Rol.ADMINISTRADORA
+        ):
+            hay_otra = (
+                Usuario.objects.filter(rol=Usuario.Rol.ADMINISTRADORA, is_active=True)
+                .exclude(pk=instancia.pk)
+                .exists()
+            )
+            if not hay_otra:
+                raise serializers.ValidationError(
+                    "No podés dejar el sistema sin ninguna administradora activa."
+                )
+        return value
 
 
 class PerfilUpdateSerializer(serializers.ModelSerializer):

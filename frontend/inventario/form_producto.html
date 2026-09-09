@@ -279,9 +279,34 @@ document.addEventListener("DOMContentLoaded", function () {
     };
     function actualizarAyudas() {
         let sel = document.querySelector('input[name="unidad_medida"]:checked');
-        const texto = etiquetas[sel ? sel.value : "UNIDAD"] || "unidades";
-        if (ayudaActual) ayudaActual.textContent = "Cantidad inicial en existencia (" + texto + ").";
-        if (ayudaMinimo) ayudaMinimo.textContent = "Dispara alerta si el stock baja a este nivel o menos (" + texto + ").";
+        const cod = sel ? sel.value : "UNIDAD";
+        const texto = etiquetas[cod] || "unidades";
+        const inputActual = document.getElementById("id_stock_actual");
+        const inputMinimo = document.getElementById("id_stock_minimo");
+        if (ayudaActual) {
+            if (cod === "UNIDAD") {
+                ayudaActual.textContent = "Unidades iniciales en existencia.";
+            } else {
+                ayudaActual.textContent = "Cantidades iniciales en existencia (" + texto + ").";
+            }
+        }
+        if (inputActual) {
+            inputActual.placeholder = cod === "UNIDAD"
+                ? "Ej: 10 (unidades iniciales)"
+                : "Ej: 5 (cantidades iniciales en " + texto + ")";
+        }
+        if (ayudaMinimo) {
+            if (cod === "UNIDAD") {
+                ayudaMinimo.textContent = "Dispara alerta si el stock baja a este nivel o menos (unidades).";
+            } else {
+                ayudaMinimo.textContent = "Dispara alerta si el stock baja a este nivel o menos (cantidades en " + texto + ").";
+            }
+        }
+        if (inputMinimo) {
+            inputMinimo.placeholder = cod === "UNIDAD"
+                ? "Ej: 3 (alerta reposición)"
+                : "Ej: 2 (alerta en " + texto + ")";
+        }
     }
     radiosUnidad.forEach(r => r.addEventListener("change", actualizarAyudas));
     actualizarAyudas();

@@ -167,6 +167,21 @@ def editar_producto(request, pk: int):
     )
 
 
+def _obtener_mapa_unidades_productos() -> dict[str, dict[str, Any]]:
+    """Helper para serializar las unidades y métricas de productos para el frontend."""
+    return {
+        str(p.id): {
+            "nombre": p.nombre,
+            "unidad": p.unidad_medida,
+            "plural": p.unidad_plural,
+            "abreviatura": p.unidad_abreviatura,
+            "display": p.get_unidad_medida_display(),
+            "stock": p.stock_actual,
+        }
+        for p in Producto.objects.filter(activo=True).order_by("nombre")
+    }
+
+
 @login_required
 def reponer_stock_view(request, pk: int | None = None):
     """
@@ -206,7 +221,11 @@ def reponer_stock_view(request, pk: int | None = None):
     return render(
         request,
         "inventario/reponer_stock.html",
-        {"form": form, "producto_inicial": producto_inicial},
+        {
+            "form": form,
+            "producto_inicial": producto_inicial,
+            "productos_unidades": _obtener_mapa_unidades_productos(),
+        },
     )
 
 
@@ -262,7 +281,11 @@ def descontar_stock_servicio(request, pk: int | None = None):
     return render(
         request,
         "inventario/descontar_stock.html",
-        {"form": form, "producto_inicial": producto_inicial},
+        {
+            "form": form,
+            "producto_inicial": producto_inicial,
+            "productos_unidades": _obtener_mapa_unidades_productos(),
+        },
     )
 
 

@@ -95,6 +95,17 @@ class Producto(models.Model):
             "G": "g",
         }.get(self.unidad_medida, "u.")
 
+    @property
+    def unidad_plural(self) -> str:
+        """Nombre de la unidad en plural para etiquetas (unidades, litros, mililitros, kilogramos, gramos)."""
+        return {
+            "UNIDAD": "unidades",
+            "LITRO": "litros",
+            "ML": "mililitros",
+            "KG": "kilogramos",
+            "G": "gramos",
+        }.get(self.unidad_medida, "unidades")
+
     # ── Compatibilidad con nombres anteriores (camelCase) ──
 
     @property
@@ -199,6 +210,7 @@ class MovimientoStock(models.Model):
         CAMBIO_DESCRIPCION = "CAMBIO_DESCRIPCION", "Cambio de descripción"
         CAMBIO_PRECIO = "CAMBIO_PRECIO", "Cambio de precio"
         CAMBIO_STOCK_MINIMO = "CAMBIO_STOCK_MINIMO", "Cambio de stock mínimo"
+        CAMBIO_UNIDAD_MEDIDA = "CAMBIO_UNIDAD_MEDIDA", "Cambio de métrica / unidad"
 
     producto = models.ForeignKey(
         Producto,

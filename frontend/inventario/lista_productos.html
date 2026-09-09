@@ -42,8 +42,7 @@
     <div class="d-flex align-items-center gap-3">
         <i class="bi bi-exclamation-octagon-fill fs-2 text-danger"></i>
         <div>
-            <h6 class="alert-heading mb-1 fw-bold text-danger">¡Atención! Hay {{ total_bajo_stock }} producto(s) en
-                nivel de stock mínimo o inferior</h6>
+            <h6 class="alert-heading mb-1 fw-bold text-danger">¡Atención! Hay {{ total_bajo_stock }} producto(s) en nivel de stock mínimo o inferior</h6>
             <div class="small text-light text-opacity-75">
                 {% for p in productos_bajo_stock %}
                 <span class="badge bg-danger bg-opacity-75 me-1">

@@ -318,6 +318,17 @@ class InventarioService:
                 if valor not in unidades_validas:
                     raise CantidadInvalidaError("Unidad de medida inválida.")
                 if producto.unidad_medida != valor:
+                    unidad_previa = producto.get_unidad_medida_display()
+                    unidad_nueva = dict(Producto.UnidadMedida.choices).get(valor, valor)
+                    MovimientoStock.objects.create(
+                        producto=producto,
+                        tipo_movimiento=MovimientoStock.TipoMovimiento.CAMBIO_UNIDAD_MEDIDA,
+                        cantidad=0,
+                        stock_previo=producto.stock_actual,
+                        stock_posterior=producto.stock_actual,
+                        motivo=f"Métrica modificada de {unidad_previa} a {unidad_nueva}",
+                        usuario=usuario if (usuario and getattr(usuario, "is_authenticated", False)) else None,
+                    )
                     producto.unidad_medida = valor
                     if "unidad_medida" not in update_fields:
                         update_fields.append("unidad_medida")

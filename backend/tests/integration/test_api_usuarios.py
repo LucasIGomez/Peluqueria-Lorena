@@ -169,7 +169,7 @@ class TestCRUDUsuariosAdministradora:
             {
                 "nombre": "Nueva Empleada",
                 "email": "nueva@test.com",
-                "password": "NuevaPass123!",
+                "dni": "41222333",
                 "rol": "EMPLEADA",
             },
             format="json",
@@ -178,8 +178,9 @@ class TestCRUDUsuariosAdministradora:
         data = response.json()
         assert data["email"] == "nueva@test.com"
         assert data["rol"] == "EMPLEADA"
-        # La password no debe estar en la respuesta
+        # Ni la password ni el DNI se devuelven en la respuesta
         assert "password" not in data
+        assert "dni" not in data
 
     def test_ver_detalle_usuario(
         self,
@@ -245,7 +246,7 @@ class TestCRUDUsuariosEmpleada:
             {
                 "nombre": "Intrusa",
                 "email": "intrusa@test.com",
-                "password": "Pass123!",
+                "dni": "42333444",
                 "rol": "EMPLEADA",
             },
             format="json",

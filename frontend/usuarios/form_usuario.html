@@ -7,78 +7,80 @@
 <div class="row justify-content-center py-3">
     <div class="col-md-6">
         <div class="card shadow border-0" style="background-color: #1a1d24; border: 1px solid #2a2e35 !important;">
-            <div class="card-header d-flex justify-content-between align-items-center py-3 border-bottom" style="border-color: #2a2e35 !important;">
+            <div class="card-header py-3 border-bottom" style="border-color: #2a2e35 !important;">
                 <h5 class="mb-0 text-light"><i class="bi bi-person-gear me-2 text-accent"></i> {{ accion }}</h5>
-                <a href="{% url 'usuarios:lista_usuarios' %}" class="btn btn-sm btn-outline-secondary">
-                    <i class="bi bi-arrow-left me-1"></i> Volver a la Lista
-                </a>
             </div>
-            
+
             <div class="card-body p-4">
-                <form method="POST">
+                <form method="POST" id="formUsuario" novalidate>
                     {% csrf_token %}
-                    
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger py-2 small">
+                            {{ form.non_field_errors|striptags }}
+                        </div>
+                    {% endif %}
+
                     <div class="mb-3">
-                        <label for="{{ form.nombre.id_for_label }}" class="form-label text-light fw-semibold">Nombre Completo</label>
+                        <label for="{{ form.nombre.id_for_label }}" class="form-label text-light fw-semibold">
+                            Nombre Completo
+                        </label>
                         {{ form.nombre }}
                         {% if form.nombre.errors %}
-                            <div class="text-danger small mt-1">{{ form.nombre.errors|striptags }}</div>
+                        <div class="text-danger small mt-1">{{ form.nombre.errors|striptags }}</div>
                         {% endif %}
                     </div>
-                    
+
                     <div class="mb-3">
-                        <label for="{{ form.email.id_for_label }}" class="form-label text-light fw-semibold">Correo Electrónico</label>
+                        <label for="{{ form.email.id_for_label }}" class="form-label text-light fw-semibold">
+                            Correo Electrónico
+                        </label>
                         {{ form.email }}
                         {% if form.email.errors %}
-                            <div class="text-danger small mt-1">{{ form.email.errors|striptags }}</div>
+                        <div class="text-danger small mt-1">{{ form.email.errors|striptags }}</div>
                         {% endif %}
                     </div>
-                    
+
                     <div class="mb-3">
-                        <label for="{{ form.rol.id_for_label }}" class="form-label text-light fw-semibold">Rol Asignado</label>
+                        <label for="{{ form.rol.id_for_label }}" class="form-label text-light fw-semibold">
+                            Rol Asignado
+                        </label>
                         {{ form.rol }}
                         {% if form.rol.errors %}
-                            <div class="text-danger small mt-1">{{ form.rol.errors|striptags }}</div>
+                        <div class="text-danger small mt-1">{{ form.rol.errors|striptags }}</div>
                         {% endif %}
                     </div>
-                    
-                    {% if form.admin_pin %}
-                        <div class="mb-3" id="adminPinContainer" style="display: none;">
-                            <div class="p-3 rounded bg-dark border border-warning-subtle mb-2">
-                                <label for="{{ form.admin_pin.id_for_label }}" class="form-label text-warning fw-semibold mb-1">
-                                    <i class="bi bi-shield-lock-fill me-1"></i> PIN de Seguridad Administradora
-                                </label>
-                                {{ form.admin_pin }}
-                                <small class="text-secondary d-block mt-1">Requerido si se asigna rol Administradora (por defecto: 1234).</small>
-                                {% if form.admin_pin.errors %}
-                                    <div class="text-danger small mt-1">{{ form.admin_pin.errors|striptags }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
+
+                    {% if form.dni %}
+                    <div class="mb-3">
+                        <label for="{{ form.dni.id_for_label }}" class="form-label text-light fw-semibold">
+                            <i class="bi bi-person-vcard me-1 text-accent"></i> DNI
+                        </label>
+                        {{ form.dni }}
+                        <small class="text-secondary d-block mt-1">{{ form.dni.help_text }}</small>
+                        {% if form.dni.errors %}
+                        <div class="text-danger small mt-1">{{ form.dni.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
                     {% endif %}
-                    
-                    {% if form.password %}
-                        <div class="mb-3">
-                            <label for="{{ form.password.id_for_label }}" class="form-label text-light fw-semibold">Contraseña Inicial</label>
-                            {{ form.password }}
-                            {% if form.password.errors %}
-                                <div class="text-danger small mt-1">{{ form.password.errors|striptags }}</div>
-                            {% endif %}
-                        </div>
-                    {% endif %}
-                    
+
                     {% if form.is_active %}
-                        <div class="mb-4 form-check form-switch p-3 bg-dark rounded border border-secondary">
+                    <div class="mb-4 p-3 bg-dark rounded border border-secondary">
+                        <div class="form-check form-switch m-0 ps-5 d-flex align-items-center">
                             {{ form.is_active }}
-                            <label for="{{ form.is_active.id_for_label }}" class="form-check-label text-light fw-semibold ms-2">
+                            <label for="{{ form.is_active.id_for_label }}"
+                                class="form-check-label text-light fw-semibold ms-2 mb-0" style="cursor: pointer;">
                                 Usuario Activo (Permite inicio de sesión)
                             </label>
                         </div>
+                    </div>
                     {% endif %}
-                    
+
                     <div class="d-flex justify-content-end gap-2 mt-4">
-                        <a href="{% url 'usuarios:lista_usuarios' %}" class="btn btn-secondary">Cancelar</a>
-                        <button type="submit" class="btn btn-accent fw-bold text-dark">
+                        <a href="{% url 'usuarios:lista_usuarios' %}" id="btnCancelarUsuario" class="btn btn-secondary">
+                            Cancelar
+                        </a>
+                        <button type="submit" id="btnGuardarUsuario" class="btn btn-accent fw-bold text-dark">
                             <i class="bi bi-save me-1"></i> Guardar Cambios
                         </button>
                     </div>
@@ -87,27 +89,270 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Emergente de Confirmación de Guardar / Aceptar -->
+<div class="modal fade" id="modalConfirmarUsuario" tabindex="-1" aria-labelledby="modalConfirmarUsuarioLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+                    style="width: 60px; height: 60px; background-color: rgba(229, 193, 88, 0.15); color: var(--accent-color);">
+                    <i class="bi bi-check2-circle fs-1"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalConfirmarUsuarioLabel">
+                    {% if "crear" in accion|lower %}¿Confirmar registro de usuario?{% else %}¿Guardar cambios del usuario?{% endif %}
+                </h5>
+                <p class="text-secondary small mb-3">
+                    ¿Estás segura/o de llevar adelante esta acción? Se {% if "crear" in accion|lower %}registrará el nuevo usuario{% else %}actualizarán los datos del usuario{% endif %} en el sistema.
+                </p>
+                <div class="bg-dark p-3 rounded-2 text-start border border-secondary border-opacity-25 small text-secondary">
+                    <div class="mb-1"><strong>Nombre:</strong> <span class="text-light" id="confirmUserNombre">-</span></div>
+                    <div class="mb-1"><strong>Correo:</strong> <span class="text-light" id="confirmUserEmail">-</span></div>
+                    <div class="mb-1"><strong>Rol:</strong> <span class="text-light" id="confirmUserRol">-</span></div>
+                    <div class="mb-1"><strong>DNI:</strong> <span class="text-light" id="confirmUserDni">-</span></div>
+                    {% if form.is_active %}
+                    <div><strong>Estado:</strong> <span id="confirmUserEstado">-</span></div>
+                    {% endif %}
+                </div>
+                <div class="alert alert-dark border border-secondary border-opacity-25 small mt-3 mb-0 text-start text-secondary">
+                    <i class="bi bi-info-circle text-accent me-1"></i>
+                    {% if "crear" in accion|lower %}
+                        La persona podrá iniciar sesión con su correo y su <strong>DNI como contraseña inicial</strong>.
+                    {% else %}
+                        Si modificaste el DNI, se actualizará automáticamente la <strong>contraseña de acceso</strong> de la persona.
+                    {% endif %}
+                </div>
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    Revisar
+                </button>
+                <button type="button" id="btnConfirmarGuardarUsuario" class="btn btn-accent px-4 fw-semibold text-dark">
+                    <i class="bi bi-check-lg me-1"></i> {% if "crear" in accion|lower %}Sí, registrar{% else %}Sí, guardar{% endif %}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Emergente de Confirmación de Cancelación -->
+<div class="modal fade" id="modalCancelarUsuario" tabindex="-1" aria-labelledby="modalCancelarUsuarioLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3"
+                    style="width: 60px; height: 60px;">
+                    <i class="bi bi-exclamation-triangle-fill fs-2"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalCancelarUsuarioLabel">¿Estás seguro de Cancelar?</h5>
+                <p class="text-secondary small mb-0">
+                    Tienes información ingresada o modificaciones en el formulario. Si decides cancelar ahora, se perderán todos los datos y cambios realizados.
+                </p>
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    Continuar editando
+                </button>
+                <a href="{% url 'usuarios:lista_usuarios' %}" class="btn btn-danger px-4 fw-semibold">
+                    <i class="bi bi-x-circle me-1"></i> Sí, cancelar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        const rolSelect = document.getElementById("id_rol_select");
-        const pinContainer = document.getElementById("adminPinContainer");
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('formUsuario');
+        const btnCancelar = document.getElementById('btnCancelarUsuario');
+        const btnConfirmarGuardar = document.getElementById('btnConfirmarGuardarUsuario');
+        const modalConfirmarEl = document.getElementById('modalConfirmarUsuario');
+        const modalCancelarEl = document.getElementById('modalCancelarUsuario');
 
-        function toggleAdminPin() {
-            if (rolSelect && pinContainer) {
-                if (rolSelect.value === "ADMINISTRADORA") {
-                    pinContainer.style.display = "block";
+        if (!form) return;
+
+        const modalConfirmar = modalConfirmarEl ? new bootstrap.Modal(modalConfirmarEl) : null;
+        const modalCancelar = modalCancelarEl ? new bootstrap.Modal(modalCancelarEl) : null;
+
+        const campos = form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), select');
+
+        // Guardar snapshot de valores iniciales
+        campos.forEach(el => {
+            if (el.type === 'checkbox') {
+                el.dataset.initial = String(el.checked);
+            } else {
+                el.dataset.initial = (el.value || '').trim();
+            }
+        });
+
+        function valorElemento(el) {
+            if (el.type === 'checkbox') return String(el.checked);
+            return (el.value || '').trim();
+        }
+
+        // Detecta si en modo creación se ingresó algún dato
+        function formularioConDatos() {
+            for (const el of campos) {
+                if (el.type === 'checkbox') continue;
+                if ((el.value || '').trim() !== '') return true;
+            }
+            return false;
+        }
+
+        // Detecta si en modo edición se cambió algún valor
+        function huboCambios() {
+            for (const el of campos) {
+                if (valorElemento(el) !== el.dataset.initial) return true;
+            }
+            return false;
+        }
+
+        const nombreEl = form.querySelector('[name="nombre"]');
+        const emailEl = form.querySelector('[name="email"]');
+        const rolEl = form.querySelector('[name="rol"]');
+        const dniEl = form.querySelector('[name="dni"]');
+        const activeEl = form.querySelector('[name="is_active"]');
+
+        // Limpiar mensajes de error personalizados al tipear
+        [nombreEl, emailEl, rolEl, dniEl].forEach(el => {
+            if (el) {
+                el.addEventListener('input', () => el.setCustomValidity(''));
+                el.addEventListener('change', () => el.setCustomValidity(''));
+            }
+        });
+
+        function validarCampos() {
+            // Validar Nombre
+            if (nombreEl) {
+                const val = (nombreEl.value || '').trim();
+                if (!val) {
+                    nombreEl.setCustomValidity('Por favor, ingresá el nombre completo.');
+                    nombreEl.reportValidity();
+                    return false;
+                } else if (val.length < 3) {
+                    nombreEl.setCustomValidity('El nombre debe tener al menos 3 caracteres.');
+                    nombreEl.reportValidity();
+                    return false;
                 } else {
-                    pinContainer.style.display = "none";
+                    nombreEl.setCustomValidity('');
+                }
+            }
+
+            // Validar Email
+            if (emailEl) {
+                const val = (emailEl.value || '').trim();
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!val) {
+                    emailEl.setCustomValidity('Por favor, ingresá el correo electrónico.');
+                    emailEl.reportValidity();
+                    return false;
+                } else if (!emailRegex.test(val)) {
+                    emailEl.setCustomValidity('Por favor, ingresá un correo electrónico válido (ej: usuario@ejemplo.com).');
+                    emailEl.reportValidity();
+                    return false;
+                } else {
+                    emailEl.setCustomValidity('');
+                }
+            }
+
+            // Validar Rol
+            if (rolEl) {
+                if (!rolEl.value) {
+                    rolEl.setCustomValidity('Por favor, seleccioná un rol para el usuario.');
+                    rolEl.reportValidity();
+                    return false;
+                } else {
+                    rolEl.setCustomValidity('');
+                }
+            }
+
+            // Validar DNI (7 u 8 dígitos numéricos)
+            if (dniEl) {
+                const rawDni = (dniEl.value || '').trim().replace(/\./g, '').replace(/\s/g, '');
+                if (!rawDni) {
+                    dniEl.setCustomValidity('Por favor, ingresá el número de DNI.');
+                    dniEl.reportValidity();
+                    return false;
+                } else if (!/^\d{7,8}$/.test(rawDni)) {
+                    dniEl.setCustomValidity('El DNI debe tener 7 u 8 dígitos numéricos, sin puntos ni espacios.');
+                    dniEl.reportValidity();
+                    return false;
+                } else {
+                    dniEl.value = rawDni; // Normalización automática
+                    dniEl.setCustomValidity('');
+                }
+            }
+
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return false;
+            }
+
+            return true;
+        }
+
+        // Al hacer submit (Aceptar / Guardar Cambios)
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            if (!validarCampos()) {
+                return;
+            }
+
+            // Rellenar resumen en el modal
+            if (nombreEl) document.getElementById('confirmUserNombre').textContent = nombreEl.value.trim() || '-';
+            if (emailEl) document.getElementById('confirmUserEmail').textContent = emailEl.value.trim().toLowerCase() || '-';
+            if (rolEl) {
+                const rolText = rolEl.options[rolEl.selectedIndex]?.text || rolEl.value;
+                document.getElementById('confirmUserRol').textContent = rolText || '-';
+            }
+            if (dniEl) document.getElementById('confirmUserDni').textContent = dniEl.value.trim() || '-';
+
+            const confirmEstadoEl = document.getElementById('confirmUserEstado');
+            if (confirmEstadoEl && activeEl) {
+                if (activeEl.checked) {
+                    confirmEstadoEl.innerHTML = '<span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle me-1"></i> Activo (Permite iniciar sesión)</span>';
+                } else {
+                    confirmEstadoEl.innerHTML = '<span class="badge bg-danger-subtle text-danger"><i class="bi bi-x-circle me-1"></i> Inactivo (Acceso bloqueado)</span>';
+                }
+            }
+
+            if (modalConfirmar) {
+                modalConfirmar.show();
+            } else {
+                form.submit();
+            }
+        });
+
+        // Botón de confirmación dentro del modal
+        if (btnConfirmarGuardar) {
+            btnConfirmarGuardar.addEventListener('click', () => {
+                form.submit();
+            });
+        }
+
+        // Confirmación al Cancelar o Volver
+        const esEdicion = "{{ accion|lower }}".indexOf("editar") !== -1;
+        function manejarCancelacion(e) {
+            const debePreguntar = esEdicion ? huboCambios() : formularioConDatos();
+            if (debePreguntar) {
+                e.preventDefault();
+                if (modalCancelar) {
+                    modalCancelar.show();
                 }
             }
         }
 
-        if (rolSelect) {
-            rolSelect.addEventListener("change", toggleAdminPin);
-            toggleAdminPin();
+        if (btnCancelar) {
+            btnCancelar.addEventListener('click', manejarCancelacion);
         }
     });
 </script>

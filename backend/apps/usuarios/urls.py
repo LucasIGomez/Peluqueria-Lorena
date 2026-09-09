@@ -13,7 +13,6 @@ from .views import (
     PasswordResetConfirmView,
     PasswordResetRequestView,
     PerfilView,
-    RegistroAPIView,
     UsuarioViewSet,
     crear_usuario_view,
     editar_usuario_view,
@@ -21,7 +20,6 @@ from .views import (
     lista_usuarios_view,
     login_view,
     logout_view,
-    registro_view,
 )
 
 app_name = "usuarios"
@@ -34,14 +32,12 @@ urlpatterns = [
     # ── Vistas Web SSR ──
     path("login/", login_view, name="login"),
     path("logout/", logout_view, name="logout"),
-    path("registro/", registro_view, name="registro"),
     path("gestion/", lista_usuarios_view, name="lista_usuarios"),
     path("gestion/nuevo/", crear_usuario_view, name="crear_usuario"),
     path("gestion/editar/<int:pk>/", editar_usuario_view, name="editar_usuario"),
     path("gestion/eliminar/<int:pk>/", eliminar_usuario_view, name="eliminar_usuario"),
 
     # ── API REST Autenticación ──
-    path("auth/registro/", RegistroAPIView.as_view(), name="api-registro"),
     path("auth/login/", LoginView.as_view(), name="auth-login"),
     path("auth/refresh/", TokenRefreshView.as_view(), name="auth-refresh"),
     path("perfil/", PerfilView.as_view(), name="perfil"),
