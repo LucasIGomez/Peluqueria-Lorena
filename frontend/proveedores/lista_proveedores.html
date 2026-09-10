@@ -3,51 +3,206 @@
 {% block page_title %}Proveedores{% endblock %}
 {% block page_subtitle %}Gestiona a los distribuidores y marcas.{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* ── Adaptación Móvil de la Tabla de Proveedores (Cards nativas sin scroll horizontal) ── */
+    @media (max-width: 767.98px) {
+        .table-responsive {
+            max-height: none !important;
+            overflow-y: visible !important;
+            overflow-x: visible !important;
+            border: none !important;
+        }
+
+        #tabla-proveedores thead {
+            display: none;
+        }
+
+        #tabla-proveedores,
+        #tabla-proveedores-body {
+            display: block;
+            width: 100%;
+        }
+
+        #tabla-proveedores tr.fila-proveedor {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            grid-template-areas:
+                "nombre nombre"
+                "contacto condiciones"
+                "acciones acciones";
+            gap: 0.85rem 0.5rem;
+            background-color: #1a1d24;
+            border: 1px solid #2e333d !important;
+            border-radius: 12px;
+            margin-bottom: 0.95rem;
+            padding: 1.05rem 1rem 0.95rem 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+
+        #tabla-proveedores tr.fila-proveedor > td {
+            padding: 0 !important;
+            border: none !important;
+            background: transparent !important;
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+
+        #tabla-proveedores tr.fila-proveedor td.col-nombre {
+            grid-area: nombre;
+            font-size: 1.05rem;
+            color: #ffffff;
+            padding-bottom: 0.15rem !important;
+        }
+
+        #tabla-proveedores tr.fila-proveedor td.col-contacto {
+            grid-area: contacto;
+            background-color: #14161b;
+            border: 1px solid #282c35;
+            border-radius: 8px;
+            padding: 0.55rem 0.6rem !important;
+        }
+
+        #tabla-proveedores tr.fila-proveedor td.col-condiciones {
+            grid-area: condiciones;
+            background-color: #14161b;
+            border: 1px solid #282c35;
+            border-radius: 8px;
+            padding: 0.55rem 0.6rem !important;
+        }
+
+        #tabla-proveedores tr.fila-proveedor td.col-acciones {
+            grid-area: acciones;
+            border-top: 1px solid #282c35 !important;
+            padding-top: 0.65rem !important;
+            margin-top: 0.2rem;
+            white-space: normal !important;
+        }
+
+        #tabla-proveedores tr.fila-proveedor td.col-acciones .btn-group-acciones {
+            display: flex !important;
+            width: 100%;
+            gap: 0.5rem;
+        }
+
+        #tabla-proveedores tr.fila-proveedor td.col-acciones .btn-group-acciones a.btn,
+        #tabla-proveedores tr.fila-proveedor td.col-acciones .btn-group-acciones button.btn {
+            flex: 1 1 0;
+            text-align: center;
+            padding: 0.45rem 0.3rem;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 !important;
+        }
+
+        .card-tabla-proveedores {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            overflow: visible !important;
+        }
+
+        .card-tabla-proveedores > .card-header {
+            position: sticky;
+            top: 70px;
+            z-index: 1020;
+            background-color: rgba(26, 29, 36, 0.96) !important;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid #3c424e !important;
+            border-radius: 12px !important;
+            margin-bottom: 0.85rem !important;
+            padding: 0.85rem !important;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+            flex-direction: column !important;
+            align-items: stretch !important;
+            gap: 0.65rem;
+        }
+
+        .card-tabla-proveedores > .card-header .acciones-header {
+            display: flex;
+            width: 100%;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .card-tabla-proveedores > .card-header .acciones-header a.btn {
+            flex: 1 1 auto;
+            text-align: center;
+            justify-content: center;
+            margin: 0 !important;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="card">
+<div class="card card-tabla-proveedores">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h5 class="mb-0">Listado de Proveedores</h5>
-        <div>
-            <a href="{% url 'proveedores:generar_orden' %}" class="btn btn-primary btn-sm me-2">
-                <i class="bi bi-file-earmark-plus"></i> Generar Orden de Compra
+        <div class="acciones-header">
+            <a href="{% url 'proveedores:generar_orden' %}" class="btn btn-primary btn-sm me-md-2">
+                <i class="bi bi-file-earmark-plus me-1"></i> Generar Orden de Compra
             </a>
             <a href="{% url 'proveedores:crear_proveedor' %}" class="btn btn-accent btn-sm">
-                <i class="bi bi-plus-lg"></i> Nuevo Proveedor
+                <i class="bi bi-plus-lg me-1"></i> Nuevo Proveedor
             </a>
         </div>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive" style="max-height: 65vh; overflow-y: scroll;">
-            <table class="table table-dark table-hover mb-0 align-middle">
+            <table class="table table-dark table-hover mb-0 align-middle" id="tabla-proveedores">
                 <thead class="sticky-top bg-dark" style="z-index: 10;">
                     <tr>
                         <th class="ps-4">Nombre</th>
                         <th>Contacto</th>
                         <th>Condiciones</th>
-                        <th class="text-end pe-4">Acciones</th>
+                        <th class="text-end pe-4" style="width: 1%; white-space: nowrap;">Acciones</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="tabla-proveedores-body">
                     {% for proveedor in proveedores %}
-                    <tr>
-                        <td class="ps-4 fw-bold">{{ proveedor.nombre }}</td>
-                        <td>{{ proveedor.contacto|default:"-" }}</td>
-                        <td>{{ proveedor.condicionesPago|default:"-" }}</td>
-                        <td class="text-end pe-4">
-                            <a href="{% url 'proveedores:editar_proveedor' proveedor.pk %}"
-                                class="btn btn-sm btn-outline-light me-2" title="Editar proveedor"><i
-                                    class="bi bi-pencil"></i></a>
-                            <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-proveedor"
-                                title="Eliminar proveedor" data-id="{{ proveedor.pk }}"
-                                data-nombre="{{ proveedor.nombre|escapejs }}"
-                                data-url="{% url 'proveedores:eliminar_proveedor' proveedor.pk %}">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                    <tr class="fila-proveedor" id="proveedor-fila-{{ proveedor.pk }}">
+                        <td class="ps-4 fw-bold col-nombre">
+                            <i class="bi bi-truck me-1 text-accent d-md-none"></i>{{ proveedor.nombre }}
+                        </td>
+                        <td class="col-contacto">
+                            <span class="d-md-none text-secondary small d-block mb-1 text-uppercase fw-semibold"
+                                style="font-size: 0.65rem; letter-spacing: 0.5px;">Contacto</span>
+                            <div class="text-light small">{{ proveedor.contacto|default:"-" }}</div>
+                        </td>
+                        <td class="col-condiciones">
+                            <span class="d-md-none text-secondary small d-block mb-1 text-uppercase fw-semibold"
+                                style="font-size: 0.65rem; letter-spacing: 0.5px;">Condiciones de Pago</span>
+                            <div class="text-light small">{{ proveedor.condicionesPago|default:"-" }}</div>
+                        </td>
+                        <td class="text-end pe-4 col-acciones" style="white-space: nowrap;">
+                            <div class="btn-group-acciones">
+                                <a href="{% url 'proveedores:editar_proveedor' proveedor.pk %}"
+                                    class="btn btn-sm btn-outline-light me-md-2" title="Editar proveedor">
+                                    <i class="bi bi-pencil me-1"></i><span class="d-md-none">Editar</span>
+                                </a>
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-proveedor"
+                                    title="Eliminar proveedor" data-id="{{ proveedor.pk }}"
+                                    data-nombre="{{ proveedor.nombre|escapejs }}"
+                                    data-url="{% url 'proveedores:eliminar_proveedor' proveedor.pk %}">
+                                    <i class="bi bi-trash me-1"></i><span class="d-md-none">Eliminar</span>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="4" class="text-center py-4 text-secondary">No hay proveedores registrados aún.</td>
+                        <td colspan="4" class="text-center py-5 text-secondary">
+                            <i class="bi bi-truck fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                            No hay proveedores registrados aún.
+                            <br>
+                            <a href="{% url 'proveedores:crear_proveedor' %}" class="btn btn-sm btn-accent mt-2">
+                                <i class="bi bi-plus-lg me-1"></i> Registrar Primer Proveedor
+                            </a>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>

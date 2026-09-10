@@ -117,7 +117,7 @@
                 <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
                     Continuar editando
                 </button>
-                <a href="{% url 'inventario:lista_productos' %}" class="btn btn-danger px-4 fw-semibold">
+                <a href="{% url 'inventario:lista_productos' %}" id="btn-confirmar-cancelar" class="btn btn-danger px-4 fw-semibold">
                     <i class="bi bi-x-circle me-1"></i> Sí, cancelar
                 </a>
             </div>
@@ -225,18 +225,40 @@ document.addEventListener("DOMContentLoaded", function () {
         return false;
     }
 
+    let confirmacionCompletada = false;
+    let destinoPendiente = null;
+    const btnConfirmarCancelar = document.getElementById("btn-confirmar-cancelar");
+
+    function pedirConfirmacionSalida(destino) {
+        if (!modalCancelar) return false;
+        destinoPendiente = destino || null;
+        if (btnConfirmarCancelar && destinoPendiente) {
+            btnConfirmarCancelar.setAttribute("href", destinoPendiente);
+        }
+        modalCancelar.show();
+        return true;
+    }
+
     // Validación de Cancelar
     if (btnCancelar && modalCancelar) {
         btnCancelar.addEventListener("click", function (e) {
             if (tieneDatosModificados()) {
                 e.preventDefault();
-                modalCancelar.show();
+                pedirConfirmacionSalida(btnCancelar.getAttribute("href"));
+            }
+        });
+    }
+
+    if (btnConfirmarCancelar) {
+        btnConfirmarCancelar.addEventListener("click", function () {
+            confirmacionCompletada = true;
+            if (destinoPendiente) {
+                this.setAttribute("href", destinoPendiente);
             }
         });
     }
 
     // Interceptar envío de formulario para confirmación
-    let confirmacionCompletada = false;
     form.addEventListener("submit", function (e) {
         if (!confirmacionCompletada) {
             e.preventDefault();
@@ -253,6 +275,7 @@ document.addEventListener("DOMContentLoaded", function () {
             if (modalReponer) {
                 modalReponer.show();
             } else {
+                window._enviandoFormulario = true;
                 form.submit();
             }
         }
@@ -260,12 +283,19 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (btnConfirmarReponerSubmit) {
         btnConfirmarReponerSubmit.addEventListener("click", function () {
+            window._enviandoFormulario = true;
             confirmacionCompletada = true;
             btnConfirmarReponerSubmit.disabled = true;
             btnConfirmarReponerSubmit.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Procesando...';
             form.submit();
         });
     }
+
+    // Conectar con el sistema global de navegación (alertas de barra lateral)
+    window.hayCambiosSinGuardar = function() {
+        if (confirmacionCompletada) return false;
+        return tieneDatosModificados() ? "Tienes datos cargados en el ingreso de stock. Si sales o cambias de apartado ahora, se perderá la operación." : false;
+    };
 });
 </script>
 {% endblock %}

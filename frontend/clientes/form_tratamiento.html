@@ -39,7 +39,7 @@
                     </div>
 
                     <div class="d-flex justify-content-end gap-2 pt-3 border-top border-secondary">
-                        <a href="{% url 'clientes:detalle_cliente' cliente.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+                        <a href="{% url 'clientes:detalle_cliente' cliente.pk %}" class="btn btn-outline-secondary" data-confirmar-salida="true">Cancelar</a>
                         <button type="submit" class="btn btn-accent text-dark fw-bold px-4">
                             <i class="bi bi-check-circle me-1"></i> Iniciar Tratamiento
                         </button>

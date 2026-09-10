@@ -3,9 +3,29 @@
 {% block page_title %}Generar Orden de Compra{% endblock %}
 {% block page_subtitle %}Arma un pedido seleccionando productos del inventario o añadiendo nuevos.{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* Fila de inventario ya añadida al carrito: deshabilitada en gris */
+    #tablaInventarioBody tr.fila-en-carrito {
+        background-color: rgba(108, 117, 125, 0.15);
+    }
+    #tablaInventarioBody tr.fila-en-carrito td:first-child {
+        color: #6c757d !important;
+        opacity: 0.65;
+    }
+    #tablaInventarioBody tr.fila-en-carrito td:first-child .badge {
+        opacity: 0.6;
+    }
+    #tablaInventarioBody tr.fila-en-carrito .btn-agregar {
+        opacity: 0.45;
+        pointer-events: none;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="mb-3">
-    <a href="{% url 'proveedores:lista_proveedores' %}" class="btn btn-outline-light btn-sm" id="btnVolver">
+    <a href="{% url 'proveedores:lista_proveedores' %}" class="btn btn-outline-light btn-sm" id="btnVolver" data-confirmar-salida="true">
         <i class="bi bi-arrow-left"></i> Volver a Proveedores
     </a>
 </div>
@@ -42,8 +62,8 @@
                 id="btnQuitarProveedor">Cambiar</button>
         </div>
     </div>
-    <div class="col-md-6 d-flex align-items-end justify-content-end">
-        <button class="btn btn-success fw-bold px-4" id="btnGenerarPDF">
+    <div class="col-md-6 d-flex align-items-end justify-content-start justify-content-md-end mt-3 mt-md-0">
+        <button class="btn btn-success fw-bold px-4 w-100 w-md-auto" id="btnGenerarPDF">
             <i class="bi bi-file-earmark-pdf me-1"></i> Generar Orden (PDF)
         </button>
     </div>
@@ -347,35 +367,6 @@
     </div>
 </div>
 
-<!-- Modal Confirmar salida con orden en curso -->
-<div class="modal fade" id="modalConfirmarSalida" tabindex="-1" aria-labelledby="modalConfirmarSalidaLabel"
-    aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
-            <div class="modal-header border-0 pb-0">
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
-                    aria-label="Cerrar"></button>
-            </div>
-            <div class="modal-body text-center pt-1 pb-3 px-4">
-                <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3"
-                    style="width: 60px; height: 60px;">
-                    <i class="bi bi-exclamation-triangle-fill fs-2"></i>
-                </div>
-                <h5 class="modal-title fw-bold mb-2 text-light" id="modalConfirmarSalidaLabel">¿Estás seguro de salir?
-                </h5>
-                <p class="text-secondary small mb-0">
-                    Tienes productos seleccionados en tu orden que se perderán si sales ahora.
-                </p>
-            </div>
-            <div
-                class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
-                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">Quedarme</button>
-                <a href="{% url 'proveedores:lista_proveedores' %}" class="btn btn-danger px-4 fw-semibold"
-                    id="btnConfirmarSalida">Sí, salir</a>
-            </div>
-        </div>
-    </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -492,10 +483,32 @@
             if (abreviatura) return abreviatura;
             return UNIDAD_ABREV[codigo] || 'u.';
         }
+        function marcarFilaEnCarrito(id) {
+            const fila = tablaInventarioBody.querySelector(`tr[data-id="${id}"]`);
+            if (!fila) return;
+            fila.classList.add('fila-en-carrito');
+            const btn = fila.querySelector('.btn-agregar');
+            if (btn) {
+                btn.disabled = true;
+                btn.setAttribute('aria-disabled', 'true');
+                btn.title = 'Ya está en la orden de compra';
+            }
+        }
+        function liberarFilaEnCarrito(id) {
+            const fila = tablaInventarioBody.querySelector(`tr[data-id="${id}"]`);
+            if (!fila) return;
+            fila.classList.remove('fila-en-carrito');
+            const btn = fila.querySelector('.btn-agregar');
+            if (btn) {
+                btn.disabled = false;
+                btn.removeAttribute('aria-disabled');
+                btn.removeAttribute('title');
+            }
+        }
         function agregarAlPedido(id, nombre, unidadCodigo, abreviaturaParam) {
-            // Evitar duplicados
+            // Si ya está en el carrito, no hacer nada (la fila queda deshabilitada en gris).
             if (tablaPedidoBody.querySelector(`tr[data-pedido-id="${id}"]`)) {
-                mostrarAviso('El producto "' + nombre + '" ya está en la orden de compra.', 'Producto duplicado');
+                marcarFilaEnCarrito(id);
                 return;
             }
 
@@ -520,9 +533,11 @@
                 </td>
             `;
             tablaPedidoBody.appendChild(tr);
+            marcarFilaEnCarrito(id);
 
             tr.querySelector('.btn-quitar').addEventListener('click', () => {
                 tr.remove();
+                liberarFilaEnCarrito(id);
                 if (tablaPedidoBody.querySelectorAll('tr[data-pedido-id]').length === 0) {
                     if (filaVacia) filaVacia.style.display = '';
                 }
@@ -533,7 +548,9 @@
         tablaInventarioBody.addEventListener('click', (e) => {
             const btn = e.target.closest('.btn-agregar');
             if (btn) {
+                if (btn.disabled) return;
                 const fila = btn.closest('tr');
+                if (fila && fila.classList.contains('fila-en-carrito')) return;
                 const id = fila.getAttribute('data-id');
                 // Nombre sin el badge de unidad
                 const celda = fila.querySelector('td');
@@ -777,14 +794,21 @@
             });
         }
 
-        // 5. Salida con orden en curso -> ventana emergente en vez de confirm()
-        document.getElementById('btnVolver').addEventListener('click', (e) => {
+        // 5. Salida con orden en curso: registrado en el sistema global de navegación
+        window.hayCambiosSinGuardar = function() {
             const cantidadProductos = tablaPedidoBody.querySelectorAll('tr[data-pedido-id]').length;
             if (cantidadProductos > 0) {
-                e.preventDefault();
-                mostrarModal('modalConfirmarSalida');
+                return `Tienes ${cantidadProductos} insumo(s) en tu orden de compra en curso. Si decides salir o cambiar de apartado ahora, se perderá tu pedido actual.`;
             }
-        });
+            const proveedorId = document.getElementById('proveedorSelect')?.value;
+            if (proveedorId) {
+                return 'Tienes un proveedor seleccionado para la orden de compra. Si decides salir ahora, se descartará tu selección.';
+            }
+            if (typeof insumoTieneDatos === 'function' && insumoTieneDatos()) {
+                return 'Tienes datos ingresados en el formulario de nuevo insumo sin guardar. Si sales ahora, se descartarán.';
+            }
+            return false;
+        };
     });
 </script>
 {% endblock %}

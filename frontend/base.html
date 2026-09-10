@@ -179,17 +179,171 @@
             color: #fff;
             box-shadow: 0 0 0 0.25rem rgba(229, 193, 88, 0.25);
         }
+
+        /* ── Diseño Responsive (Móvil y Tablet) ── */
+        .mobile-navbar {
+            display: none;
+            background-color: var(--sidebar-bg);
+            border-bottom: 1px solid #2a2e35;
+            padding: 0.75rem 1rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            z-index: 1040;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(2px);
+            z-index: 1050;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .sidebar-backdrop.show {
+            display: block;
+            opacity: 1;
+        }
+
+        @media (max-width: 991.98px) {
+            body {
+                flex-direction: column;
+                overflow-x: clip;
+            }
+
+            .mobile-navbar {
+                display: flex;
+            }
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                width: 280px;
+                max-width: 85vw;
+                height: 100vh;
+                z-index: 1055;
+                transform: translateX(-100%);
+                transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                box-shadow: none;
+            }
+
+            .sidebar.sidebar-open {
+                transform: translateX(0);
+                box-shadow: 5px 0 25px rgba(0, 0, 0, 0.6);
+            }
+
+            .main-content {
+                margin-left: 0 !important;
+                padding: 1rem !important;
+                padding-top: 75px !important;
+                width: 100%;
+                min-width: 0;
+            }
+        }
+
+        /* ── Botón Flotante Volver Arriba ── */
+        .btn-scroll-top {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background-color: #1a1d24;
+            color: var(--accent-color);
+            border: 2px solid var(--accent-color);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 12px rgba(229, 193, 88, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            cursor: pointer;
+            z-index: 1030;
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateY(16px);
+            transition: opacity 0.25s ease, transform 0.25s ease, background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-scroll-top.visible {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: translateY(0);
+        }
+
+        .btn-scroll-top:hover {
+            background-color: var(--accent-color);
+            color: #121418;
+            box-shadow: 0 6px 20px rgba(229, 193, 88, 0.45);
+            transform: translateY(-3px);
+        }
+
+        .btn-scroll-top:active {
+            transform: translateY(0) scale(0.92);
+        }
+
+        @media (max-width: 575.98px) {
+            .btn-scroll-top {
+                bottom: 18px;
+                right: 18px;
+                width: 44px;
+                height: 44px;
+                font-size: 1.15rem;
+            }
+        }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 
 <body>
 
+    <!-- Barra Superior Móvil -->
+    <header class="mobile-navbar">
+        <button type="button" class="btn btn-link text-light p-1 text-decoration-none" id="btnAbrirSidebar" aria-label="Abrir menú">
+            <i class="bi bi-list fs-2 text-accent"></i>
+        </button>
+        <div class="d-flex align-items-center gap-2 fw-bold text-light fs-6">
+            <i class="bi bi-scissors text-accent fs-5"></i>
+            <span>Lorena System</span>
+        </div>
+        <div>
+            {% if request.user.is_authenticated %}
+                <span class="badge {% if request.user.es_administradora %}bg-warning text-dark{% else %}bg-info-subtle text-info{% endif %} fw-bold px-2 py-1" style="font-size: 0.72rem;">
+                    {% if request.user.es_administradora %}Admin{% else %}Empleada{% endif %}
+                </span>
+            {% else %}
+                <a href="/usuarios/login/" class="btn btn-sm btn-accent fw-bold px-2 py-0" style="font-size: 0.8rem;">Entrar</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Telón oscuro para menú lateral en móviles -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
     <!-- Sidebar -->
     <aside class="sidebar">
-        <div class="sidebar-header">
-            <i class="bi bi-scissors"></i>
-            <span>Lorena System</span>
+        <div class="sidebar-header justify-content-between">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-scissors"></i>
+                <span>Lorena System</span>
+            </div>
+            <button type="button" class="btn btn-link text-secondary p-0 d-lg-none text-decoration-none" id="btnCerrarSidebar" aria-label="Cerrar menú">
+                <i class="bi bi-x-lg fs-5"></i>
+            </button>
         </div>
 
         <div class="sidebar-profile">
@@ -306,25 +460,25 @@
     <!-- Main Content -->
     <main class="main-content">
         <!-- Top bar (date, notifications) -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-4">
             <div>
                 {% if request.user.is_authenticated %}
-                    <h3 class="mb-0 fw-bold">{% block page_title %}¡Bienvenida/o, {{ request.user.nombre }}! 👋{% endblock %}</h3>
-                    <p class="text-secondary mb-0">{% block page_subtitle %}Panel de control de Peluquería Lorena.{% endblock %}</p>
+                    <h3 class="mb-0 fw-bold fs-4 fs-md-3">{% block page_title %}¡Bienvenida/o, {{ request.user.nombre }}! 👋{% endblock %}</h3>
+                    <p class="text-secondary mb-0 small">{% block page_subtitle %}Panel de control de Peluquería Lorena.{% endblock %}</p>
                 {% else %}
-                    <h3 class="mb-0 fw-bold">{% block page_title_anon %}Peluquería Lorena 👋{% endblock %}</h3>
-                    <p class="text-secondary mb-0">{% block page_subtitle_anon %}Sistema de Gestión Integral del Salón.{% endblock %}</p>
+                    <h3 class="mb-0 fw-bold fs-4 fs-md-3">{% block page_title_anon %}Peluquería Lorena 👋{% endblock %}</h3>
+                    <p class="text-secondary mb-0 small">{% block page_subtitle_anon %}Sistema de Gestión Integral del Salón.{% endblock %}</p>
                 {% endif %}
             </div>
-            <div class="d-flex align-items-center gap-3 text-secondary">
-                <span id="current-date"></span>
+            <div class="d-flex align-items-center flex-wrap gap-2 text-secondary">
+                <span id="current-date" class="small"></span>
                 {% if request.user.is_authenticated %}
                     {% if request.user.es_administradora %}
-                        <span class="badge bg-warning text-dark px-3 py-2 fw-bold">
+                        <span class="badge bg-warning text-dark px-2 px-sm-3 py-2 fw-bold small">
                             <i class="bi bi-shield-check me-1"></i> Modo Administradora
                         </span>
                     {% else %}
-                        <span class="badge bg-info-subtle text-info px-3 py-2">
+                        <span class="badge bg-info-subtle text-info px-2 px-sm-3 py-2 small">
                             <i class="bi bi-scissors me-1"></i> Modo Empleada
                         </span>
                     {% endif %}
@@ -349,12 +503,224 @@
         {% block content %}{% endblock %}
     </main>
 
+    <!-- Botón Flotante Volver Arriba -->
+    <button type="button" class="btn-scroll-top" id="btnVolverArriba" aria-label="Volver arriba" title="Volver al inicio de la página">
+        <i class="bi bi-arrow-up"></i>
+    </button>
+
+    <!-- Modal Global de Confirmación de Salida / Descarte de Cambios -->
+    <div class="modal fade" id="modalConfirmarSalidaNavegacion" tabindex="-1" aria-labelledby="modalConfirmarSalidaNavegacionLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+                <div class="modal-header border-0 pb-0">
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body text-center pt-1 pb-3 px-4">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3" style="width: 60px; height: 60px;">
+                        <i class="bi bi-exclamation-triangle-fill fs-2"></i>
+                    </div>
+                    <h5 class="modal-title fw-bold mb-2 text-light" id="modalConfirmarSalidaNavegacionLabel">
+                        ¿Descartar cambios y salir?
+                    </h5>
+                    <p class="text-secondary small mb-0" id="modalConfirmarSalidaNavegacionMensaje">
+                        Tienes acciones o cambios sin guardar. Si decides salir ahora, se perderá tu progreso actual.
+                    </p>
+                </div>
+                <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                    <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                        Continuar aquí
+                    </button>
+                    <a href="#" class="btn btn-danger px-4 fw-semibold" id="btnConfirmarSalidaNavegacion">
+                        <i class="bi bi-x-circle me-1"></i> Sí, descartar y salir
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Set current date
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        document.getElementById('current-date').textContent = new Date().toLocaleDateString('es-ES', options);
+        const currentDateEl = document.getElementById('current-date');
+        if (currentDateEl) {
+            currentDateEl.textContent = new Date().toLocaleDateString('es-ES', options);
+        }
+
+        // ── Manejo del menú lateral en dispositivos móviles ──
+        const btnAbrirSidebar = document.getElementById('btnAbrirSidebar');
+        const btnCerrarSidebar = document.getElementById('btnCerrarSidebar');
+        const sidebar = document.querySelector('.sidebar');
+        const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+
+        function abrirMenuMovil() {
+            if (sidebar) sidebar.classList.add('sidebar-open');
+            if (sidebarBackdrop) sidebarBackdrop.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function cerrarMenuMovil() {
+            if (sidebar) sidebar.classList.remove('sidebar-open');
+            if (sidebarBackdrop) sidebarBackdrop.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        if (btnAbrirSidebar) btnAbrirSidebar.addEventListener('click', abrirMenuMovil);
+        if (btnCerrarSidebar) btnCerrarSidebar.addEventListener('click', cerrarMenuMovil);
+        if (sidebarBackdrop) sidebarBackdrop.addEventListener('click', cerrarMenuMovil);
+
+        // Al hacer clic en un enlace de navegación en móvil, cerrar el menú automáticamente
+        document.querySelectorAll('.sidebar a').forEach(enlace => {
+            enlace.addEventListener('click', () => {
+                if (window.innerWidth < 992) {
+                    cerrarMenuMovil();
+                }
+            });
+        });
+
+        // ── Sistema Global de Confirmación de Salida y Navegación ──
+        (function() {
+            let enlaceDestinoGlobal = null;
+            let navegacionConfirmada = false;
+            window._enviandoFormulario = false;
+
+            // Función global para verificar si hay cambios sin guardar
+            window.verificarCambiosSinGuardar = function() {
+                // 1. Si la vista actual definió su propia validación
+                if (typeof window.hayCambiosSinGuardar === 'function') {
+                    const res = window.hayCambiosSinGuardar();
+                    if (res) {
+                        return typeof res === 'string' ? res : 'Tienes acciones o cambios en curso. Si decides salir ahora, se perderá tu progreso actual.';
+                    }
+                    return false;
+                }
+
+                // 2. Detección automática en formularios POST
+                const formularios = document.querySelectorAll('form[method="post"]:not([data-no-dirty-check])');
+                for (const form of formularios) {
+                    const action = form.getAttribute('action') || '';
+                    if (action.includes('/logout/')) continue;
+
+                    const campos = form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([data-no-dirty-check]), textarea:not([data-no-dirty-check]), select:not([data-no-dirty-check])');
+                    for (const campo of campos) {
+                        if (campo.dataset.initialValue !== undefined) {
+                            let actual = '';
+                            if (campo.type === 'checkbox' || campo.type === 'radio') {
+                                actual = String(campo.checked);
+                            } else {
+                                actual = (campo.value || '').trim();
+                            }
+                            if (actual !== campo.dataset.initialValue) {
+                                return 'Tienes cambios sin guardar en el formulario. Si sales ahora, se perderán todos los datos ingresados.';
+                            }
+                        }
+                    }
+                }
+
+                return false;
+            };
+
+            document.addEventListener('DOMContentLoaded', function() {
+                // Registrar snapshot inicial de formularios POST
+                const formularios = document.querySelectorAll('form[method="post"]:not([data-no-dirty-check])');
+                formularios.forEach(form => {
+                    form.addEventListener('submit', function() {
+                        window._enviandoFormulario = true;
+                    });
+
+                    const campos = form.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]):not([data-no-dirty-check]), textarea:not([data-no-dirty-check]), select:not([data-no-dirty-check])');
+                    campos.forEach(campo => {
+                        if (campo.dataset.initialValue === undefined) {
+                            if (campo.type === 'checkbox' || campo.type === 'radio') {
+                                campo.dataset.initialValue = String(campo.checked);
+                            } else {
+                                campo.dataset.initialValue = (campo.value || '').trim();
+                            }
+                        }
+                    });
+                });
+
+                const modalEl = document.getElementById('modalConfirmarSalidaNavegacion');
+                const btnConfirmar = document.getElementById('btnConfirmarSalidaNavegacion');
+                const mensajeEl = document.getElementById('modalConfirmarSalidaNavegacionMensaje');
+
+                if (btnConfirmar) {
+                    btnConfirmar.addEventListener('click', function(e) {
+                        navegacionConfirmada = true;
+                        if (enlaceDestinoGlobal) {
+                            window.location.href = enlaceDestinoGlobal;
+                        }
+                    });
+                }
+
+                // Interceptar clics en enlaces de la barra lateral y enlaces con data-confirmar-salida
+                document.addEventListener('click', function(e) {
+                    if (navegacionConfirmada || window._enviandoFormulario) return;
+                    // Ignorar si se abre en nueva pestaña (Ctrl, Cmd, Shift o clic central)
+                    if (e.ctrlKey || e.metaKey || e.shiftKey || e.which === 2 || e.button === 1) return;
+
+                    const enlace = e.target.closest('.sidebar a, [data-confirmar-salida="true"]');
+                    if (!enlace) return;
+
+                    const href = enlace.getAttribute('href');
+                    if (!href || href === '#' || href.startsWith('javascript:')) return;
+
+                    // Si es el enlace hacia la misma página actual exacta, ignorar
+                    try {
+                        const targetUrl = new URL(href, window.location.href);
+                        if (targetUrl.pathname === window.location.pathname && targetUrl.search === window.location.search) {
+                            return;
+                        }
+                    } catch (err) {}
+
+                    const mensaje = window.verificarCambiosSinGuardar();
+                    if (mensaje) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        enlaceDestinoGlobal = href;
+                        if (mensajeEl && typeof mensaje === 'string') {
+                            mensajeEl.textContent = mensaje;
+                        }
+                        if (modalEl) {
+                            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+                            modal.show();
+                        }
+                    }
+                }, true);
+
+                // Advertir si recarga o cierra la ventana/pestaña
+                window.addEventListener('beforeunload', function(e) {
+                    if (navegacionConfirmada || window._enviandoFormulario) return;
+                    const mensaje = window.verificarCambiosSinGuardar();
+                    if (mensaje) {
+                        e.preventDefault();
+                        e.returnValue = '';
+                    }
+                });
+            });
+        })();
+
+        // ── Botón Flotante Volver Arriba ──
+        (function() {
+            const btnVolverArriba = document.getElementById('btnVolverArriba');
+            if (btnVolverArriba) {
+                window.addEventListener('scroll', function() {
+                    if (window.scrollY > 280) {
+                        btnVolverArriba.classList.add('visible');
+                    } else {
+                        btnVolverArriba.classList.remove('visible');
+                    }
+                }, { passive: true });
+
+                btnVolverArriba.addEventListener('click', function() {
+                    window.scrollTo({
+                        top: 0,
+                        behavior: 'smooth'
+                    });
+                });
+            }
+        })();
     </script>
     {% block extra_js %}{% endblock %}
 </body>

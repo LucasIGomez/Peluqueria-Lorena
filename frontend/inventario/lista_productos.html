@@ -3,10 +3,197 @@
 {% block page_title %}Stock e Insumos{% endblock %}
 {% block page_subtitle %}Control de insumos y productos de Peluquería Lorena.{% endblock %}
 
+{% block extra_css %}
+<style>
+    .badge-alerta-producto {
+        cursor: pointer;
+        transition: transform 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+        user-select: none;
+        white-space: normal !important;
+        text-align: left;
+        max-width: 100%;
+        word-break: break-word;
+        line-height: 1.35;
+    }
+    .badge-alerta-producto:hover {
+        transform: translateY(-2px);
+        background-color: #b02a37 !important;
+        box-shadow: 0 4px 10px rgba(220, 53, 69, 0.4);
+    }
+    @keyframes filaResaltadaAnim {
+        0% {
+            background-color: rgba(229, 193, 88, 0.45);
+            outline: 2px solid var(--accent-color);
+        }
+        70% {
+            background-color: rgba(229, 193, 88, 0.2);
+            outline: 2px solid rgba(229, 193, 88, 0.5);
+        }
+        100% {
+            background-color: transparent;
+            outline: none;
+        }
+    }
+    .fila-resaltada {
+        animation: filaResaltadaAnim 2.2s ease-out forwards;
+    }
+
+    /* ── Adaptación Móvil de la Tabla de Productos (Cards nativas sin scroll horizontal) ── */
+    @media (max-width: 767.98px) {
+        .table-responsive {
+            max-height: none !important;
+            overflow-y: visible !important;
+            overflow-x: visible !important;
+            border: none !important;
+        }
+        #tabla-productos thead {
+            display: none;
+        }
+        #tabla-productos,
+        #tabla-productos-body {
+            display: block;
+            width: 100%;
+        }
+        #tabla-productos tr.fila-producto {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
+            grid-template-areas:
+                "info info estado"
+                "precio stock minimo"
+                "acciones acciones acciones";
+            gap: 0.85rem 0.5rem;
+            background-color: #1a1d24;
+            border: 1px solid #2e333d !important;
+            border-radius: 12px;
+            margin-bottom: 0.95rem;
+            padding: 1.05rem 1rem 0.95rem 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+        #tabla-productos tr.fila-producto > td {
+            padding: 0 !important;
+            border: none !important;
+            background: transparent !important;
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+        #tabla-productos tr.fila-producto td.col-producto {
+            grid-area: info;
+            padding-right: 0.5rem !important;
+        }
+        #tabla-productos tr.fila-producto td.col-estado {
+            grid-area: estado;
+            display: flex;
+            justify-content: flex-end;
+            align-items: flex-start;
+            padding-top: 0.25rem !important;
+            padding-right: 0.35rem !important;
+        }
+        #tabla-productos tr.fila-producto td.col-estado .badge {
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 0.35rem 0.65rem;
+            border-radius: 6px;
+            white-space: nowrap;
+            letter-spacing: 0.2px;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+        }
+        #tabla-productos tr.fila-producto td.col-precio {
+            grid-area: precio;
+            background-color: #14161b;
+            border: 1px solid #282c35;
+            border-radius: 8px;
+            padding: 0.5rem 0.4rem !important;
+            text-align: center;
+        }
+        #tabla-productos tr.fila-producto td.col-stock-actual {
+            grid-area: stock;
+            background-color: #14161b;
+            border: 1px solid #282c35;
+            border-radius: 8px;
+            padding: 0.5rem 0.4rem !important;
+            text-align: center;
+        }
+        #tabla-productos tr.fila-producto td.col-stock-minimo {
+            grid-area: minimo;
+            background-color: #14161b;
+            border: 1px solid #282c35;
+            border-radius: 8px;
+            padding: 0.5rem 0.4rem !important;
+            text-align: center;
+        }
+        #tabla-productos tr.fila-producto td.col-acciones {
+            grid-area: acciones;
+            border-top: 1px solid #282c35 !important;
+            padding-top: 0.65rem !important;
+            margin-top: 0.2rem;
+            white-space: normal !important;
+        }
+        #tabla-productos tr.fila-producto td.col-acciones .d-inline-flex {
+            display: flex !important;
+            width: 100%;
+            gap: 0.35rem;
+            flex-wrap: wrap;
+        }
+        #tabla-productos tr.fila-producto td.col-acciones a.btn,
+        #tabla-productos tr.fila-producto td.col-acciones button.btn {
+            flex: 1 1 auto;
+            text-align: center;
+            padding: 0.45rem 0.3rem;
+            font-size: 0.82rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card-tabla-inventario {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            overflow: visible !important;
+        }
+        .card-tabla-inventario > .card-header {
+            position: sticky;
+            top: 70px;
+            z-index: 1020;
+            background-color: rgba(26, 29, 36, 0.96) !important;
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid #3c424e !important;
+            border-radius: 12px !important;
+            margin-bottom: 0.85rem !important;
+            padding: 0.85rem !important;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5) !important;
+        }
+        #form-busqueda-productos {
+            flex-wrap: wrap !important;
+            width: 100%;
+            gap: 0.4rem !important;
+        }
+        #form-busqueda-productos > div {
+            max-width: 100% !important;
+            width: 100%;
+        }
+    }
+    .btn-resumen-accion {
+        width: 100%;
+        text-align: center;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    @media (min-width: 992px) {
+        .btn-resumen-accion {
+            width: auto;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <!-- Tarjetas de Resumen y Accesos Rápidos Centradas -->
 <div class="row g-3 mb-4 justify-content-center">
-    <div class="col-sm-6 col-md-5 col-lg-4" style="min-width: 280px; max-width: 380px;">
+    <div class="col-12 col-sm-6 col-md-5 col-lg-4" style="max-width: 380px;">
         <div class="card py-2 h-100">
             <div class="card-body d-flex align-items-center justify-content-between p-3">
                 <div>
@@ -20,14 +207,14 @@
         </div>
     </div>
 
-    <div class="col-sm-6 col-md-5 col-lg-4" style="min-width: 280px; max-width: 380px;">
+    <div class="col-12 col-sm-6 col-md-5 col-lg-4" style="max-width: 380px;">
         <div class="card py-2 h-100">
-            <div class="card-body d-flex flex-nowrap gap-2 justify-content-center align-items-center p-3">
-                <a href="{% url 'inventario:crear_producto' %}" class="btn btn-accent btn-sm py-2 px-3 text-nowrap">
+            <div class="card-body d-flex flex-column flex-lg-row gap-2 justify-content-center align-items-stretch align-items-lg-center p-3">
+                <a href="{% url 'inventario:crear_producto' %}" class="btn btn-accent btn-sm py-2 px-3 text-nowrap btn-resumen-accion">
                     <i class="bi bi-plus-lg me-1"></i> Nuevo Producto
                 </a>
                 <a href="{% url 'inventario:historial_movimientos' %}"
-                    class="btn btn-outline-light btn-sm py-2 px-3 text-nowrap" title="Ver Historial de Movimientos">
+                    class="btn btn-outline-light btn-sm py-2 px-3 text-nowrap btn-resumen-accion" title="Ver Historial de Movimientos">
                     <i class="bi bi-clock-history me-1"></i> Historial
                 </a>
             </div>
@@ -37,28 +224,29 @@
 
 <!-- RF 7.3: Banner Dinámico de Alerta de Stock Mínimo -->
 {% if total_bajo_stock > 0 %}
-<div class="alert alert-danger bg-danger bg-opacity-10 border-danger fade show d-flex align-items-center justify-content-between mb-4 p-3 rounded-3"
+<div class="alert alert-danger bg-danger bg-opacity-10 border-danger fade show mb-4 p-3 rounded-3 position-relative"
     role="alert">
-    <div class="d-flex align-items-center gap-3">
-        <i class="bi bi-exclamation-octagon-fill fs-2 text-danger"></i>
-        <div>
+    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3" data-bs-dismiss="alert"
+        aria-label="Cerrar alerta"></button>
+    <div class="d-flex align-items-start gap-3" style="padding-right: 1.75rem; min-width: 0;">
+        <i class="bi bi-exclamation-octagon-fill fs-2 text-danger flex-shrink-0 mt-1"></i>
+        <div style="min-width: 0; width: 100%;">
             <h6 class="alert-heading mb-1 fw-bold text-danger">¡Atención! Hay {{ total_bajo_stock }} producto(s) en nivel de stock mínimo o inferior</h6>
-            <div class="small text-light text-opacity-75">
+            <div class="small text-light text-opacity-75 d-flex flex-wrap gap-1 mt-2" style="max-height: 160px; overflow-y: auto; padding-right: 4px;">
                 {% for p in productos_bajo_stock %}
-                <span class="badge bg-danger bg-opacity-75 me-1">
-                    {{ p.nombre }}: {{ p.stock_actual }} {{ p.unidad_abreviatura }} (Mínimo: {{ p.stock_minimo }})
-                </span>
+                <a href="#producto-fila-{{ p.pk }}" class="badge bg-danger bg-opacity-75 text-decoration-none badge-alerta-producto py-1 px-2"
+                    data-producto-id="{{ p.pk }}" title="Hacer clic para ubicar '{{ p.nombre }}' en la tabla">
+                    <i class="bi bi-geo-alt-fill me-1"></i>{{ p.nombre }}: {{ p.stock_actual }} {{ p.unidad_abreviatura }} (Mín: {{ p.stock_minimo }})
+                </a>
                 {% endfor %}
             </div>
         </div>
     </div>
-    <button type="button" class="btn-close btn-close-white ms-3" data-bs-dismiss="alert"
-        aria-label="Cerrar alerta"></button>
 </div>
 {% endif %}
 
 <!-- Tabla Principal de Productos -->
-<div class="card">
+<div class="card card-tabla-inventario">
     <div class="card-header">
         <div class="d-flex flex-wrap align-items-center gap-3">
             <div class="d-flex align-items-center gap-2 text-nowrap">
@@ -73,7 +261,7 @@
                 {% if filtro_bajo_stock %}
                 <input type="hidden" name="bajo_stock" value="1">
                 {% endif %}
-                <div class="position-relative" style="width: 360px;">
+                <div class="position-relative flex-grow-1" style="max-width: 360px; min-width: 180px;">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text bg-dark text-secondary border-secondary"><i
                                 class="bi bi-search"></i></span>
@@ -113,37 +301,43 @@
 
     <div class="card-body p-0">
         <div class="table-responsive" style="max-height: 65vh; overflow-y: scroll;">
-            <table class="table table-dark table-hover mb-0 align-middle">
+            <table class="table table-dark table-hover mb-0 align-middle" id="tabla-productos">
                 <thead class="sticky-top bg-dark" style="z-index: 10;">
                     <tr>
                         <th class="ps-4">Producto</th>
-                        <th>Precio</th>
-                        <th>Stock Actual</th>
-                        <th>Stock Mínimo</th>
-                        <th>Estado de Stock</th>
-                        <th class="text-end pe-4">Acciones</th>
+                        <th class="text-nowrap">Precio</th>
+                        <th class="text-nowrap">Stock Actual</th>
+                        <th class="text-nowrap">Stock Mínimo</th>
+                        <th class="text-nowrap">Estado de Stock</th>
+                        <th class="text-end pe-4 text-nowrap" style="width: 1%; white-space: nowrap;">Acciones</th>
                     </tr>
                 </thead>
                 <tbody id="tabla-productos-body">
                     {% for producto in productos %}
-                    <tr class="fila-producto" data-nombre="{{ producto.nombre|lower }}"
+                    <tr class="fila-producto" id="producto-fila-{{ producto.pk }}" data-nombre="{{ producto.nombre|lower }}"
                         data-desc="{{ producto.descripcion|default:''|lower }}">
-                        <td class="ps-4">
+                        <td class="ps-4 col-producto">
                             <div class="fw-bold col-nombre">{{ producto.nombre }}</div>
                             <small class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-25">{{ producto.get_unidad_medida_display }}</small>
                             {% if producto.descripcion %}
                             <small class="text-secondary col-desc d-block">{{ producto.descripcion|truncatechars:50 }}</small>
                             {% endif %}
                         </td>
-                        <td class="fw-semibold">${{ producto.precio }}</td>
-                        <td>
-                            <span
-                                class="fs-6 fw-bold {% if producto.verificar_stock_minimo %}text-danger{% else %}text-light{% endif %}">
+                        <td class="fw-semibold text-nowrap col-precio">
+                            <span class="d-md-none text-secondary small d-block mb-1 text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;">Precio</span>
+                            ${{ producto.precio }}
+                        </td>
+                        <td class="text-nowrap col-stock-actual">
+                            <span class="d-md-none text-secondary small d-block mb-1 text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;">Stock Actual</span>
+                            <span class="fs-6 fw-bold {% if producto.verificar_stock_minimo %}text-danger{% else %}text-light{% endif %}">
                                 {{ producto.stock_actual }} {{ producto.unidad_abreviatura }}
                             </span>
                         </td>
-                        <td class="text-secondary">{{ producto.stock_minimo }} {{ producto.unidad_abreviatura }}</td>
-                        <td>
+                        <td class="text-secondary text-nowrap col-stock-minimo">
+                            <span class="d-md-none text-secondary small d-block mb-1 text-uppercase fw-semibold" style="font-size: 0.65rem; letter-spacing: 0.5px;">Stock Mínimo</span>
+                            {{ producto.stock_minimo }} {{ producto.unidad_abreviatura }}
+                        </td>
+                        <td class="text-nowrap col-estado">
                             {% if producto.verificar_stock_minimo %}
                             <span class="badge bg-danger d-inline-flex align-items-center gap-1">
                                 <i class="bi bi-exclamation-circle-fill"></i> Bajo Stock
@@ -154,33 +348,35 @@
                             </span>
                             {% endif %}
                         </td>
-                        <td class="text-end pe-4">
-                            <!-- Botón Agregar Stock -->
-                            <a href="{% url 'inventario:reponer_stock_producto' producto.pk %}"
-                                class="btn btn-sm btn-outline-success me-1" title="Agregar Stock">
-                                <i class="bi bi-plus-lg"></i> Agregar
-                            </a>
-                            <!-- RF 7.2: Descuento rápido por servicio -->
-                            <a href="{% url 'inventario:descontar_stock_producto' producto.pk %}"
-                                class="btn btn-sm btn-outline-warning me-1" title="Descontar Stock">
-                                <i class="bi bi-scissors"></i> Descontar
-                            </a>
-                            <!-- RF 7.1: Editar (Nombre, Descripción, Precio, Stock Mínimo) -->
-                            <a href="{% url 'inventario:editar_producto' producto.pk %}"
-                                class="btn btn-sm btn-outline-light me-1" title="Editar detalles del producto">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                            <!-- RF 7.1: Baja / Eliminar (ventana emergente, sin cambiar de página) -->
-                            <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-producto"
-                                title="Dar de baja producto" data-id="{{ producto.pk }}"
-                                data-nombre="{{ producto.nombre|escapejs }}"
-                                data-stock="{{ producto.stock_actual }}"
-                                data-unidad="{{ producto.unidad_abreviatura }}"
-                                data-precio="{{ producto.precio }}"
-                                data-desc="{{ producto.descripcion|default:''|escapejs }}"
-                                data-url="{% url 'inventario:eliminar_producto' producto.pk %}">
-                                <i class="bi bi-trash"></i>
-                            </button>
+                        <td class="text-end pe-4 text-nowrap col-acciones" style="white-space: nowrap;">
+                            <div class="d-inline-flex align-items-center justify-content-end gap-1 flex-nowrap">
+                                <!-- Botón Agregar Stock -->
+                                <a href="{% url 'inventario:reponer_stock_producto' producto.pk %}"
+                                    class="btn btn-sm btn-outline-success" title="Agregar Stock">
+                                    <i class="bi bi-plus-lg"></i> Agregar
+                                </a>
+                                <!-- RF 7.2: Descuento rápido por servicio -->
+                                <a href="{% url 'inventario:descontar_stock_producto' producto.pk %}"
+                                    class="btn btn-sm btn-outline-warning" title="Descontar Stock">
+                                    <i class="bi bi-scissors"></i> Descontar
+                                </a>
+                                <!-- RF 7.1: Editar (Nombre, Descripción, Precio, Stock Mínimo) -->
+                                <a href="{% url 'inventario:editar_producto' producto.pk %}"
+                                    class="btn btn-sm btn-outline-light" title="Editar detalles del producto">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <!-- RF 7.1: Baja / Eliminar (ventana emergente, sin cambiar de página) -->
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-producto"
+                                    title="Dar de baja producto" data-id="{{ producto.pk }}"
+                                    data-nombre="{{ producto.nombre|escapejs }}"
+                                    data-stock="{{ producto.stock_actual }}"
+                                    data-unidad="{{ producto.unidad_abreviatura }}"
+                                    data-precio="{{ producto.precio }}"
+                                    data-desc="{{ producto.descripcion|default:''|escapejs }}"
+                                    data-url="{% url 'inventario:eliminar_producto' producto.pk %}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     {% empty %}
@@ -431,6 +627,29 @@
                 }
             });
         }
+
+        // ── Scroll suave y resaltado al hacer clic en un badge del banner de bajo stock ──
+        document.querySelectorAll(".badge-alerta-producto").forEach((badge) => {
+            badge.addEventListener("click", function (e) {
+                e.preventDefault();
+                const prodId = this.getAttribute("data-producto-id");
+                const fila = document.getElementById("producto-fila-" + prodId);
+                if (!fila) return;
+
+                // Si la fila estaba oculta por el buscador en vivo, despejar búsqueda o mostrar la fila
+                if (fila.style.display === "none") {
+                    fila.style.display = "";
+                }
+
+                // Scroll suave centrado en la tabla
+                fila.scrollIntoView({ behavior: "smooth", block: "center" });
+
+                // Efecto visual de resaltado
+                fila.classList.remove("fila-resaltada");
+                void fila.offsetWidth; // Forzar reflow para reiniciar animación si ya se hizo clic
+                fila.classList.add("fila-resaltada");
+            });
+        });
     });
 </script>
 {% endblock %}

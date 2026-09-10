@@ -335,6 +335,7 @@
         // Botón de confirmación dentro del modal
         if (btnConfirmarGuardar) {
             btnConfirmarGuardar.addEventListener('click', () => {
+                window._enviandoFormulario = true;
                 form.submit();
             });
         }
@@ -354,6 +355,17 @@
         if (btnCancelar) {
             btnCancelar.addEventListener('click', manejarCancelacion);
         }
+
+        // Conectar con el sistema global de navegación (aletas de barra lateral)
+        window.hayCambiosSinGuardar = function() {
+            const debePreguntar = esEdicion ? huboCambios() : formularioConDatos();
+            if (debePreguntar) {
+                return esEdicion
+                    ? 'Has modificado datos del usuario. Si cambias de apartado ahora, los cambios no se guardarán.'
+                    : 'Tienes información ingresada en el formulario de nuevo usuario. Si sales ahora, se descartará.';
+            }
+            return false;
+        };
     });
 </script>
 {% endblock %}

@@ -4,18 +4,60 @@
 {% block page_subtitle %}Ingresa los datos del proveedor.{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-body">
+<div class="row justify-content-center py-2">
+    <div class="col-lg-6 col-md-8">
+        <div class="card shadow border-0" style="background-color: #1a1d24; border: 1px solid #2a2e35 !important;">
+            <div class="card-header py-3 border-bottom" style="border-color: #2a2e35 !important;">
+                <h5 class="mb-0 text-light"><i class="bi bi-truck me-2 text-accent"></i> {{ accion }} Proveedor</h5>
+            </div>
+            <div class="card-body p-4">
                 <form method="post" id="formProveedor" novalidate>
                     {% csrf_token %}
-                    {{ form.as_p }}
-                    <div class="mt-4 d-flex justify-content-end gap-2">
-                        <a href="{% url 'proveedores:lista_proveedores' %}" class="btn btn-outline-secondary"
+
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger py-2 small">
+                            {{ form.non_field_errors|striptags }}
+                        </div>
+                    {% endif %}
+
+                    <div class="mb-3">
+                        <label for="{{ form.nombre.id_for_label }}" class="form-label text-light fw-semibold">
+                            Nombre del Proveedor o Distribuidor <span class="text-danger">*</span>
+                        </label>
+                        {{ form.nombre }}
+                        {% if form.nombre.errors %}
+                        <div class="text-danger small mt-1">{{ form.nombre.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.contacto.id_for_label }}" class="form-label text-light fw-semibold">
+                            Información de Contacto <span class="text-danger">*</span>
+                        </label>
+                        {{ form.contacto }}
+                        <small class="text-secondary">Teléfono de pedidos, WhatsApp o correo electrónico.</small>
+                        {% if form.contacto.errors %}
+                        <div class="text-danger small mt-1">{{ form.contacto.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.condicionesPago.id_for_label }}" class="form-label text-light fw-semibold">
+                            Condiciones de Pago o Entrega
+                        </label>
+                        {{ form.condicionesPago }}
+                        <small class="text-secondary">Ej: Pago a 30 días, transferencia bancaria, contra reembolso.</small>
+                        {% if form.condicionesPago.errors %}
+                        <div class="text-danger small mt-1">{{ form.condicionesPago.errors|striptags }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mt-4 pt-3 border-top border-secondary border-opacity-25 d-flex flex-column flex-sm-row justify-content-end gap-2">
+                        <a href="{% url 'proveedores:lista_proveedores' %}" class="btn btn-outline-light px-4 text-center"
                             id="btnCancelarProveedor">Cancelar</a>
-                        <button type="submit" class="btn btn-accent" id="btnGuardarProveedor"><i class="bi bi-save"></i>
-                            Guardar</button>
+                        <button type="submit" class="btn btn-accent px-4 fw-semibold text-center" id="btnGuardarProveedor">
+                            <i class="bi bi-check-lg me-1"></i> Guardar Proveedor
+                        </button>
                     </div>
                 </form>
             </div>
@@ -88,7 +130,7 @@
                 <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
                     Continuar editando
                 </button>
-                <a href="{% url 'proveedores:lista_proveedores' %}" class="btn btn-danger px-4 fw-semibold">
+                <a href="{% url 'proveedores:lista_proveedores' %}" id="btnConfirmarCancelarProveedor" class="btn btn-danger px-4 fw-semibold">
                     <i class="bi bi-x-circle me-1"></i> Sí, cancelar
                 </a>
             </div>
@@ -144,6 +186,7 @@
         });
 
         btnConfirmarGuardar.addEventListener('click', () => {
+            window._enviandoFormulario = true;
             form.submit();
         });
 
@@ -151,13 +194,29 @@
         // En modo Editar el form ya viene con datos: solo avisa si hubo cambios.
         // En modo Registrar: avisa si se escribió algo.
         const esEdicion = "{{ accion|lower }}" === "editar";
+        let destinoPendienteProveedor = null;
+        const btnConfirmarCancelarProveedor = document.getElementById('btnConfirmarCancelarProveedor');
+        function debePreguntarSalida() {
+            return esEdicion ? huboCambios() : formularioConDatos();
+        }
+        function pedirConfirmacionSalidaProveedor(destino) {
+            destinoPendienteProveedor = destino || null;
+            if (btnConfirmarCancelarProveedor && destinoPendienteProveedor) {
+                btnConfirmarCancelarProveedor.setAttribute('href', destinoPendienteProveedor);
+            }
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCancelarProveedor')).show();
+        }
         btnCancelar.addEventListener('click', (e) => {
-            const debePreguntar = esEdicion ? huboCambios() : formularioConDatos();
-            if (debePreguntar) {
+            if (debePreguntarSalida()) {
                 e.preventDefault();
-                bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCancelarProveedor')).show();
+                pedirConfirmacionSalidaProveedor(btnCancelar.getAttribute('href'));
             }
         });
+
+        // Conectar con el sistema global de navegación (alertas de barra lateral)
+        window.hayCambiosSinGuardar = function() {
+            return debePreguntarSalida() ? "Tienes datos o modificaciones en el proveedor. Si decides salir o cambiar de apartado ahora, se perderán." : false;
+        };
     });
 </script>
 {% endblock %}
