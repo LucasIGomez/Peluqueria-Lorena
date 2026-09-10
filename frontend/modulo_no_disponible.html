@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Módulo en Desarrollo{% endblock %}
+{% block page_subtitle %}Peluquería Lorena — Planificación y próximos lanzamientos.{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-4">
+    <div class="col-lg-8">
+        <div class="card shadow-lg border border-warning-subtle text-center p-5" style="background: linear-gradient(145deg, #181b22, #211e15);">
+            <div class="mb-4">
+                <div class="rounded-circle bg-dark border border-warning d-inline-flex align-items-center justify-content-center p-4 shadow" style="width: 90px; height: 90px;">
+                    <i class="bi bi-cone-striped fs-1 text-warning"></i>
+                </div>
+            </div>
+
+            <span class="badge bg-warning text-dark fw-bold px-3 py-2 text-uppercase mb-3 mx-auto" style="letter-spacing: 1px;">
+                <i class="bi bi-clock-history me-1"></i> Próxima Entrega
+            </span>
+
+            <h2 class="fw-bold text-light mb-2">{{ nombre_modulo }}</h2>
+            <h5 class="text-accent mb-4">Esta funcionalidad no está disponible en este momento</h5>
+
+            <p class="text-secondary mx-auto mb-4" style="max-width: 580px; font-size: 1.05rem; line-height: 1.6;">
+                Estamos implementando este módulo como parte del siguiente ciclo quincenal (Sprint). 
+                Durante las entrevistas y sesiones de retroalimentación con <strong>Lorena</strong>, 
+                estamos relevando los flujos de trabajo exactos para que la experiencia sea simple, 
+                eficiente y a la medida de las necesidades reales del salón.
+            </p>
+
+            <div class="p-3 bg-dark rounded border border-secondary text-start mx-auto mb-4" style="max-width: 580px;">
+                <h6 class="text-light fw-bold mb-2">
+                    <i class="bi bi-check2-circle text-success me-1"></i> Módulos actualmente activos y disponibles:
+                </h6>
+                <div class="row g-2 small text-secondary">
+                    <div class="col-6"><i class="bi bi-people text-accent me-1"></i> <a href="{% url 'clientes:lista_clientes' %}" class="text-secondary text-decoration-none hover-accent">Agenda de Clientas</a></div>
+                    <div class="col-6"><i class="bi bi-card-checklist text-accent me-1"></i> <a href="{% url 'servicios:catalogo' %}" class="text-secondary text-decoration-none hover-accent">Catálogo de Servicios</a></div>
+                    <div class="col-6"><i class="bi bi-calendar-check text-accent me-1"></i> <a href="{% url 'servicios:control_diario' %}" class="text-secondary text-decoration-none hover-accent">Control Diario</a></div>
+                    <div class="col-6"><i class="bi bi-shield-check text-warning me-1"></i> <a href="{% url 'servicios:crear_consentimiento' %}" class="text-secondary text-decoration-none hover-accent">Consentimiento Informado</a></div>
+                    <div class="col-6"><i class="bi bi-box-seam text-info me-1"></i> <a href="/inventario/productos/" class="text-secondary text-decoration-none hover-accent">Stock e Insumos</a></div>
+                    <div class="col-6"><i class="bi bi-box-arrow-down text-warning me-1"></i> <a href="{% url 'servicios:cierre_diario' %}" class="text-secondary text-decoration-none hover-accent">Cierre de Insumos</a></div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-center gap-3">
+                <a href="/" class="btn btn-accent text-dark fw-bold px-4 py-2">
+                    <i class="bi bi-house-door-fill me-1"></i> Volver al Inicio
+                </a>
+                <a href="{% url 'clientes:lista_clientes' %}" class="btn btn-outline-light px-4 py-2">
+                    <i class="bi bi-people me-1"></i> Ir a Agenda de Clientas
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

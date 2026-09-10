@@ -51,9 +51,9 @@ class ProductoForm(forms.ModelForm):
                     "placeholder": "0.00",
                 }
             ),
-            "unidad_medida": forms.RadioSelect(
+            "unidad_medida": forms.Select(
                 attrs={
-                    "class": "form-check-input",
+                    "class": "form-select",
                 }
             ),
             "stock_actual": forms.NumberInput(
@@ -153,9 +153,9 @@ class ProductoEditForm(forms.ModelForm):
                     "placeholder": "0.00",
                 }
             ),
-            "unidad_medida": forms.RadioSelect(
+            "unidad_medida": forms.Select(
                 attrs={
-                    "class": "form-check-input",
+                    "class": "form-select",
                 }
             ),
             "stock_minimo": forms.NumberInput(

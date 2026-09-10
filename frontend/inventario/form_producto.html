@@ -77,19 +77,12 @@
 
                     <!-- ¿Unidades o Cantidad? (Unidad de medida) -->
                     <div class="mb-4 p-3 rounded-2 border border-secondary border-opacity-25 bg-dark bg-opacity-25">
-                        <label class="form-label fw-semibold mb-1">
+                        <label for="{{ form.unidad_medida.id_for_label }}" class="form-label fw-semibold mb-1">
                             <i class="bi bi-rulers me-1 text-accent"></i>
                             {{ form.unidad_medida.label }} <span class="text-danger">*</span>
                         </label>
                         <small class="text-secondary d-block mb-2">¿El stock de este producto se cuenta en <strong>unidades</strong> o en <strong>cantidad</strong> (litros, mililitros, kilos, gramos)?</small>
-                        <div class="d-flex flex-wrap gap-3" id="unidad-medida-opciones">
-                            {% for radio in form.unidad_medida %}
-                                <div class="form-check">
-                                    {{ radio.tag }}
-                                    <label class="form-check-label" for="{{ radio.id_for_label }}">{{ radio.choice_label }}</label>
-                                </div>
-                            {% endfor %}
-                        </div>
+                        {{ form.unidad_medida }}
                         {% if form.unidad_medida.errors %}
                             <div class="text-danger small mt-1">{{ form.unidad_medida.errors.0 }}</div>
                         {% endif %}
@@ -269,7 +262,7 @@ document.addEventListener("DOMContentLoaded", function () {
     // ── Texto dinámico según unidad elegida (unidades vs cantidad) ──
     const ayudaActual = document.getElementById("ayuda-stock-actual");
     const ayudaMinimo = document.getElementById("ayuda-stock-minimo");
-    const radiosUnidad = document.querySelectorAll('input[name="unidad_medida"]');
+    const selectUnidad = document.getElementById("id_unidad_medida");
     const etiquetas = {
         "UNIDAD": "unidades",
         "LITRO": "litros (L)",
@@ -278,8 +271,7 @@ document.addEventListener("DOMContentLoaded", function () {
         "G": "gramos (g)"
     };
     function actualizarAyudas() {
-        let sel = document.querySelector('input[name="unidad_medida"]:checked');
-        const cod = sel ? sel.value : "UNIDAD";
+        const cod = selectUnidad ? selectUnidad.value : "UNIDAD";
         const texto = etiquetas[cod] || "unidades";
         const inputActual = document.getElementById("id_stock_actual");
         const inputMinimo = document.getElementById("id_stock_minimo");
@@ -308,7 +300,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 : "Ej: 2 (alerta en " + texto + ")";
         }
     }
-    radiosUnidad.forEach(r => r.addEventListener("change", actualizarAyudas));
+    if (selectUnidad) selectUnidad.addEventListener("change", actualizarAyudas);
     actualizarAyudas();
 });
 </script>

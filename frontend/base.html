@@ -223,14 +223,19 @@
             <li class="nav-item text-secondary text-uppercase px-3 mt-3 mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">
                 <i class="bi bi-scissors me-1 text-accent"></i> Salón
             </li>
-            {% comment %} Fuera de alcance para la entrega del viernes — módulo Clientes (se desarrolla post-entrega).
             <li class="nav-item">
                 <a href="/clientes/"
                     class="nav-link {% if '/clientes' in request.path %}active{% endif %}">
                     <i class="bi bi-people"></i> Agenda Clientas
                 </a>
             </li>
-            {% endcomment %}
+            <li class="nav-item">
+                <a href="/turnos/"
+                    class="nav-link d-flex align-items-center {% if '/turnos' in request.path %}active{% endif %}">
+                    <span><i class="bi bi-calendar-event me-2"></i> Agenda y Turnos</span>
+                    <span class="badge bg-warning text-dark ms-auto" style="font-size: 0.65rem;">Próximo</span>
+                </a>
+            </li>
             <li class="nav-item">
                 <a href="/servicios/"
                     class="nav-link {% if request.path == '/servicios/' or '/servicios/nuevo' in request.path or '/servicios/editar' in request.path %}active{% endif %}">
@@ -274,6 +279,12 @@
                 <li class="nav-item">
                     <a href="/usuarios/gestion/" class="nav-link {% if '/usuarios/gestion' in request.path %}active{% endif %}">
                         <i class="bi bi-people-fill text-warning"></i> Gestión Usuarios
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="/pagos/" class="nav-link d-flex align-items-center {% if '/pagos' in request.path %}active{% endif %}">
+                        <span><i class="bi bi-cash-coin text-warning me-2"></i> Caja y Comisiones</span>
+                        <span class="badge bg-warning text-dark ms-auto" style="font-size: 0.65rem;">Próximo</span>
                     </a>
                 </li>
             {% endif %}

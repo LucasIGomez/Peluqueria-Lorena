@@ -95,7 +95,6 @@
                             </div>
                         </div>
                     </div>
-                    {% comment %} Fuera de alcance para la entrega del viernes — módulo Clientes (se desarrolla post-entrega).
                     <div class="col-md-6">
                         <div class="p-3 bg-dark rounded border border-secondary h-100 d-flex flex-column justify-content-between">
                             <div>
@@ -107,12 +106,11 @@
                                 <p class="text-secondary small mb-3">Historial técnico de procesos multisesión, consentimientos y alertas de cumpleaños.</p>
                             </div>
                             <div class="d-flex gap-2">
-                                <a href="/clientes/" class="btn btn-sm btn-info text-dark fw-bold">Ver Clientas</a>
-                                <a href="/clientes/nueva/" class="btn btn-sm btn-outline-secondary">+ Nueva</a>
+                                <a href="{% url 'clientes:lista_clientes' %}" class="btn btn-sm btn-info text-dark fw-bold">Ver Clientas</a>
+                                <a href="{% url 'clientes:crear_cliente' %}" class="btn btn-sm btn-outline-secondary">+ Nueva</a>
                             </div>
                         </div>
                     </div>
-                    {% endcomment %}
                     <div class="col-md-6">
                         <div class="p-3 bg-dark rounded border border-secondary h-100 d-flex flex-column justify-content-between">
                             <div>
@@ -155,6 +153,16 @@
                 <h5 class="mb-0"><i class="bi bi-lightning-charge me-1 text-accent"></i> Accesos Rápidos</h5>
             </div>
             <div class="card-body d-flex flex-column gap-3">
+                <a href="{% url 'clientes:lista_clientes' %}"
+                    class="btn btn-dark text-start p-3 d-flex align-items-center gap-3 border border-info-subtle"
+                    style="border-color: #3c4149 !important;">
+                    <i class="bi bi-people-fill fs-4 text-info"></i>
+                    <div>
+                        <h6 class="mb-0 text-info">Agenda de Clientas</h6>
+                        <small class="text-secondary">Fichas técnicas, WhatsApp y cumpleaños</small>
+                    </div>
+                </a>
+
                 <a href="/inventario/productos/"
                     class="btn btn-dark text-start p-3 d-flex align-items-center gap-3 border"
                     style="border-color: #3c4149 !important;">

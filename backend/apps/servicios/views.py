@@ -159,10 +159,19 @@ def registrar_servicio_realizado_view(request):
     else:
         # Valores iniciales
         servicio_id = request.GET.get("servicio")
+        cliente_id = request.GET.get("cliente")
         initial_data: dict[str, Any] = {
             "fecha": timezone.localdate(),
             "hora": timezone.localtime().strftime("%H:%M"),
         }
+        if cliente_id:
+            from apps.clientes.models import Cliente
+            cli = Cliente.objects.filter(pk=cliente_id).first()
+            if cli:
+                initial_data["cliente"] = cli
+                initial_data["cliente_nombre"] = cli.nombre
+                initial_data["cliente_telefono"] = cli.telefono
+
         if servicio_id:
             srv = ServicioService.obtener_servicio_por_id(int(servicio_id))
             if srv:
