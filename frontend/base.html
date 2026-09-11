@@ -426,6 +426,13 @@
             </li>
             {% endif %}
 
+            <li class="nav-item">
+                <a href="/pagos/"
+                    class="nav-link {% if '/pagos' in request.path %}active{% endif %}">
+                    <i class="bi bi-cash-coin text-warning"></i> Caja y Ventas
+                </a>
+            </li>
+
             {% if request.user.is_authenticated and request.user.es_administradora %}
                 <li class="nav-item text-secondary text-uppercase px-3 mt-3 mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">
                     <i class="bi bi-shield-lock me-1"></i> Administración
@@ -433,12 +440,6 @@
                 <li class="nav-item">
                     <a href="/usuarios/gestion/" class="nav-link {% if '/usuarios/gestion' in request.path %}active{% endif %}">
                         <i class="bi bi-people-fill text-warning"></i> Gestión Usuarios
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a href="/pagos/" class="nav-link d-flex align-items-center {% if '/pagos' in request.path %}active{% endif %}">
-                        <span><i class="bi bi-cash-coin text-warning me-2"></i> Caja y Comisiones</span>
-                        <span class="badge bg-warning text-dark ms-auto" style="font-size: 0.65rem;">Próximo</span>
                     </a>
                 </li>
             {% endif %}
@@ -692,6 +693,8 @@
                 // Advertir si recarga o cierra la ventana/pestaña
                 window.addEventListener('beforeunload', function(e) {
                     if (navegacionConfirmada || window._enviandoFormulario) return;
+                    // Las vistas con confirmación propia desactivan el diálogo nativo del navegador.
+                    if (window._sinAvisoNavegador) return;
                     const mensaje = window.verificarCambiosSinGuardar();
                     if (mensaje) {
                         e.preventDefault();

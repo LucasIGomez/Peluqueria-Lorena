@@ -34,6 +34,6 @@ urlpatterns = [
     path("usuarios/", include("apps.usuarios.urls")),
     path("api/v1/usuarios/", include(("apps.usuarios.urls", "usuarios"), namespace="usuarios-api")),
     path("servicios/", include("apps.servicios.urls")),
-    path("pagos/", login_required(lambda req: modulo_en_desarrollo(req, "Caja, Pagos y Liquidación de Comisiones")), name="modulo_pagos"),
+    path("pagos/", include("apps.pagos.urls")),
 ]
 

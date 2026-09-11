@@ -194,6 +194,11 @@
         // En modo Editar el form ya viene con datos: solo avisa si hubo cambios.
         // En modo Registrar: avisa si se escribió algo.
         const esEdicion = "{{ accion|lower }}" === "editar";
+        {% if accion|lower == "editar" %}
+        // Sin diálogo nativo del navegador en modo Editar (igual que en Caja y Ventas):
+        // la confirmación propia del modal es suficiente.
+        window._sinAvisoNavegador = true;
+        {% endif %}
         let destinoPendienteProveedor = null;
         const btnConfirmarCancelarProveedor = document.getElementById('btnConfirmarCancelarProveedor');
         function debePreguntarSalida() {

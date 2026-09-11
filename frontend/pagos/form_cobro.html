@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Registrar Cobro{% endblock %}
+{% block page_subtitle %}Cobro de servicio o venta de producto con medio de pago.{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header py-3">
+        <h5 class="mb-0 text-light"><i class="bi bi-cash-coin me-2 text-accent"></i> Nuevo Cobro</h5>
+    </div>
+    <div class="card-body p-4">
+        <form method="POST" novalidate id="formCobro">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label text-secondary small fw-bold text-uppercase">Tipo de cobro</label>
+                    {{ form.tipo }}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label text-secondary small fw-bold text-uppercase">Medio de pago</label>
+                    {{ form.medio_pago }}
+                    <div class="form-text text-success" id="textoDescuento">Efectivo, Mercado Pago y Ualá: -10%
+                        automático.
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label text-secondary small fw-bold text-uppercase">Fecha</label>
+                    {{ form.fecha }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label text-secondary small fw-bold text-uppercase">Clienta registrada</label>
+                    {{ form.cliente }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label text-secondary small fw-bold text-uppercase">Nombre de la clienta *</label>
+                    {{ form.cliente_nombre }}
+                    {% if form.cliente_nombre.errors %}<div class="text-danger small">{{ form.cliente_nombre.errors }}
+                    </div>{% endif %}
+                </div>
+                <div class="col-md-6" id="grupoServicio">
+                    <label class="form-label text-secondary small fw-bold text-uppercase">Servicio del catálogo</label>
+                    {{ form.servicio }}
+                </div>
+                <div class="col-md-6" id="grupoAtencion">
+                    <label class="form-label text-secondary small fw-bold text-uppercase">Atención del día</label>
+                    {{ form.servicio_realizado }}
+                </div>
+                <div class="col-md-6 d-none" id="grupoProducto">
+                    <label class="form-label text-secondary small fw-bold text-uppercase">Producto a vender</label>
+                    {{ form.producto }}
+                    {% if form.producto.errors %}<div class="text-danger small">{{ form.producto.errors }}</div>{% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-bold text-uppercase">Cantidad</label>
+                    {{ form.cantidad }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-bold text-uppercase">Precio unitario *</label>
+                    {{ form.precio_unitario }}
+                    {% if form.precio_unitario.errors %}<div class="text-danger small">{{ form.precio_unitario.errors }}
+                    </div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label text-secondary small fw-bold text-uppercase">Profesional que cobra</label>
+                    {{ form.profesional }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label text-secondary small fw-bold text-uppercase">Observaciones</label>
+                    {{ form.observaciones }}
+                </div>
+            </div>
+
+            <!-- Vista previa del total con descuento -->
+            <div class="alert alert-dark border border-secondary mt-4 d-flex flex-wrap gap-4 align-items-center"
+                id="vistaPrevia">
+                <div><span class="text-secondary small text-uppercase fw-bold">Subtotal:</span><br><strong
+                        id="prevSubtotal" class="fs-5">$0,00</strong></div>
+                <div><span class="text-secondary small text-uppercase fw-bold">Descuento:</span><br><strong
+                        id="prevDescuento" class="fs-5 text-success">-$0,00 (0%)</strong></div>
+                <div><span class="text-secondary small text-uppercase fw-bold">Total a cobrar:</span><br><strong
+                        id="prevTotal" class="fs-4 text-accent">$0,00</strong></div>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-accent text-dark fw-bold px-4">
+                    <i class="bi bi-check-circle me-1"></i> Confirmar Cobro
+                </button>
+                <a href="{% url 'pagos:caja_diaria' %}" class="btn btn-outline-light px-4 text-center"
+                    id="btnCancelarCobro">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- Modal Emergente de Confirmación de Cancelación (estilo Stock e Insumos) -->
+<div class="modal fade" id="modalCancelarCobro" tabindex="-1" aria-labelledby="modalCancelarCobroLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-exclamation-triangle-fill fs-2"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalCancelarCobroLabel">¿Estás seguro de Cancelar?</h5>
+                <p class="text-secondary small mb-0">
+                    Tienes un cobro en curso. Si decides cancelar ahora, se perderán todos los datos ingresados.
+                </p>
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    Continuar editando
+                </button>
+                <a href="{% url 'pagos:caja_diaria' %}" id="btnConfirmarCancelarCobro" class="btn btn-danger px-4 fw-semibold">
+                    <i class="bi bi-x-circle me-1"></i> Sí, cancelar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+    (function () {
+        const tipo = document.getElementById('id_tipo');
+        const servicio = document.getElementById('id_servicio');
+        const atencion = document.getElementById('id_servicio_realizado');
+        const producto = document.getElementById('id_producto');
+        const cantidad = document.getElementById('id_cantidad');
+        const precio = document.getElementById('id_precio_unitario');
+        const medio = document.getElementById('id_medio_pago');
+        const cliente = document.getElementById('id_cliente');
+        const clienteNombre = document.getElementById('id_cliente_nombre');
+        const formCobro = document.getElementById('formCobro');
+
+        const serviciosPrecios = {{ servicios_precios|safe }};
+        const productosPrecios = {{ productos_precios|safe }};
+        const atencionesData = {{ atenciones_data|safe }};
+        const PORCENTAJE_DESCUENTO = parseFloat('{{ porcentaje_descuento }}');
+        const MEDIOS_CON_DESCUENTO = ['EFECTIVO', 'MERCADO_PAGO', 'UALA'];
+
+    function alternarTipo() {
+        const esProducto = tipo.value === 'PRODUCTO';
+        document.getElementById('grupoProducto').classList.toggle('d-none', !esProducto);
+        document.getElementById('grupoServicio').classList.toggle('d-none', esProducto);
+        document.getElementById('grupoAtencion').classList.toggle('d-none', esProducto);
+    }
+
+    function actualizarVistaPrevia() {
+        const cant = parseInt(cantidad.value || '1', 10) || 0;
+        const pu = parseFloat(precio.value || '0') || 0;
+        const subtotal = cant * pu;
+        const conDescuento = MEDIOS_CON_DESCUENTO.includes(medio.value);
+        const pct = conDescuento ? PORCENTAJE_DESCUENTO : 0;
+        const montoDesc = subtotal * pct / 100;
+        const total = subtotal - montoDesc;
+        const fmt = (n) => '$' + n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('prevSubtotal').textContent = fmt(subtotal);
+        document.getElementById('prevDescuento').textContent = '-' + fmt(montoDesc).slice(0) + ' (' + pct + '%)';
+        document.getElementById('prevTotal').textContent = fmt(total);
+        const texto = document.getElementById('textoDescuento');
+        texto.textContent = conDescuento
+            ? 'Se aplicará -' + pct + '% automático por ' + medio.options[medio.selectedIndex].text + '.'
+            : 'Este medio de pago no aplica descuento automático.';
+    }
+
+    tipo.addEventListener('change', alternarTipo);
+    [cantidad, precio, medio].forEach(el => el.addEventListener('input', actualizarVistaPrevia));
+    medio.addEventListener('change', actualizarVistaPrevia);
+
+    servicio.addEventListener('change', function () {
+        if (serviciosPrecios[this.value]) precio.value = serviciosPrecios[this.value];
+        actualizarVistaPrevia();
+    });
+    producto.addEventListener('change', function () {
+        if (productosPrecios[this.value]) precio.value = productosPrecios[this.value];
+        actualizarVistaPrevia();
+    });
+    atencion.addEventListener('change', function () {
+        const info = atencionesData[this.value];
+        if (info) {
+            precio.value = info.precio;
+            if (info.servicio && servicio) servicio.value = info.servicio;
+            if (info.cliente && clienteNombre && !clienteNombre.value) clienteNombre.value = info.cliente;
+        }
+        actualizarVistaPrevia();
+    });
+    cliente.addEventListener('change', function () {
+        const nombre = this.options[this.selectedIndex].text;
+        if (this.value && clienteNombre && !clienteNombre.value.trim()) clienteNombre.value = nombre;
+    });
+
+    // Sin diálogo nativo del navegador: la confirmación propia del modal es suficiente.
+    window._sinAvisoNavegador = true;
+
+    // ── Cancelar con confirmación (estilo Stock e Insumos / Proveedores) ──
+    const btnCancelarCobro = document.getElementById('btnCancelarCobro');
+    const btnConfirmarCancelarCobro = document.getElementById('btnConfirmarCancelarCobro');
+    const SELECTOR_CAMPOS_COBRO = 'input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, select';
+    const valoresInicialesCobro = new Map();
+    if (formCobro) {
+        formCobro.querySelectorAll(SELECTOR_CAMPOS_COBRO).forEach(function (campo) {
+            valoresInicialesCobro.set(campo, campo.value);
+        });
+    }
+    function huboCambiosCobro() {
+        for (const [campo, inicial] of valoresInicialesCobro) {
+            if (campo.value !== inicial) return true;
+        }
+        return false;
+    }
+    function debePreguntarSalidaCobro() {
+        if (window._enviandoFormulario) return false;
+        return huboCambiosCobro();
+    }
+    function pedirConfirmacionSalidaCobro(destino) {
+        if (btnConfirmarCancelarCobro && destino) {
+            btnConfirmarCancelarCobro.setAttribute('href', destino);
+        }
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCancelarCobro')).show();
+    }
+    if (btnCancelarCobro) {
+        btnCancelarCobro.addEventListener('click', function (e) {
+            if (debePreguntarSalidaCobro()) {
+                e.preventDefault();
+                pedirConfirmacionSalidaCobro(btnCancelarCobro.getAttribute('href'));
+            }
+        });
+    }
+
+    // Conectar con el sistema global de navegación (alertas de barra lateral)
+    window.hayCambiosSinGuardar = function () {
+        return debePreguntarSalidaCobro() ? 'Tienes un cobro en curso. Si sales ahora se perderán los datos ingresados.' : false;
+    };
+
+    alternarTipo();
+    actualizarVistaPrevia();
+}) ();
+</script>
+{% endblock %}

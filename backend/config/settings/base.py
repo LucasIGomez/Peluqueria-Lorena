@@ -43,6 +43,7 @@ DJANGO_APPS: List[str] = [
 THIRD_PARTY_APPS: List[str] = [
     "rest_framework",
     "corsheaders",
+    "django_extensions",
 ]
 
 LOCAL_APPS: List[str] = [
@@ -51,6 +52,7 @@ LOCAL_APPS: List[str] = [
     "apps.proveedores",
     "apps.clientes",
     "apps.servicios",
+    "apps.pagos",
 ]
 
 INSTALLED_APPS: List[str] = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -164,6 +166,9 @@ LANGUAGE_CODE: str = "es-ar"
 TIME_ZONE: str = "America/Argentina/Buenos_Aires"
 USE_I18N: bool = True
 USE_TZ: bool = True
+LOCALE_PATHS: List[Path] = [
+    BASE_DIR / "locale",
+]
 
 # ──────────────────────────────────────────────
 # ARCHIVOS ESTÁTICOS

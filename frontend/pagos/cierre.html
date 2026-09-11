@@ -1,0 +1,164 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Cierre de Caja{% endblock %}
+{% block page_subtitle %}Consolidado diario y bloqueo de la jornada.{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <form method="GET" class="d-flex align-items-center gap-2">
+            <label class="text-secondary small fw-bold text-uppercase me-1">Fecha:</label>
+            <input type="date" name="fecha" value="{{ fecha_str }}" class="form-control form-control-sm" style="width: 170px;" onchange="this.form.submit()">
+        </form>
+        <a href="{% url 'pagos:caja_diaria' %}?fecha={{ fecha_str }}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Volver a Caja
+        </a>
+    </div>
+</div>
+
+{% if resumen.caja_cerrada %}
+<div class="alert alert-success">
+    <i class="bi bi-lock-fill me-2"></i>
+    <strong>Caja del {{ resumen.fecha|date:"d/m/Y" }} ya cerrada</strong> por {{ resumen.cierre.responsable.nombre }}
+    el {{ resumen.cierre.fecha_creacion|date:"d/m/Y H:i" }}. Total: <strong>${{ resumen.cierre.total_general|floatformat:2 }}</strong>.
+</div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 bg-dark p-3 text-center">
+            <span class="text-secondary small text-uppercase fw-bold">Cobros a cerrar</span>
+            <h2 class="text-light fw-bold mb-0">{{ resumen.cantidad_cobros }}</h2>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 bg-dark p-3 text-center">
+            <span class="text-secondary small text-uppercase fw-bold">Total general</span>
+            <h2 class="text-accent fw-bold mb-0">${{ resumen.total_general|floatformat:2 }}</h2>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 bg-dark p-3 text-center">
+            <span class="text-secondary small text-uppercase fw-bold">Descuentos otorgados</span>
+            <h2 class="text-success fw-bold mb-0">-${{ resumen.total_descuentos|floatformat:2 }}</h2>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header py-3"><h5 class="mb-0 text-light"><i class="bi bi-wallet2 me-2 text-accent"></i> Consolidado por Medio de Pago</h5></div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0 align-middle">
+                <thead class="table-secondary text-secondary"><tr><th class="ps-4">Medio</th><th>Cobros</th><th>Total</th></tr></thead>
+                <tbody>
+                    {% for item in resumen.detalle_por_medio %}
+                    <tr>
+                        <td class="ps-4 text-light fw-semibold">{{ item.etiqueta }}</td>
+                        <td>{{ item.cantidad }}</td>
+                        <td class="fw-bold text-accent">${{ item.total|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if not resumen.caja_cerrada and request.user.es_administradora %}
+<div class="card shadow-sm border-danger mb-4">
+    <div class="card-header py-3 bg-danger bg-opacity-10">
+        <h5 class="mb-0 text-danger"><i class="bi bi-lock me-2"></i> Confirmar Cierre del {{ fecha|date:"d/m/Y" }}</h5>
+    </div>
+    <div class="card-body p-4">
+        <p class="text-secondary">Al cerrar la caja se bloquean nuevos cobros y anulaciones de esta fecha. Verificá los totales antes de confirmar.</p>
+        <form method="POST" id="formCierre">
+            {% csrf_token %}
+            {{ form.fecha.as_hidden }}
+            <label class="form-label text-secondary small fw-bold text-uppercase">Observaciones del cierre</label>
+            {{ form.observaciones }}
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-danger fw-bold px-4">
+                    <i class="bi bi-lock-fill me-1"></i> Cerrar Caja Definitivo
+                </button>
+                <a href="{% url 'pagos:caja_diaria' %}?fecha={{ fecha_str }}" class="btn btn-outline-light px-4 text-center" id="btnCancelarCierre">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% elif not request.user.es_administradora %}
+<div class="alert alert-warning"><i class="bi bi-shield-lock me-2"></i> Solo la Administradora puede realizar el cierre de caja.</div>
+{% endif %}
+
+<!-- Modal Emergente de Confirmación de Cancelación (estilo Stock e Insumos) -->
+<div class="modal fade" id="modalCancelarCierre" tabindex="-1" aria-labelledby="modalCancelarCierreLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-exclamation-triangle-fill fs-2"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalCancelarCierreLabel">¿Estás seguro de Cancelar?</h5>
+                <p class="text-secondary small mb-0">
+                    Tienes observaciones del cierre sin guardar. Si decides cancelar ahora, se perderán.
+                </p>
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    Continuar editando
+                </button>
+                <a href="{% url 'pagos:caja_diaria' %}?fecha={{ fecha_str }}" id="btnConfirmarCancelarCierre" class="btn btn-danger px-4 fw-semibold">
+                    <i class="bi bi-x-circle me-1"></i> Sí, cancelar
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+    // Sin diálogo nativo del navegador: la confirmación propia del modal es suficiente.
+    window._sinAvisoNavegador = true;
+
+    // Cancelar con confirmación (estilo Stock e Insumos / Proveedores).
+    const formCierre = document.getElementById('formCierre');
+    const btnCancelarCierre = document.getElementById('btnCancelarCierre');
+    const btnConfirmarCancelarCierre = document.getElementById('btnConfirmarCancelarCierre');
+    const SELECTOR_CAMPOS_CIERRE = 'input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, select';
+    const valoresInicialesCierre = new Map();
+    if (formCierre) {
+        formCierre.querySelectorAll(SELECTOR_CAMPOS_CIERRE).forEach(function (campo) {
+            valoresInicialesCierre.set(campo, campo.value);
+        });
+    }
+    function debePreguntarSalidaCierre() {
+        if (window._enviandoFormulario) return false;
+        for (const [campo, inicial] of valoresInicialesCierre) {
+            if (campo.value !== inicial) return true;
+        }
+        return false;
+    }
+    if (btnCancelarCierre) {
+        btnCancelarCierre.addEventListener('click', function (e) {
+            if (debePreguntarSalidaCierre()) {
+                e.preventDefault();
+                const destino = btnCancelarCierre.getAttribute('href');
+                if (btnConfirmarCancelarCierre && destino) {
+                    btnConfirmarCancelarCierre.setAttribute('href', destino);
+                }
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCancelarCierre')).show();
+            }
+        });
+    }
+
+    // Conectar con el sistema global de navegación (alertas de barra lateral)
+    window.hayCambiosSinGuardar = function () {
+        return debePreguntarSalidaCierre() ? 'Tienes observaciones del cierre sin guardar. Si sales ahora se perderán.' : false;
+    };
+</script>
+{% endblock %}

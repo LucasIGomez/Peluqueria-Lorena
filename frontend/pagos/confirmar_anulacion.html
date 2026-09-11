@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Anular Cobro{% endblock %}
+{% block page_subtitle %}Confirmación de anulación con reposición de stock si corresponde.{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-danger mx-auto" style="max-width: 560px;">
+    <div class="card-header py-3 bg-danger bg-opacity-10">
+        <h5 class="mb-0 text-danger"><i class="bi bi-exclamation-triangle me-2"></i> Anular Cobro #{{ cobro.pk }}</h5>
+    </div>
+    <div class="card-body p-4">
+        <p class="text-light">Clienta: <strong>{{ cobro.cliente_nombre }}</strong></p>
+        <p class="text-secondary">Total: <strong class="text-accent">${{ cobro.total|floatformat:2 }}</strong> ({{ cobro.get_medio_pago_display }})</p>
+        {% if cobro.tipo == 'PRODUCTO' %}
+        <div class="alert alert-info small">Al anular se repondrán {{ cobro.cantidad }} u. de {{ cobro.producto.nombre }} al stock.</div>
+        {% endif %}
+        <form method="POST" class="d-flex gap-2">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger fw-bold px-4">Sí, anular</button>
+            <a href="{% url 'pagos:caja_diaria' %}?fecha={{ cobro.fecha|date:'Y-m-d' }}" class="btn btn-outline-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}
