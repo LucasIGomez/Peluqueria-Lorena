@@ -11,7 +11,6 @@ Implementa:
    - UsuarioViewSet: CRUD completo de usuarios (solo Administradora).
    - LoginView: Autenticación JWT con datos del usuario.
    - PerfilView: Lectura/edición del perfil del usuario autenticado.
-   - PasswordResetRequestView & PasswordResetConfirmView.
 """
 from __future__ import annotations
 
@@ -34,8 +33,6 @@ from .forms import LoginForm, UsuarioAdminForm, UsuarioEditForm
 from .models import Usuario
 from .permissions import EsAdministradora
 from .serializers import (
-    PasswordResetConfirmSerializer,
-    PasswordResetRequestSerializer,
     PerfilUpdateSerializer,
     UsuarioCreateSerializer,
     UsuarioSerializer,
@@ -326,36 +323,3 @@ class PerfilView(APIView):
         return Response(UsuarioSerializer(request.user).data)
 
 
-class PasswordResetRequestView(APIView):
-    """Solicitud de recuperación de contraseña."""
-
-    permission_classes = [AllowAny]
-
-    def post(self, request: Request) -> Response:
-        serializer = PasswordResetRequestSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        UsuarioService.solicitar_reset_password(serializer.validated_data["email"])
-        return Response(
-            {"detail": "Si el correo existe en nuestro sistema, recibirás un enlace de recuperación."},
-            status=status.HTTP_200_OK,
-        )
-
-
-class PasswordResetConfirmView(APIView):
-    """Confirmación de reset de contraseña con token."""
-
-    permission_classes = [AllowAny]
-
-    def post(self, request: Request) -> Response:
-        serializer = PasswordResetConfirmSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        success = UsuarioService.confirmar_reset_password(
-            serializer.validated_data["token"],
-            serializer.validated_data["new_password"],
-        )
-
-        if not success:
-            return Response({"detail": "Token inválido o expirado."}, status=status.HTTP_400_BAD_REQUEST)
-
-        return Response({"detail": "Contraseña actualizada correctamente."}, status=status.HTTP_200_OK)

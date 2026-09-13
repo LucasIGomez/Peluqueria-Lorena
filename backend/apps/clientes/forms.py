@@ -12,13 +12,32 @@ from django import forms
 from .models import Cliente, EvolucionSesion, TratamientoProgreso
 
 
+def _validar_formato_telefono(telefono: str) -> str:
+    """Valida que el teléfono tenga un formato real (solo dígitos, 8 a 15 y no trivial)."""
+    telefono = (telefono or "").strip()
+    solo_digitos = telefono.replace(" ", "").replace("-", "").replace("(", "").replace(")", "").replace("+", "")
+    if not solo_digitos.isdigit() or not (8 <= len(solo_digitos) <= 15):
+        raise forms.ValidationError(
+            "Ingresá un número de teléfono válido, de 8 a 15 dígitos (podés usar espacios o guiones)."
+        )
+    if len(set(solo_digitos)) == 1:
+        # Rechaza números triviales como 1111111111.
+        raise forms.ValidationError("El número de teléfono ingresado no es válido.")
+    return telefono
+
+
 class ClienteForm(forms.ModelForm):
     """Formulario para registrar o editar datos de una clienta."""
+
+    def clean_telefono(self) -> str:
+        return _validar_formato_telefono(self.cleaned_data.get("telefono", ""))
 
     fecha_nacimiento = forms.DateField(
         label="Fecha de Nacimiento",
         required=False,
+        input_formats=["%Y-%m-%d"],
         widget=forms.DateInput(
+            format="%Y-%m-%d",
             attrs={
                 "class": "form-control",
                 "type": "date",
@@ -93,7 +112,8 @@ class EvolucionSesionForm(forms.ModelForm):
     proxima_cita_recomendada = forms.DateField(
         label="Próxima Cita Sugerida",
         required=False,
-        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "form-control", "type": "date"}),
+        input_formats=["%Y-%m-%d"],
     )
 
     class Meta:

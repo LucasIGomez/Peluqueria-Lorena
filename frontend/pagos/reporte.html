@@ -28,20 +28,20 @@
 {% if reporte %}
 <div class="row g-3 mb-4">
     <div class="col-md-4">
-        <div class="card border-0 bg-dark p-3 text-center">
+        <div class="card border-0 bg-dark p-3 text-center h-100">
             <span class="text-secondary small text-uppercase fw-bold">Total período</span>
             <h2 class="text-accent fw-bold mb-0">${{ reporte.total_general|floatformat:2 }}</h2>
             <small class="text-secondary">{{ reporte.fecha_desde|date:"d/m/Y" }} al {{ reporte.fecha_hasta|date:"d/m/Y" }}</small>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card border-0 bg-dark p-3 text-center">
+        <div class="card border-0 bg-dark p-3 text-center h-100">
             <span class="text-secondary small text-uppercase fw-bold">Cobros</span>
             <h2 class="text-light fw-bold mb-0">{{ reporte.cantidad_total }}</h2>
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card border-0 bg-dark p-3 text-center">
+        <div class="card border-0 bg-dark p-3 text-center h-100">
             <span class="text-secondary small text-uppercase fw-bold">Descuentos</span>
             <h2 class="text-success fw-bold mb-0">-${{ reporte.total_descuentos|floatformat:2 }}</h2>
         </div>

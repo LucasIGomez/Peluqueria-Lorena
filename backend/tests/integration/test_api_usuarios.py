@@ -5,12 +5,10 @@ Valida el comportamiento de los endpoints REST completos:
 - Login JWT (access + refresh + datos de usuario)
 - Refresh token
 - CRUD de usuarios con restricción por rol
-- Password reset (solicitud + confirmación)
 - Acceso al perfil propio
 - Denegación de acceso sin autenticación
 """
 import pytest
-from django.core import mail
 from rest_framework import status
 from rest_framework.test import APIClient
 
@@ -29,8 +27,6 @@ AUTH_LOGIN_URL = "/api/v1/usuarios/auth/login/"
 AUTH_REFRESH_URL = "/api/v1/usuarios/auth/refresh/"
 USUARIOS_URL = "/api/v1/usuarios/"
 PERFIL_URL = "/api/v1/usuarios/perfil/"
-PASSWORD_RESET_URL = "/api/v1/usuarios/auth/password-reset/"
-PASSWORD_RESET_CONFIRM_URL = "/api/v1/usuarios/auth/password-reset-confirm/"
 
 
 # ──────────────────────────────────────────────────────────────
@@ -333,99 +329,3 @@ class TestAccesoSinAutenticacion:
         """GET /perfil/ sin token retorna 401."""
         response = api_client.get(PERFIL_URL)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
-
-
-# ──────────────────────────────────────────────────────────────
-# Tests de Password Reset
-# ──────────────────────────────────────────────────────────────
-
-
-@pytest.mark.django_db
-class TestPasswordReset:
-    """Verifica el flujo de recuperación de contraseña."""
-
-    def test_solicitar_reset_con_email_valido(
-        self, api_client: APIClient
-    ) -> None:
-        """POST con email existente retorna 200 y envía correo."""
-        UsuarioFactory(email="reset@test.com")
-        response = api_client.post(
-            PASSWORD_RESET_URL,
-            {"email": "reset@test.com"},
-            format="json",
-        )
-        assert response.status_code == status.HTTP_200_OK
-        # Se envió un correo (backend locmem en testing)
-        assert len(mail.outbox) == 1
-
-    def test_solicitar_reset_con_email_inexistente_no_revela_info(
-        self, api_client: APIClient
-    ) -> None:
-        """POST con email inexistente retorna 200 (no revela existencia)."""
-        response = api_client.post(
-            PASSWORD_RESET_URL,
-            {"email": "noexiste@test.com"},
-            format="json",
-        )
-        # Siempre retorna 200 para no revelar si el email existe
-        assert response.status_code == status.HTTP_200_OK
-        assert len(mail.outbox) == 0
-
-    def test_confirmar_reset_con_token_valido(
-        self, api_client: APIClient
-    ) -> None:
-        """POST con token válido cambia la contraseña."""
-        UsuarioFactory(email="confirm-reset@test.com")
-
-        # Solicitar reset
-        api_client.post(
-            PASSWORD_RESET_URL,
-            {"email": "confirm-reset@test.com"},
-            format="json",
-        )
-
-        # Extraer token del correo
-        assert len(mail.outbox) == 1
-        email_body = mail.outbox[0].body
-        # El token está en el cuerpo del correo
-        import re
-
-        token_match = re.search(r"token=([a-zA-Z0-9_-]+)", email_body)
-        assert token_match is not None
-        token = token_match.group(1)
-
-        # Confirmar reset
-        response = api_client.post(
-            PASSWORD_RESET_CONFIRM_URL,
-            {
-                "token": token,
-                "new_password": "NuevaPasswordSegura123!",
-            },
-            format="json",
-        )
-        assert response.status_code == status.HTTP_200_OK
-
-        # Verificar que la nueva contraseña funciona
-        login_response = api_client.post(
-            AUTH_LOGIN_URL,
-            {
-                "email": "confirm-reset@test.com",
-                "password": "NuevaPasswordSegura123!",
-            },
-            format="json",
-        )
-        assert login_response.status_code == status.HTTP_200_OK
-
-    def test_confirmar_reset_con_token_invalido(
-        self, api_client: APIClient
-    ) -> None:
-        """POST con token inválido retorna 400."""
-        response = api_client.post(
-            PASSWORD_RESET_CONFIRM_URL,
-            {
-                "token": "token-invalido-xyz",
-                "new_password": "NuevaPass123!",
-            },
-            format="json",
-        )
-        assert response.status_code == status.HTTP_400_BAD_REQUEST

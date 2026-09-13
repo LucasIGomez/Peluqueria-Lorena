@@ -179,20 +179,3 @@ class CambiarPasswordSerializer(serializers.Serializer):
         min_length=8,
         style={"input_type": "password"},
     )
-
-
-class PasswordResetRequestSerializer(serializers.Serializer):
-    """Serializer para solicitar reset de contraseña."""
-
-    email = serializers.EmailField(required=True)
-
-
-class PasswordResetConfirmSerializer(serializers.Serializer):
-    """Serializer para confirmar reset de contraseña con token."""
-
-    token = serializers.CharField(required=True)
-    new_password = serializers.CharField(
-        required=True,
-        min_length=8,
-        style={"input_type": "password"},
-    )

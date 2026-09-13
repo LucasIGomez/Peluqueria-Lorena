@@ -14,6 +14,7 @@ from .views import (
     crear_cliente_view,
     detalle_cliente_view,
     editar_cliente_view,
+    eliminar_cliente_view,
     iniciar_tratamiento_view,
     lista_clientes_view,
     registrar_evolucion_view,
@@ -30,6 +31,7 @@ urlpatterns = [
     path("nueva/", crear_cliente_view, name="crear_cliente"),
     path("<int:pk>/", detalle_cliente_view, name="detalle_cliente"),
     path("editar/<int:pk>/", editar_cliente_view, name="editar_cliente"),
+    path("eliminar/<int:pk>/", eliminar_cliente_view, name="eliminar_cliente"),
     path("<int:cliente_pk>/tratamiento/nuevo/", iniciar_tratamiento_view, name="iniciar_tratamiento"),
     path("tratamiento/<int:tratamiento_pk>/evolucion/", registrar_evolucion_view, name="registrar_evolucion"),
 

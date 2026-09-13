@@ -10,8 +10,6 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 from .views import (
     LoginView,
-    PasswordResetConfirmView,
-    PasswordResetRequestView,
     PerfilView,
     UsuarioViewSet,
     crear_usuario_view,
@@ -41,8 +39,6 @@ urlpatterns = [
     path("auth/login/", LoginView.as_view(), name="auth-login"),
     path("auth/refresh/", TokenRefreshView.as_view(), name="auth-refresh"),
     path("perfil/", PerfilView.as_view(), name="perfil"),
-    path("auth/password-reset/", PasswordResetRequestView.as_view(), name="password-reset"),
-    path("auth/password-reset-confirm/", PasswordResetConfirmView.as_view(), name="password-reset-confirm"),
 
     # ── CRUD de usuarios API ──
     path("", include(router.urls)),

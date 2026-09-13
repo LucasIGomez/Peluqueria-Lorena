@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Dar de Baja Clienta{% endblock %}
+{% block page_subtitle %}Confirma la baja de la clienta en el sistema.{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6 col-md-8">
+        <div class="card border-danger">
+            <div class="card-header bg-danger bg-opacity-25 border-danger text-white d-flex align-items-center gap-2">
+                <i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
+                <h5 class="mb-0">Confirmar Baja de la Clienta</h5>
+            </div>
+            <div class="card-body p-4">
+                <p class="fs-6 mb-3">
+                    ¿Estás segura de que deseas dar de baja a
+                    <strong class="text-accent">{{ cliente.nombre }}</strong>?
+                </p>
+                <div class="bg-dark p-3 rounded-2 mb-4 border border-secondary border-opacity-25 small text-secondary">
+                    <div><strong>Teléfono:</strong> {{ cliente.telefono }}</div>
+                    {% if cliente.email %}
+                        <div><strong>Email:</strong> {{ cliente.email }}</div>
+                    {% endif %}
+                    <div><strong>Tratamientos registrados:</strong> {{ cliente.tratamientos_progreso.count }}</div>
+                </div>
+                <div class="alert alert-info small mb-4">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Esta es una baja lógica: la clienta dejará de aparecer en el listado y los buscadores,
+                    pero su ficha, historial de tratamientos y atenciones se conservan sin pérdida de datos.
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'clientes:detalle_cliente' cliente.pk %}" class="btn btn-outline-light px-4">
+                            Cancelar
+                        </a>
+                        <button type="submit" class="btn btn-danger px-4">
+                            <i class="bi bi-person-dash me-1"></i> Confirmar Baja
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

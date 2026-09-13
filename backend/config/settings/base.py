@@ -52,6 +52,7 @@ LOCAL_APPS: List[str] = [
     "apps.proveedores",
     "apps.clientes",
     "apps.servicios",
+    "apps.turnos",
     "apps.pagos",
 ]
 
@@ -184,11 +185,6 @@ DEFAULT_AUTO_FIELD: str = "django.db.models.BigAutoField"
 # EMAIL (se sobreescribe por entorno)
 # ──────────────────────────────────────────────
 EMAIL_BACKEND: str = "django.core.mail.backends.console.EmailBackend"
-
-# ──────────────────────────────────────────────
-# TOKEN DE RESET DE PASSWORD — expiración en horas
-# ──────────────────────────────────────────────
-PASSWORD_RESET_TOKEN_EXPIRY_HOURS: int = 24
 
 # ──────────────────────────────────────────────
 # AUTH URLS

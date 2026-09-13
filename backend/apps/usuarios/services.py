@@ -6,14 +6,11 @@ Todos los métodos son estáticos para facilitar el testing.
 """
 from __future__ import annotations
 
-import secrets
 from typing import Any, Optional
 
-from django.conf import settings
-from django.core.mail import send_mail
 from django.db.models import QuerySet
 
-from .models import PasswordResetToken, Usuario
+from .models import Usuario
 
 
 class UsuarioService:
@@ -183,88 +180,3 @@ class UsuarioService:
         usuario.save(update_fields=["password"])
         return True
 
-    # ── Reset de Contraseña ──
-
-    @staticmethod
-    def solicitar_reset_password(email: str) -> None:
-        """
-        Genera un token de reset y envía un correo al usuario.
-
-        Si el email no existe, no hace nada (para no revelar
-        la existencia de cuentas).
-
-        Args:
-            email: Correo electrónico del usuario.
-        """
-        try:
-            usuario = Usuario.objects.get(email=email, is_active=True)
-        except Usuario.DoesNotExist:
-            return
-
-        # Generar token seguro
-        token_value = secrets.token_urlsafe(32)
-
-        # Invalidar tokens anteriores
-        PasswordResetToken.objects.filter(
-            usuario=usuario, used=False
-        ).update(used=True)
-
-        # Crear nuevo token
-        PasswordResetToken.objects.create(
-            usuario=usuario,
-            token=token_value,
-        )
-
-        # Enviar correo con el token
-        reset_url = f"token={token_value}"
-        send_mail(
-            subject="Recuperación de contraseña — Peluquería Lorena",
-            message=(
-                f"Hola {usuario.nombre},\n\n"
-                f"Solicitaste restablecer tu contraseña.\n"
-                f"Usá el siguiente enlace para establecer una nueva contraseña:\n\n"
-                f"https://peluquerialorena.com/reset-password?{reset_url}\n\n"
-                f"Si no solicitaste este cambio, ignorá este correo.\n\n"
-                f"— Peluquería Lorena"
-            ),
-            from_email=getattr(
-                settings, "DEFAULT_FROM_EMAIL", "noreply@peluquerialorena.com"
-            ),
-            recipient_list=[usuario.email],
-            fail_silently=False,
-        )
-
-    @staticmethod
-    def confirmar_reset_password(
-        token: str,
-        new_password: str,
-    ) -> bool:
-        """
-        Confirma el reset de contraseña con un token válido.
-
-        Args:
-            token: Token de recuperación recibido por correo.
-            new_password: Nueva contraseña.
-
-        Returns:
-            True si el reset fue exitoso, False si el token es
-            inválido o expirado.
-        """
-        try:
-            reset_token = PasswordResetToken.objects.get(token=token)
-        except PasswordResetToken.DoesNotExist:
-            return False
-
-        if not reset_token.is_valid():
-            return False
-
-        # Cambiar contraseña
-        usuario = reset_token.usuario
-        usuario.set_password(new_password)
-        usuario.save(update_fields=["password"])
-
-        # Marcar token como usado
-        reset_token.used = True
-        reset_token.save(update_fields=["used"])
-
-        return True

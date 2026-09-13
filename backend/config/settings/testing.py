@@ -40,8 +40,3 @@ EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 # para poder crear usuarios con passwords simples
 # ──────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = []
-
-# ──────────────────────────────────────────────
-# Token de reset más corto en tests
-# ──────────────────────────────────────────────
-PASSWORD_RESET_TOKEN_EXPIRY_HOURS = 1

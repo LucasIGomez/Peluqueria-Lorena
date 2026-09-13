@@ -139,6 +139,9 @@
                                     <a href="{% url 'clientes:editar_cliente' c.pk %}" class="btn btn-outline-secondary" title="Editar datos">
                                         <i class="bi bi-pencil"></i>
                                     </a>
+                                    <a href="{% url 'clientes:eliminar_cliente' c.pk %}" class="btn btn-outline-danger" title="Dar de baja">
+                                        <i class="bi bi-person-dash"></i>
+                                    </a>
                                 </div>
                             </td>
                         </tr>

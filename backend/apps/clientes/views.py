@@ -11,11 +11,12 @@ from __future__ import annotations
 from typing import Any
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.shortcuts import get_object_or_404, redirect, render
 from rest_framework import serializers, viewsets
 from rest_framework.permissions import IsAuthenticated
 
-from .forms import ClienteForm, EvolucionSesionForm, TratamientoProgresoForm
+from .forms import ClienteForm, EvolucionSesionForm, TratamientoProgresoForm, _validar_formato_telefono
 from .models import Cliente, EvolucionSesion, TratamientoProgreso
 from .services import ClienteService
 
@@ -108,6 +109,20 @@ def editar_cliente_view(request, pk: int):
 
 
 @login_required
+def eliminar_cliente_view(request, pk: int):
+    """RF 4.2: Baja lógica de la clienta, preservando su historial de tratamientos."""
+    cliente = get_object_or_404(Cliente, pk=pk)
+
+    if request.method == "POST":
+        nombre = cliente.nombre
+        ClienteService.eliminar_cliente(cliente)
+        messages.success(request, f"Clienta '{nombre}' dada de baja exitosamente.")
+        return redirect("clientes:lista_clientes")
+
+    return render(request, "clientes/eliminar_cliente.html", {"cliente": cliente})
+
+
+@login_required
 def iniciar_tratamiento_view(request, cliente_pk: int):
     """Abre una ficha de seguimiento multisesión para la clienta."""
     cliente = get_object_or_404(Cliente, pk=cliente_pk)
@@ -175,6 +190,7 @@ listaClientesView = lista_clientes_view
 detalleClienteView = detalle_cliente_view
 crearClienteView = crear_cliente_view
 editarClienteView = editar_cliente_view
+eliminarClienteView = eliminar_cliente_view
 iniciarTratamientoView = iniciar_tratamiento_view
 registrarEvolucionView = registrar_evolucion_view
 
@@ -193,6 +209,12 @@ class ClienteSerializer(serializers.ModelSerializer):
         model = Cliente
         fields = "__all__"
 
+    def validate_telefono(self, value: str) -> str:
+        try:
+            return _validar_formato_telefono(value)
+        except DjangoValidationError as exc:
+            raise serializers.ValidationError(exc.message)
+
 
 class ClienteViewSet(viewsets.ModelViewSet):
     """API REST CRUD de clientas."""
@@ -200,3 +222,7 @@ class ClienteViewSet(viewsets.ModelViewSet):
     queryset = Cliente.objects.filter(activo=True).order_by("nombre")
     serializer_class = ClienteSerializer
     permission_classes = [IsAuthenticated]
+
+    def perform_destroy(self, instance: Cliente) -> None:
+        """RF 4.2: un DELETE por API hace baja lógica, no borra el historial."""
+        ClienteService.eliminar_cliente(instance)

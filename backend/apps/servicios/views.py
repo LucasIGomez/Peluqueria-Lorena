@@ -146,11 +146,26 @@ def registrar_servicio_realizado_view(request):
     """
     Registra un servicio para un cliente por día y horario,
     permitiendo personalizar el precio cobrado y la duración en minutos.
+
+    Si viene de un turno agendado (?turno=<id>), precarga sus datos y,
+    al guardar, vincula la atención de vuelta al turno (RF4.6), marcándolo
+    como completado.
     """
+    from apps.turnos.models import Turno
+    from apps.turnos.services import TurnoError, TurnoService
+
+    turno_id = request.POST.get("turno_id") or request.GET.get("turno")
+    turno = Turno.objects.filter(pk=turno_id).first() if turno_id else None
+
     if request.method == "POST":
         form = ServicioRealizadoForm(request.POST)
         if form.is_valid():
             servicio_realizado = form.save()
+            if turno is not None:
+                try:
+                    TurnoService.completar_turno(turno, servicio_realizado)
+                except TurnoError as exc:
+                    messages.warning(request, f"Servicio guardado, pero no se pudo vincular al turno: {exc}")
             messages.success(
                 request,
                 f"Servicio '{servicio_realizado.servicio.nombre}' asentado para {servicio_realizado.cliente_nombre}.",
@@ -164,7 +179,21 @@ def registrar_servicio_realizado_view(request):
             "fecha": timezone.localdate(),
             "hora": timezone.localtime().strftime("%H:%M"),
         }
-        if cliente_id:
+        if turno is not None:
+            initial_data.update(
+                {
+                    "cliente": turno.cliente,
+                    "cliente_nombre": turno.cliente_nombre,
+                    "cliente_telefono": turno.cliente_telefono,
+                    "servicio": turno.servicio,
+                    "profesional": turno.profesional,
+                    "fecha": turno.fecha,
+                    "hora": turno.hora,
+                    "precio_acordado": turno.servicio.precio_base,
+                    "duracion_minutos": turno.duracion_minutos,
+                }
+            )
+        if cliente_id and turno is None:
             from apps.clientes.models import Cliente
             cli = Cliente.objects.filter(pk=cliente_id).first()
             if cli:
@@ -172,7 +201,7 @@ def registrar_servicio_realizado_view(request):
                 initial_data["cliente_nombre"] = cli.nombre
                 initial_data["cliente_telefono"] = cli.telefono
 
-        if servicio_id:
+        if servicio_id and turno is None:
             srv = ServicioService.obtener_servicio_por_id(int(servicio_id))
             if srv:
                 initial_data["servicio"] = srv
@@ -196,6 +225,7 @@ def registrar_servicio_realizado_view(request):
             "form": form,
             "servicios_disponibles": servicios_disponibles,
             "servicios_data": servicios_data,
+            "turno": turno,
         },
     )
 

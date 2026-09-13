@@ -28,7 +28,7 @@ urlpatterns = [
         name="index",
     ),
     path("clientes/", include("apps.clientes.urls")),
-    path("turnos/", login_required(lambda req: modulo_en_desarrollo(req, "Agenda y Turnos Online")), name="modulo_turnos"),
+    path("turnos/", include("apps.turnos.urls")),
     path("inventario/", include("apps.inventario.urls")),
     path("proveedores/", include("apps.proveedores.urls")),
     path("usuarios/", include("apps.usuarios.urls")),

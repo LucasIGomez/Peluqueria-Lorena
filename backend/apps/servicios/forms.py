@@ -50,7 +50,8 @@ class ServicioRealizadoForm(forms.ModelForm):
     fecha = forms.DateField(
         label="Fecha de Atención",
         initial=timezone.localdate,
-        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "form-control", "type": "date"}),
+        input_formats=["%Y-%m-%d"],
     )
     hora = forms.TimeField(
         label="Horario de Inicio",
@@ -93,6 +94,21 @@ class ServicioRealizadoForm(forms.ModelForm):
         self.fields["cliente"].queryset = Cliente.objects.filter(activo=True).order_by("nombre")
         self.fields["profesional"].queryset = Usuario.objects.filter(is_active=True).order_by("nombre")
         self.fields["servicio"].queryset = Servicio.objects.filter(activo=True).order_by("categoria", "nombre")
+        self.fields["fecha"].widget.attrs["max"] = timezone.localdate().isoformat()
+
+    def clean_fecha(self):
+        fecha = self.cleaned_data.get("fecha")
+        if fecha and fecha > timezone.localdate():
+            raise forms.ValidationError("No se puede registrar una atención en una fecha futura.")
+        if fecha:
+            from apps.pagos.services import CajaService
+
+            if CajaService.caja_esta_cerrada(fecha):
+                raise forms.ValidationError(
+                    f"La caja del {fecha.strftime('%d/%m/%Y')} ya está cerrada. "
+                    "Para registrar una atención de ese día hay que reabrir la caja primero."
+                )
+        return fecha
 
 
 class ConsentimientoInformadoForm(forms.ModelForm):

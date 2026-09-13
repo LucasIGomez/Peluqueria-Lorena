@@ -2,7 +2,7 @@
 Peluquería Lorena — Modelos del módulo de Caja y Ventas.
 
 Registra los cobros de servicios y las ventas de productos, con medio de pago,
-descuento automático del 10% para efectivo y billeteras virtuales,
+descuento configurable para efectivo y billeteras virtuales (10% sugerido),
 cierre de caja diario y reporte de ingresos por medio de pago.
 """
 from __future__ import annotations
@@ -18,8 +18,9 @@ class Cobro(models.Model):
     """
     Registro de un cobro en caja: servicio prestado o producto vendido.
 
-    El total se calcula como subtotal menos descuento automático
-    (10% si el medio de pago es efectivo, Mercado Pago o Ualá).
+    El total se calcula como subtotal menos descuento
+    (porcentaje a elección entre 0 y 100% si el medio de pago
+    es efectivo, Mercado Pago o Ualá; las tarjetas no admiten descuento).
     """
 
     class Tipo(models.TextChoices):

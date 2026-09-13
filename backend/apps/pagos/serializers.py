@@ -16,6 +16,12 @@ class CobroSerializer(serializers.ModelSerializer):
     )
     tipo_display = serializers.CharField(source="get_tipo_display", read_only=True)
 
+    def validate_porcentaje_descuento(self, valor):
+        """El descuento manual debe estar entre 0 y 100%."""
+        if valor is not None and (valor < 0 or valor > 100):
+            raise serializers.ValidationError("El descuento debe estar entre 0 y 100%.")
+        return valor
+
     class Meta:
         model = Cobro
         fields = [
@@ -37,7 +43,6 @@ class CobroSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             "subtotal",
-            "porcentaje_descuento",
             "monto_descuento",
             "total",
             "anulado",

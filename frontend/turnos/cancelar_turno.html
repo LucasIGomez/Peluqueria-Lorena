@@ -1,0 +1,40 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Cancelar Turno{% endblock %}
+{% block page_subtitle %}Confirma la cancelación del turno y libera el horario.{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6 col-md-8">
+        <div class="card border-danger">
+            <div class="card-header bg-danger bg-opacity-25 border-danger text-white d-flex align-items-center gap-2">
+                <i class="bi bi-exclamation-triangle-fill fs-5 text-danger"></i>
+                <h5 class="mb-0">Confirmar Cancelación del Turno</h5>
+            </div>
+            <div class="card-body p-4">
+                <p class="fs-6 mb-3">
+                    ¿Estás segura de que deseas cancelar el turno de
+                    <strong class="text-accent">{{ turno.cliente_nombre }}</strong>?
+                </p>
+                <div class="bg-dark p-3 rounded-2 mb-4 border border-secondary border-opacity-25 small text-secondary">
+                    <div><strong>Servicio:</strong> {{ turno.servicio.nombre }}</div>
+                    <div><strong>Fecha:</strong> {{ turno.fecha|date:"d/m/Y" }} a las {{ turno.hora|time:"H:i" }}</div>
+                    {% if turno.profesional %}<div><strong>Peluquera:</strong> {{ turno.profesional.nombre }}</div>{% endif %}
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'turnos:agenda' %}?vista=dia&fecha={{ turno.fecha|date:'Y-m-d' }}" class="btn btn-outline-light px-4">
+                            Volver
+                        </a>
+                        <button type="submit" class="btn btn-danger px-4">
+                            <i class="bi bi-x-circle me-1"></i> Confirmar Cancelación
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

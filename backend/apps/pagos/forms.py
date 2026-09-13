@@ -3,6 +3,8 @@ Peluquería Lorena — Formularios del módulo de Caja y Ventas.
 """
 from __future__ import annotations
 
+from decimal import Decimal
+
 from django import forms
 from django.utils import timezone
 
@@ -11,6 +13,7 @@ from apps.inventario.models import Producto
 from apps.servicios.models import Servicio, ServicioRealizado
 from apps.usuarios.models import Usuario
 from .models import Cobro
+from .services import CajaService
 
 
 class CobroForm(forms.Form):
@@ -82,10 +85,28 @@ class CobroForm(forms.Form):
         initial=Cobro.MedioPago.EFECTIVO,
         widget=forms.Select(attrs={"class": "form-select", "id": "id_medio_pago"}),
     )
+    porcentaje_descuento = forms.DecimalField(
+        label="Descuento (%)",
+        min_value=0,
+        max_value=100,
+        max_digits=5,
+        decimal_places=2,
+        required=False,
+        widget=forms.NumberInput(
+            attrs={
+                "class": "form-control",
+                "step": "0.5",
+                "min": 0,
+                "max": 100,
+                "placeholder": "Ej: 10",
+                "id": "id_descuento",
+            }
+        ),
+    )
     fecha = forms.DateField(
         label="Fecha de cobro",
         initial=timezone.localdate,
-        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "form-control", "type": "date"}),
     )
     observaciones = forms.CharField(
         label="Observaciones",
@@ -104,6 +125,18 @@ class CobroForm(forms.Form):
                     "precio_unitario",
                     "Indicá el precio o seleccioná el servicio cobrado.",
                 )
+        medio = datos.get("medio_pago")
+        descuento = datos.get("porcentaje_descuento")
+        if medio in CajaService.MEDIOS_CON_DESCUENTO:
+            if descuento is None:
+                datos["porcentaje_descuento"] = Decimal("0.00")
+        else:
+            if descuento is not None and descuento != Decimal("0.00"):
+                self.add_error(
+                    "porcentaje_descuento",
+                    "Este medio de pago no admite descuento.",
+                )
+            datos["porcentaje_descuento"] = Decimal("0.00")
         return datos
 
 
@@ -113,7 +146,7 @@ class CierreCajaForm(forms.Form):
     fecha = forms.DateField(
         label="Fecha del cierre",
         initial=timezone.localdate,
-        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "form-control", "type": "date"}),
     )
     observaciones = forms.CharField(
         label="Observaciones del cierre",
@@ -130,12 +163,12 @@ class ReporteMediosForm(forms.Form):
     fecha_desde = forms.DateField(
         label="Desde",
         initial=timezone.localdate,
-        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "form-control", "type": "date"}),
     )
     fecha_hasta = forms.DateField(
         label="Hasta",
         initial=timezone.localdate,
-        widget=forms.DateInput(attrs={"class": "form-control", "type": "date"}),
+        widget=forms.DateInput(format="%Y-%m-%d", attrs={"class": "form-control", "type": "date"}),
     )
 
     def clean(self):

@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Reabrir Caja{% endblock %}
+{% block page_subtitle %}Confirmación de reapertura de la caja del día.{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-warning mx-auto" style="max-width: 560px;">
+    <div class="card-header py-3 bg-warning bg-opacity-10">
+        <h5 class="mb-0 text-warning"><i class="bi bi-unlock me-2"></i> Reabrir Caja del {{ fecha|date:"d/m/Y" }}</h5>
+    </div>
+    <div class="card-body p-4">
+        {% if cierre %}
+            <p class="text-light">Cerrada el {{ cierre.fecha_creacion|date:"d/m/Y H:i" }} por {{ cierre.responsable.nombre }}.</p>
+            <p class="text-secondary">Total: <strong class="text-accent">${{ cierre.total_general|floatformat:2 }}</strong> en {{ cierre.cantidad_cobros }} cobros.</p>
+            <div class="alert alert-warning small">
+                Al reabrir, se elimina este cierre y los cobros de ese día vuelven a quedar disponibles para
+                registrar, anular o modificar. Vas a tener que volver a cerrar la caja cuando termines.
+            </div>
+            <form method="POST" class="d-flex gap-2">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-warning fw-bold px-4">Sí, reabrir</button>
+                <a href="{% url 'pagos:caja_diaria' %}?fecha={{ fecha_str }}" class="btn btn-outline-secondary">Cancelar</a>
+            </form>
+        {% else %}
+            <p class="text-secondary">No hay ningún cierre de caja registrado para esta fecha.</p>
+            <a href="{% url 'pagos:caja_diaria' %}?fecha={{ fecha_str }}" class="btn btn-outline-secondary">Volver</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

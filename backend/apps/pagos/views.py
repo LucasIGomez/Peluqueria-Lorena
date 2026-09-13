@@ -19,7 +19,7 @@ from rest_framework.permissions import IsAuthenticated
 from .forms import CierreCajaForm, CobroForm, ReporteMediosForm
 from .models import CierreCaja, Cobro
 from .serializers import CierreCajaSerializer, CobroSerializer
-from .services import CajaCerradaError, CajaService, CobroInvalidoError
+from .services import CajaCerradaError, CajaError, CajaService, CobroInvalidoError
 
 
 def es_admin_check(user) -> bool:
@@ -77,12 +77,14 @@ def registrar_cobro_view(request):
                     cliente=datos.get("cliente"),
                     fecha=datos.get("fecha") or timezone.localdate(),
                     observaciones=datos.get("observaciones", ""),
+                    porcentaje_descuento=datos.get("porcentaje_descuento"),
                 )
                 if cobro.monto_descuento > 0:
                     messages.success(
                         request,
                         f"Cobro #{cobro.pk} registrado: ${cobro.total:,.2f} "
-                        f"({cobro.get_medio_pago_display()}, descuento 10%: -${cobro.monto_descuento:,.2f}).",
+                        f"({cobro.get_medio_pago_display()}, descuento "
+                        f"{cobro.porcentaje_descuento}%: -${cobro.monto_descuento:,.2f}).",
                     )
                 else:
                     messages.success(
@@ -167,7 +169,6 @@ def registrar_cobro_view(request):
             "servicios_precios": servicios_precios,
             "productos_precios": productos_precios,
             "atenciones_data": atenciones_data,
-            "porcentaje_descuento": CajaService.PORCENTAJE_DESCUENTO_AUTOMATICO,
         },
     )
 
@@ -229,8 +230,39 @@ def cierre_caja_view(request):
 
 
 @login_required
+@user_passes_test(es_admin_check, login_url="/pagos/")
+def reabrir_caja_view(request):
+    """Reabre la caja de una fecha ya cerrada, para corregir cobros (solo Administradora)."""
+    fecha_str = request.GET.get("fecha") or request.POST.get("fecha")
+    if fecha_str:
+        try:
+            dia = date.fromisoformat(fecha_str)
+        except ValueError:
+            dia = timezone.localdate()
+    else:
+        dia = timezone.localdate()
+
+    cierre = CierreCaja.objects.filter(fecha=dia).first()
+
+    if request.method == "POST":
+        try:
+            CajaService.reabrir_caja(fecha=dia, usuario=request.user)
+            messages.success(request, f"Caja del {dia.strftime('%d/%m/%Y')} reabierta correctamente.")
+        except CajaError as exc:
+            messages.error(request, str(exc))
+        return redirect(f"/pagos/?fecha={dia.isoformat()}")
+
+    return render(
+        request,
+        "pagos/reabrir.html",
+        {"fecha": dia, "fecha_str": dia.isoformat(), "cierre": cierre},
+    )
+
+
+@login_required
+@user_passes_test(es_admin_check, login_url="/pagos/")
 def reporte_medios_view(request):
-    """Reporte de ingresos discriminado por medio de pago."""
+    """Reporte de ingresos discriminado por medio de pago (solo Administradora)."""
     if request.GET.get("fecha_desde"):
         form = ReporteMediosForm(request.GET)
     else:
@@ -257,6 +289,7 @@ cajaDiariaView = caja_diaria_view
 registrarCobroView = registrar_cobro_view
 anularCobroView = anular_cobro_view
 cierreCajaView = cierre_caja_view
+reabrirCajaView = reabrir_caja_view
 reporteMediosView = reporte_medios_view
 
 

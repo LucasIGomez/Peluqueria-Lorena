@@ -20,6 +20,7 @@ Faker>=28.0,<29.0
 
 # Utilities
 python-decouple>=3.8,<4.0
+django-extensions>=3.2,<5.0
 
 # Document Generation
 docxtpl>=0.17.0,<0.18.0

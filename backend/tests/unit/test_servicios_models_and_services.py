@@ -1,12 +1,15 @@
 """
 Pruebas unitarias para el catálogo de Servicios, Consentimiento Informado y Cierre de Insumos.
 """
+from datetime import timedelta
 from decimal import Decimal
 import pytest
 from django.utils import timezone
 
 from apps.clientes.services import ClienteService
 from apps.inventario.models import Producto
+from apps.pagos.models import CierreCaja
+from apps.servicios.forms import ServicioRealizadoForm
 from apps.servicios.models import ConsentimientoInformado, ConsumoInsumoCierre, Servicio, ServicioRealizado
 from apps.servicios.services import ServicioService
 from tests.factories.usuario_factory import AdministradoraFactory, EmpleadaFactory
@@ -203,3 +206,69 @@ class TestCierreDiarioYDescuentoInsumos:
             )
         producto.refresh_from_db()
         assert producto.stock_actual == 8
+
+
+@pytest.mark.django_db
+class TestServicioRealizadoFormValidacionFecha:
+    """La fecha de una atención no puede ser futura ni caer en un día con la caja ya cerrada."""
+
+    def _datos_base(self, profesional, servicio, fecha) -> dict:
+        return {
+            "servicio": servicio.id,
+            "profesional": profesional.id,
+            "cliente_nombre": "Clienta de Prueba",
+            "cliente_telefono": "1123456789",
+            "fecha": fecha.isoformat(),
+            "hora": "10:00",
+            "precio_acordado": "25000.00",
+            "duracion_minutos": "45",
+            "estado": ServicioRealizado.Estado.COMPLETADO,
+            "notas": "",
+        }
+
+    def test_fecha_futura_rechazada(self) -> None:
+        profesional = EmpleadaFactory()
+        servicio = ServicioService.crear_servicio(
+            nombre="Corte Test Futuro",
+            categoria=Servicio.Categoria.CORTES,
+            precio_base=Decimal("25000.00"),
+        )
+        manana = timezone.localdate() + timedelta(days=1)
+
+        form = ServicioRealizadoForm(data=self._datos_base(profesional, servicio, manana))
+
+        assert not form.is_valid()
+        assert "fecha" in form.errors
+
+    def test_fecha_pasada_con_caja_cerrada_rechazada(self) -> None:
+        admin = AdministradoraFactory()
+        servicio = ServicioService.crear_servicio(
+            nombre="Corte Test Caja Cerrada",
+            categoria=Servicio.Categoria.CORTES,
+            precio_base=Decimal("25000.00"),
+        )
+        ayer = timezone.localdate() - timedelta(days=1)
+        CierreCaja.objects.create(
+            fecha=ayer,
+            responsable=admin,
+            cantidad_cobros=0,
+            total_general=Decimal("0.00"),
+        )
+
+        form = ServicioRealizadoForm(data=self._datos_base(admin, servicio, ayer))
+
+        assert not form.is_valid()
+        assert "fecha" in form.errors
+
+    def test_fecha_pasada_sin_cierre_aceptada(self) -> None:
+        profesional = EmpleadaFactory()
+        servicio = ServicioService.crear_servicio(
+            nombre="Corte Test Fecha Valida",
+            categoria=Servicio.Categoria.CORTES,
+            precio_base=Decimal("25000.00"),
+        )
+        ayer = timezone.localdate() - timedelta(days=1)
+
+        form = ServicioRealizadoForm(data=self._datos_base(profesional, servicio, ayer))
+
+        assert form.is_valid(), form.errors

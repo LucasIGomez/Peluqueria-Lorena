@@ -22,6 +22,9 @@
                     <a href="{% url 'clientes:editar_cliente' cliente.pk %}" class="btn btn-outline-secondary btn-sm">
                         <i class="bi bi-pencil me-1"></i> Editar Datos
                     </a>
+                    <a href="{% url 'clientes:eliminar_cliente' cliente.pk %}" class="btn btn-outline-danger btn-sm">
+                        <i class="bi bi-person-dash me-1"></i> Dar de Baja
+                    </a>
                 </div>
 
                 <hr class="border-secondary my-3">

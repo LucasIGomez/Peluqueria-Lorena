@@ -182,6 +182,31 @@ class TestCierreCajaYReporte:
         assert reporte["total_general"] == Decimal("27000.00")
         assert reporte["cantidad_total"] == 2
 
+    def test_resumen_incluye_descuento_variable_por_medio(self) -> None:
+        empleada = EmpleadaFactory()
+        dia = timezone.localdate()
+        CajaService.registrar_cobro(
+            cliente_nombre="Karen",
+            profesional=empleada,
+            medio_pago=Cobro.MedioPago.EFECTIVO,
+            precio_unitario=Decimal("20000.00"),
+            porcentaje_descuento=Decimal("20.00"),
+            fecha=dia,
+        )
+        CajaService.registrar_cobro(
+            cliente_nombre="Luna",
+            profesional=empleada,
+            medio_pago=Cobro.MedioPago.TARJETA_CREDITO,
+            precio_unitario=Decimal("10000.00"),
+            fecha=dia,
+        )
+
+        resumen = CajaService.resumen_caja_dia(fecha=dia)
+        por_codigo = {item["codigo"]: item for item in resumen["detalle_por_medio"]}
+        assert por_codigo[Cobro.MedioPago.EFECTIVO]["descuento"] == Decimal("4000.00")
+        assert por_codigo[Cobro.MedioPago.TARJETA_CREDITO]["descuento"] == Decimal("0.00")
+        assert resumen["total_descuentos"] == Decimal("4000.00")
+
     def test_anular_venta_repone_stock(self) -> None:
         empleada = EmpleadaFactory()
         producto = Producto.objects.create(
@@ -207,3 +232,64 @@ class TestCierreCajaYReporte:
         assert producto.stock_actual == 5
         cobro.refresh_from_db()
         assert cobro.anulado is True
+
+
+@pytest.mark.django_db
+class TestDescuentoManualPorMedioPago:
+    """Descuento a elección (0 a 100%) en efectivo y billeteras; tarjetas sin descuento."""
+
+    def test_descuento_personalizado_en_efectivo(self) -> None:
+        empleada = EmpleadaFactory()
+        cobro = CajaService.registrar_cobro(
+            cliente_nombre="Karen",
+            profesional=empleada,
+            medio_pago=Cobro.MedioPago.EFECTIVO,
+            precio_unitario=Decimal("20000.00"),
+            porcentaje_descuento=Decimal("25.00"),
+        )
+        assert cobro.porcentaje_descuento == Decimal("25.00")
+        assert cobro.monto_descuento == Decimal("5000.00")
+        assert cobro.total == Decimal("15000.00")
+
+    def test_descuento_personalizado_en_billeteras(self) -> None:
+        empleada = EmpleadaFactory()
+        for medio in (Cobro.MedioPago.MERCADO_PAGO, Cobro.MedioPago.UALA):
+            cobro = CajaService.registrar_cobro(
+                cliente_nombre=f"Lara {medio}",
+                profesional=empleada,
+                medio_pago=medio,
+                precio_unitario=Decimal("10000.00"),
+                porcentaje_descuento=Decimal("5.00"),
+            )
+            assert cobro.porcentaje_descuento == Decimal("5.00")
+            assert cobro.monto_descuento == Decimal("500.00")
+            assert cobro.total == Decimal("9500.00")
+
+    def test_tarjetas_fuerzan_descuento_cero(self) -> None:
+        empleada = EmpleadaFactory()
+        for medio in (Cobro.MedioPago.TARJETA_DEBITO, Cobro.MedioPago.TARJETA_CREDITO):
+            cobro = CajaService.registrar_cobro(
+                cliente_nombre=f"Mabel {medio}",
+                profesional=empleada,
+                medio_pago=medio,
+                precio_unitario=Decimal("10000.00"),
+                porcentaje_descuento=Decimal("50.00"),
+            )
+            assert cobro.porcentaje_descuento == Decimal("0.00")
+            assert cobro.monto_descuento == Decimal("0.00")
+            assert cobro.total == Decimal("10000.00")
+
+    @pytest.mark.parametrize(
+        "porcentaje",
+        [Decimal("100.01"), Decimal("150.00"), Decimal("-1.00")],
+    )
+    def test_descuento_fuera_de_rango_rechazado(self, porcentaje: Decimal) -> None:
+        empleada = EmpleadaFactory()
+        with pytest.raises(CobroInvalidoError):
+            CajaService.registrar_cobro(
+                cliente_nombre="Nora",
+                profesional=empleada,
+                medio_pago=Cobro.MedioPago.EFECTIVO,
+                precio_unitario=Decimal("10000.00"),
+                porcentaje_descuento=porcentaje,
+            )

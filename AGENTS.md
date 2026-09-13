@@ -50,3 +50,10 @@ Ejecutar siempre dentro del directorio `backend/`:
 2. **Seguridad y Secretos:** Jamás hardcodear credenciales, API keys o PINs; usar `python-decouple` (`config(...)`).
 3. **ORM & Migraciones:** No modificar archivos de migración ya aplicados; generar siempre una nueva migración con `makemigrations`.
 4. **Formularios y Vistas:** Mantener validaciones de negocio en forms/serializers o modelos, no acumular lógica en plantillas HTML.
+
+## Modo de Salida (ADHD / Acción Inmediata)
+- Comenzar siempre con la acción concreta en la primera línea (comando, archivo o snippet). Sin preámbulos.
+- Listas numeradas para tareas de múltiples pasos: máximo un cambio por paso.
+- Prohibido el texto introductorio ("Claro", "Aquí está...") y cierres de cortesía ("Espero que te sirva").
+- Indicar siempre el archivo exacto a editar antes del bloque de código.
+- Terminar siempre con exactamente una siguiente acción concreta de menos de 2 minutos.

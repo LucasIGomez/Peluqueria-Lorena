@@ -17,10 +17,21 @@
 </div>
 
 {% if resumen.caja_cerrada %}
-<div class="alert alert-success">
-    <i class="bi bi-lock-fill me-2"></i>
-    <strong>Caja del {{ resumen.fecha|date:"d/m/Y" }} ya cerrada</strong> por {{ resumen.cierre.responsable.nombre }}
-    el {{ resumen.cierre.fecha_creacion|date:"d/m/Y H:i" }}. Total: <strong>${{ resumen.cierre.total_general|floatformat:2 }}</strong>.
+<div class="alert alert-secondary border-warning border-opacity-50 d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <i class="bi bi-lock-fill text-warning me-2 fs-5"></i>
+        <strong>Caja del {{ resumen.fecha|date:"d/m/Y" }} ya cerrada</strong> por {{ resumen.cierre.responsable.nombre }}
+        el {{ resumen.cierre.fecha_creacion|date:"d/m/Y H:i" }}. Total: <strong class="text-accent">${{ resumen.cierre.total_general|floatformat:2 }}</strong>.
+    </div>
+    {% if request.user.es_administradora %}
+    <form method="POST" action="{% url 'pagos:reabrir_caja' %}" class="m-0" id="formReabrirCaja">
+        {% csrf_token %}
+        <input type="hidden" name="fecha" value="{{ fecha_str }}">
+        <button type="submit" class="btn btn-sm btn-warning text-dark fw-bold">
+            <i class="bi bi-unlock-fill me-1"></i> Reabrir Caja
+        </button>
+    </form>
+    {% endif %}
 </div>
 {% endif %}
 
@@ -117,6 +128,68 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Emergente de Confirmación de Cierre Definitivo (estilo Stock e Insumos) -->
+<div class="modal fade" id="modalConfirmarCierre" tabindex="-1" aria-labelledby="modalConfirmarCierreLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger rounded-circle mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-lock-fill fs-2"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalConfirmarCierreLabel">¿Cerrar la caja definitivamente?</h5>
+                <p class="text-secondary small mb-0">
+                    Se bloquearán nuevos cobros y anulaciones de esta fecha. Verificá los totales antes de confirmar.
+                </p>
+                <div class="bg-dark p-3 rounded-2 mt-3 border border-secondary border-opacity-25 small text-secondary text-start">
+                    <div><strong>Fecha:</strong> <span class="text-light">{{ fecha|date:"d/m/Y" }}</span></div>
+                    <div><strong>Cobros a cerrar:</strong> <span class="text-light">{{ resumen.cantidad_cobros }}</span></div>
+                    <div><strong>Total general:</strong> <span class="text-accent fw-bold">${{ resumen.total_general|floatformat:2 }}</span></div>
+                    <div><strong>Descuentos otorgados:</strong> <span class="text-success">-${{ resumen.total_descuentos|floatformat:2 }}</span></div>
+                </div>
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    Revisar
+                </button>
+                <button type="button" id="btnConfirmarCierreDefinitivo" class="btn btn-danger px-4 fw-semibold">
+                    <i class="bi bi-lock-fill me-1"></i> Sí, cerrar caja
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Emergente de Confirmación de Reapertura (estilo Stock e Insumos) -->
+<div class="modal fade" id="modalReabrirCaja" tabindex="-1" aria-labelledby="modalReabrirCajaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3" style="width: 60px; height: 60px;">
+                    <i class="bi bi-unlock-fill fs-2"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalReabrirCajaLabel">¿Reabrir la caja?</h5>
+                <p class="text-secondary small mb-0">
+                    Se eliminará el cierre actual del {{ resumen.fecha|date:"d/m/Y" }} y se habilitarán nuevos cobros y anulaciones para esa fecha.
+                </p>
+            </div>
+            <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    Volver
+                </button>
+                <button type="button" id="btnConfirmarReabrirCaja" class="btn btn-warning text-dark px-4 fw-semibold">
+                    <i class="bi bi-unlock-fill me-1"></i> Sí, reabrir
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -153,6 +226,51 @@
                 }
                 bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCancelarCierre')).show();
             }
+        });
+    }
+
+    // Cerrar Caja Definitivo con confirmación propia (estilo Stock e Insumos, sin diálogo nativo).
+    let cierreConfirmado = false;
+    const btnConfirmarCierreDefinitivo = document.getElementById('btnConfirmarCierreDefinitivo');
+    if (formCierre) {
+        formCierre.addEventListener('submit', function (e) {
+            if (cierreConfirmado) return;
+            e.preventDefault();
+            if (formCierre.checkValidity && !formCierre.checkValidity()) {
+                formCierre.reportValidity();
+                return;
+            }
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalConfirmarCierre')).show();
+        });
+    }
+    if (btnConfirmarCierreDefinitivo && formCierre) {
+        btnConfirmarCierreDefinitivo.addEventListener('click', function () {
+            cierreConfirmado = true;
+            window._enviandoFormulario = true;
+            btnConfirmarCierreDefinitivo.disabled = true;
+            btnConfirmarCierreDefinitivo.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Cerrando...';
+            formCierre.submit();
+        });
+    }
+
+    // Reabrir Caja con confirmación propia (sin diálogo nativo).
+    let reaperturaConfirmada = false;
+    const formReabrirCaja = document.getElementById('formReabrirCaja');
+    const btnConfirmarReabrirCaja = document.getElementById('btnConfirmarReabrirCaja');
+    if (formReabrirCaja) {
+        formReabrirCaja.addEventListener('submit', function (e) {
+            if (reaperturaConfirmada) return;
+            e.preventDefault();
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalReabrirCaja')).show();
+        });
+    }
+    if (btnConfirmarReabrirCaja && formReabrirCaja) {
+        btnConfirmarReabrirCaja.addEventListener('click', function () {
+            reaperturaConfirmada = true;
+            window._enviandoFormulario = true;
+            btnConfirmarReabrirCaja.disabled = true;
+            btnConfirmarReabrirCaja.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Reabriendo...';
+            formReabrirCaja.submit();
         });
     }
 

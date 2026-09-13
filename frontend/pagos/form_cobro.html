@@ -3,6 +3,25 @@
 {% block page_title %}Registrar Cobro{% endblock %}
 {% block page_subtitle %}Cobro de servicio o venta de producto con medio de pago.{% endblock %}
 
+{% block extra_css %}
+{{ block.super }}
+<style>
+    /* Placeholder del descuento más claro para que se note el campo vacío. */
+    #id_descuento::placeholder {
+        color: #b6bfcc;
+        opacity: 1;
+    }
+    #id_descuento::-webkit-input-placeholder {
+        color: #b6bfcc;
+        opacity: 1;
+    }
+    #id_descuento::-moz-placeholder {
+        color: #b6bfcc;
+        opacity: 1;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-header py-3">
@@ -15,18 +34,25 @@
             <div class="alert alert-danger">{{ form.non_field_errors }}</div>
             {% endif %}
             <div class="row g-3">
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label text-secondary small fw-bold text-uppercase">Tipo de cobro</label>
                     {{ form.tipo }}
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label class="form-label text-secondary small fw-bold text-uppercase">Medio de pago</label>
                     {{ form.medio_pago }}
-                    <div class="form-text text-success" id="textoDescuento">Efectivo, Mercado Pago y Ualá: -10%
-                        automático.
+                    <div class="form-text text-success" id="textoDescuento">Efectivo, Mercado Pago y Ualá admiten
+                        descuento manual.
                     </div>
                 </div>
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-bold text-uppercase">Descuento (%)</label>
+                    {{ form.porcentaje_descuento }}
+                    {% if form.porcentaje_descuento.errors %}<div class="text-danger small">
+                        {{ form.porcentaje_descuento.errors }}</div>{% endif %}
+                    <div class="form-text text-secondary">Solo efectivo y billeteras. Tarjetas: sin descuento. Vacío = sin descuento.</div>
+                </div>
+                <div class="col-md-3">
                     <label class="form-label text-secondary small fw-bold text-uppercase">Fecha</label>
                     {{ form.fecha }}
                 </div>
@@ -125,6 +151,9 @@
 
 {% block extra_js %}
 {{ block.super }}
+{{ servicios_precios|json_script:"servicios-precios-data" }}
+{{ productos_precios|json_script:"productos-precios-data" }}
+{{ atenciones_data|json_script:"atenciones-data" }}
 <script>
     (function () {
         const tipo = document.getElementById('id_tipo');
@@ -134,15 +163,39 @@
         const cantidad = document.getElementById('id_cantidad');
         const precio = document.getElementById('id_precio_unitario');
         const medio = document.getElementById('id_medio_pago');
+        const descuento = document.getElementById('id_descuento');
         const cliente = document.getElementById('id_cliente');
         const clienteNombre = document.getElementById('id_cliente_nombre');
         const formCobro = document.getElementById('formCobro');
 
-        const serviciosPrecios = {{ servicios_precios|safe }};
-        const productosPrecios = {{ productos_precios|safe }};
-        const atencionesData = {{ atenciones_data|safe }};
-        const PORCENTAJE_DESCUENTO = parseFloat('{{ porcentaje_descuento }}');
+        const dataServiciosEl = document.getElementById('servicios-precios-data');
+        const dataProductosEl = document.getElementById('productos-precios-data');
+        const dataAtencionesEl = document.getElementById('atenciones-data');
+
+        const serviciosPrecios = dataServiciosEl ? JSON.parse(dataServiciosEl.textContent) : {};
+        const productosPrecios = dataProductosEl ? JSON.parse(dataProductosEl.textContent) : {};
+        const atencionesData = dataAtencionesEl ? JSON.parse(dataAtencionesEl.textContent) : {};
         const MEDIOS_CON_DESCUENTO = ['EFECTIVO', 'MERCADO_PAGO', 'UALA'];
+        let ultimoDescuentoManual = (descuento && String(descuento.value || '').trim()) || '';
+
+    function actualizarEstadoDescuento() {
+        const conDescuento = MEDIOS_CON_DESCUENTO.includes(medio.value);
+        if (!descuento) return conDescuento;
+        if (conDescuento) {
+            descuento.disabled = false;
+            // Solo restaura lo que el usuario había escrito; si nunca escribió, queda vacío.
+            if (!descuento.value && ultimoDescuentoManual) {
+                descuento.value = ultimoDescuentoManual;
+            }
+        } else {
+            if (descuento.value && descuento.value !== '0') {
+                ultimoDescuentoManual = descuento.value;
+            }
+            descuento.value = 0;
+            descuento.disabled = true;
+        }
+        return conDescuento;
+    }
 
     function alternarTipo() {
         const esProducto = tipo.value === 'PRODUCTO';
@@ -155,8 +208,9 @@
         const cant = parseInt(cantidad.value || '1', 10) || 0;
         const pu = parseFloat(precio.value || '0') || 0;
         const subtotal = cant * pu;
-        const conDescuento = MEDIOS_CON_DESCUENTO.includes(medio.value);
-        const pct = conDescuento ? PORCENTAJE_DESCUENTO : 0;
+        const conDescuento = actualizarEstadoDescuento();
+        const pctIngresado = descuento ? (parseFloat(descuento.value || '0') || 0) : 0;
+        const pct = conDescuento ? Math.min(Math.max(pctIngresado, 0), 100) : 0;
         const montoDesc = subtotal * pct / 100;
         const total = subtotal - montoDesc;
         const fmt = (n) => '$' + n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -165,13 +219,22 @@
         document.getElementById('prevTotal').textContent = fmt(total);
         const texto = document.getElementById('textoDescuento');
         texto.textContent = conDescuento
-            ? 'Se aplicará -' + pct + '% automático por ' + medio.options[medio.selectedIndex].text + '.'
-            : 'Este medio de pago no aplica descuento automático.';
+            ? 'Se aplicará -' + pct + '% de descuento por ' + medio.options[medio.selectedIndex].text + '.'
+            : 'Este medio de pago no admite descuento.';
     }
 
     tipo.addEventListener('change', alternarTipo);
-    [cantidad, precio, medio].forEach(el => el.addEventListener('input', actualizarVistaPrevia));
+    [cantidad, precio, medio, descuento].forEach(el => el && el.addEventListener('input', actualizarVistaPrevia));
     medio.addEventListener('change', actualizarVistaPrevia);
+
+    // Si el descuento queda vacío con un medio que lo admite, se registra sin descuento (0%).
+    if (formCobro && descuento) {
+        formCobro.addEventListener('submit', function () {
+            if (!descuento.disabled && !String(descuento.value || '').trim()) {
+                descuento.value = 0;
+            }
+        });
+    }
 
     servicio.addEventListener('change', function () {
         if (serviciosPrecios[this.value]) precio.value = serviciosPrecios[this.value];
@@ -240,6 +303,6 @@
 
     alternarTipo();
     actualizarVistaPrevia();
-}) ();
+})();
 </script>
 {% endblock %}

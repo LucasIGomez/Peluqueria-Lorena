@@ -13,6 +13,13 @@
             <div class="card-body p-4">
                 <form method="POST">
                     {% csrf_token %}
+                    {% if turno %}
+                        <input type="hidden" name="turno_id" value="{{ turno.pk }}">
+                        <div class="alert alert-info small">
+                            <i class="bi bi-calendar-check me-1"></i> Completando el turno de <strong>{{ turno.cliente_nombre }}</strong>
+                            del {{ turno.fecha|date:"d/m/Y" }} a las {{ turno.hora|time:"H:i" }}.
+                        </div>
+                    {% endif %}
 
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
@@ -57,6 +64,7 @@
                         <div class="col-md-6">
                             <label class="form-label text-light">Fecha de Atención <span class="text-danger">*</span></label>
                             {{ form.fecha }}
+                            {% if form.fecha.errors %}<div class="text-danger small mt-1">{{ form.fecha.errors }}</div>{% endif %}
                         </div>
                         <div class="col-md-6">
                             <label class="form-label text-light">Horario de Inicio <span class="text-danger">*</span></label>

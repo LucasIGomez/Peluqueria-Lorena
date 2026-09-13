@@ -16,6 +16,7 @@ from .views import (
     anular_cobro_view,
     caja_diaria_view,
     cierre_caja_view,
+    reabrir_caja_view,
     registrar_cobro_view,
     reporte_medios_view,
 )
@@ -31,8 +32,9 @@ urlpatterns = [
     path("", caja_diaria_view, name="caja_diaria"),
     path("nuevo/", registrar_cobro_view, name="registrar_cobro"),
     path("anular/<int:pk>/", anular_cobro_view, name="anular_cobro"),
-    # ── Cierre diario ──
+    # ── Cierre diario y reapertura ──
     path("cierre/", cierre_caja_view, name="cierre_caja"),
+    path("reabrir/", reabrir_caja_view, name="reabrir_caja"),
     # ── Reporte por medio de pago ──
     path("reporte/", reporte_medios_view, name="reporte_medios"),
     # ── API REST ──

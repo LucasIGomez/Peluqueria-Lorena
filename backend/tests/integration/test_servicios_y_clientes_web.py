@@ -225,3 +225,52 @@ class TestClientesWebViews:
         tratamiento_obj.refresh_from_db()
         assert tratamiento_obj.sesion_actual == 1
         assert tratamiento_obj.sesiones_evolucion.count() == 1
+
+    def test_dar_de_baja_cliente_web_preserva_tratamiento(self, client) -> None:
+        """RF 4.2: la baja debe ser lógica, sin borrar el historial de tratamientos."""
+        empleada = EmpleadaFactory()
+        client.force_login(empleada)
+
+        cliente_obj = Cliente.objects.create(
+            nombre="Clienta a Dar de Baja",
+            telefono="1155667788",
+        )
+        tratamiento_obj = TratamientoProgreso.objects.create(
+            cliente=cliente_obj,
+            titulo_tratamiento="Nutrición Capilar",
+            servicio_nombre="Hidratación",
+            total_sesiones_estimadas=2,
+        )
+
+        url = reverse("clientes:eliminar_cliente", kwargs={"pk": cliente_obj.pk})
+        res_confirmacion = client.get(url)
+        assert res_confirmacion.status_code == 200
+
+        res_baja = client.post(url)
+        assert res_baja.status_code == 302
+
+        cliente_obj.refresh_from_db()
+        assert cliente_obj.activo is False
+        # El historial de tratamientos debe seguir existiendo.
+        assert TratamientoProgreso.objects.filter(pk=tratamiento_obj.pk).exists()
+
+    def test_api_delete_cliente_es_baja_logica(self, authenticated_client_administradora) -> None:
+        """Un DELETE por la API de clientas no debe borrar el registro, solo desactivarlo."""
+        cliente_obj = Cliente.objects.create(
+            nombre="Clienta API Delete",
+            telefono="1144556677",
+        )
+        tratamiento_obj = TratamientoProgreso.objects.create(
+            cliente=cliente_obj,
+            titulo_tratamiento="Tratamiento API",
+            servicio_nombre="Color",
+            total_sesiones_estimadas=1,
+        )
+
+        url = f"/clientes/api/{cliente_obj.pk}/"
+        response = authenticated_client_administradora.delete(url)
+        assert response.status_code == 204
+
+        cliente_obj.refresh_from_db()
+        assert cliente_obj.activo is False
+        assert TratamientoProgreso.objects.filter(pk=tratamiento_obj.pk).exists()

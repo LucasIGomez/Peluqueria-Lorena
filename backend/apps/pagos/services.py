@@ -39,7 +39,8 @@ class CajaService:
     Servicio de dominio para cobros, descuentos, cierres y reportes.
     """
 
-    #: Descuento automático del 10% para efectivo, Mercado Pago y Ualá.
+    #: Descuento sugerido por defecto (10%) para efectivo, Mercado Pago y Ualá.
+    #: El usuario puede modificarlo en cada cobro entre 0 y 100%.
     PORCENTAJE_DESCUENTO_AUTOMATICO = Decimal("10.00")
 
     #: Medios que aplican el descuento automático.
@@ -54,13 +55,19 @@ class CajaService:
         cls,
         subtotal: Union[Decimal, str, float],
         medio_pago: str,
+        porcentaje_descuento: Optional[Union[Decimal, str, float]] = None,
     ) -> Dict[str, Decimal]:
         """
-        Calcula el descuento automático según el medio de pago.
+        Calcula el descuento según el medio de pago.
+
+        - Efectivo, Mercado Pago y Ualá: aplica el porcentaje indicado
+          (por defecto el sugerido del 10%). Debe estar entre 0 y 100.
+        - Tarjetas de débito y crédito: no admiten descuento (0% forzado).
 
         Args:
             subtotal: Monto base antes del descuento (>= 0).
             medio_pago: Código del medio de pago (ver Cobro.MedioPago).
+            porcentaje_descuento: Porcentaje manual (solo medios con descuento).
 
         Returns:
             Diccionario con porcentaje_descuento, monto_descuento y total.
@@ -74,7 +81,12 @@ class CajaService:
             raise CobroInvalidoError(f"Medio de pago inválido: {medio_pago}.")
 
         if medio_pago in cls.MEDIOS_CON_DESCUENTO:
-            porcentaje = cls.PORCENTAJE_DESCUENTO_AUTOMATICO
+            if porcentaje_descuento is None:
+                porcentaje = cls.PORCENTAJE_DESCUENTO_AUTOMATICO
+            else:
+                porcentaje = _a_dos_decimales(Decimal(str(porcentaje_descuento)))
+                if porcentaje < Decimal("0.00") or porcentaje > Decimal("100.00"):
+                    raise CobroInvalidoError("El descuento debe estar entre 0 y 100%.")
         else:
             porcentaje = Decimal("0.00")
 
@@ -108,6 +120,7 @@ class CajaService:
         cliente: Any = None,
         fecha: Optional[date] = None,
         observaciones: str = "",
+        porcentaje_descuento: Optional[Union[Decimal, str, float]] = None,
     ) -> Cobro:
         """
         Registra el cobro de un servicio o la venta de un producto.
@@ -117,7 +130,8 @@ class CajaService:
         - Producto: requiere producto y descuenta stock automáticamente
           mediante el módulo de inventario.
 
-        Aplica el descuento del 10% si el medio es efectivo, Mercado Pago o Ualá.
+        Aplica el descuento indicado si el medio es efectivo, Mercado Pago o Ualá
+        (10% por defecto); las tarjetas no admiten descuento.
         """
         from apps.inventario.services import InventarioService
 
@@ -178,7 +192,7 @@ class CajaService:
             raise CobroInvalidoError("El precio unitario no puede ser negativo.")
 
         subtotal = _a_dos_decimales(precio_final * cantidad)
-        totales = cls.calcular_totales(subtotal, medio_pago)
+        totales = cls.calcular_totales(subtotal, medio_pago, porcentaje_descuento)
 
         cobro = Cobro.objects.create(
             cliente=cliente,
@@ -298,18 +312,27 @@ class CajaService:
 
         totales: Dict[str, Decimal] = {}
         cantidades: Dict[str, int] = {}
+        descuentos: Dict[str, Decimal] = {}
         for codigo, _etiqueta in Cobro.MedioPago.choices:
             totales[codigo] = Decimal("0.00")
             cantidades[codigo] = 0
+            descuentos[codigo] = Decimal("0.00")
 
         agregados = (
             cobros.values("medio_pago")
-            .annotate(cantidad_cobros=Count("id"), suma_total=Sum("total"))
+            .annotate(
+                cantidad_cobros=Count("id"),
+                suma_total=Sum("total"),
+                suma_descuento=Sum("monto_descuento"),
+            )
             .order_by("medio_pago")
         )
         for fila in agregados:
             totales[fila["medio_pago"]] = _a_dos_decimales(fila["suma_total"] or Decimal("0.00"))
             cantidades[fila["medio_pago"]] = fila["cantidad_cobros"]
+            descuentos[fila["medio_pago"]] = _a_dos_decimales(
+                fila["suma_descuento"] or Decimal("0.00")
+            )
 
         total_descuentos = cobros.aggregate(s=Sum("monto_descuento"))["s"] or Decimal("0.00")
         total_general = cobros.aggregate(s=_Sum("total"))["s"] or Decimal("0.00")
@@ -320,6 +343,7 @@ class CajaService:
                 "etiqueta": etiqueta,
                 "cantidad": cantidades[codigo],
                 "total": totales[codigo],
+                "descuento": descuentos[codigo],
                 "con_descuento": codigo in cls.MEDIOS_CON_DESCUENTO,
             }
             for codigo, etiqueta in Cobro.MedioPago.choices
@@ -389,6 +413,27 @@ class CajaService:
     @classmethod
     def realizarCierreCaja(cls, *args: Any, **kwargs: Any) -> CierreCaja:
         return cls.realizar_cierre_caja(*args, **kwargs)
+
+    # ── Reapertura de caja ──
+
+    @classmethod
+    @transaction.atomic
+    def reabrir_caja(cls, fecha: Optional[date] = None, usuario: Any = None) -> None:
+        """
+        Reabre la caja de una fecha eliminando el CierreCaja existente y desvinculando
+        los cobros asociados para permitir registrar nuevas operaciones.
+        """
+        dia = fecha or timezone.localdate()
+        cierre = CierreCaja.objects.filter(fecha=dia).first()
+        if not cierre:
+            raise CajaError(f"No hay ningún cierre de caja registrado para el {dia.strftime('%d/%m/%Y')}.")
+
+        Cobro.objects.filter(cierre=cierre).update(cierre=None)
+        cierre.delete()
+
+    @classmethod
+    def reabrirCaja(cls, *args: Any, **kwargs: Any) -> None:
+        return cls.reabrir_caja(*args, **kwargs)
 
     # ── Reporte por medio de pago ──
 

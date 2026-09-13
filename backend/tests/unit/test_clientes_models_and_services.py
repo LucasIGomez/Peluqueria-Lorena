@@ -5,6 +5,7 @@ from datetime import date, timedelta
 import pytest
 from django.utils import timezone
 
+from apps.clientes.forms import ClienteForm
 from apps.clientes.models import Cliente, EvolucionSesion, TratamientoProgreso
 from apps.clientes.services import ClienteService
 from tests.factories.usuario_factory import EmpleadaFactory
@@ -131,3 +132,35 @@ class TestTratamientoProgresoYMultisesion:
         assert tratamiento.porcentaje_progreso == 100
         assert tratamiento.estado == TratamientoProgreso.Estado.FINALIZADO
         assert tratamiento.fecha_finalizacion is not None
+
+
+@pytest.mark.django_db
+class TestClienteFormValidacionTelefono:
+    """RF 4.1: el teléfono no puede ser un solo dígito ni cualquier valor arbitrario."""
+
+    def _datos_base(self, telefono: str) -> dict:
+        return {
+            "nombre": "Clienta de Prueba",
+            "telefono": telefono,
+            "email": "",
+            "fecha_nacimiento": "",
+            "notas_alergias": "",
+            "preferencias": "",
+        }
+
+    @pytest.mark.parametrize(
+        "telefono",
+        ["5", "123", "abcdefgh", "11111111111", "", "12-34"],
+    )
+    def test_telefono_invalido_rechazado(self, telefono: str) -> None:
+        form = ClienteForm(data=self._datos_base(telefono))
+        assert not form.is_valid()
+        assert "telefono" in form.errors
+
+    @pytest.mark.parametrize(
+        "telefono",
+        ["1123456789", "11 2345-6789", "+54 9 11 2345 6789"],
+    )
+    def test_telefono_valido_aceptado(self, telefono: str) -> None:
+        form = ClienteForm(data=self._datos_base(telefono))
+        assert form.is_valid(), form.errors

@@ -1,0 +1,109 @@
+{% extends 'base.html' %}
+
+{% block page_title %}{{ accion }}{% endblock %}
+{% block page_subtitle %}Reservá el horario, el servicio y (si ya se sabe) la peluquera que atiende.{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header py-3">
+                <h5 class="mb-0 text-light"><i class="bi bi-calendar-plus me-2 text-accent"></i> Datos del Turno</h5>
+            </div>
+            <div class="card-body p-4">
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger small">{{ form.non_field_errors }}</div>
+                {% endif %}
+                <form method="POST" id="formTurno">
+                    {% csrf_token %}
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Clienta Registrada (Opcional)</label>
+                            {{ form.cliente }}
+                            <small class="text-secondary">Seleccionar para vincular a su historial técnico.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Nombre de la Clienta <span class="text-danger">*</span></label>
+                            {{ form.cliente_nombre }}
+                            {% if form.cliente_nombre.errors %}<div class="text-danger small mt-1">{{ form.cliente_nombre.errors }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Teléfono / WhatsApp</label>
+                            {{ form.cliente_telefono }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Servicio <span class="text-danger">*</span></label>
+                            {{ form.servicio }}
+                            {% if form.servicio.errors %}<div class="text-danger small mt-1">{{ form.servicio.errors }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label text-light">Fecha <span class="text-danger">*</span></label>
+                            {{ form.fecha }}
+                            {% if form.fecha.errors %}<div class="text-danger small mt-1">{{ form.fecha.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-light">Hora <span class="text-danger">*</span></label>
+                            {{ form.hora }}
+                            {% if form.hora.errors %}<div class="text-danger small mt-1">{{ form.hora.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label text-light">Duración (min)</label>
+                            {{ form.duracion_minutos }}
+                            <small class="text-secondary">Se completa sola según el servicio.</small>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Peluquera Asignada (Opcional)</label>
+                            {{ form.profesional }}
+                            {% if form.profesional.errors %}<div class="text-danger small mt-1">{{ form.profesional.errors }}</div>{% endif %}
+                            <small class="text-secondary">Puede quedar sin asignar hasta el día del turno.</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label text-light">Notas</label>
+                        {{ form.notas }}
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-2 pt-3 border-top border-secondary">
+                        <a href="{% url 'turnos:agenda' %}" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-accent text-dark fw-bold px-4">
+                            <i class="bi bi-check-lg me-1"></i> Guardar Turno
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ duraciones|json_script:"duraciones-data" }}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const servicioSelect = document.getElementById('id_servicio');
+    const duracionInput = document.getElementById('id_duracion');
+    const duracionesEl = document.getElementById('duraciones-data');
+    const duraciones = duracionesEl ? JSON.parse(duracionesEl.textContent) : {};
+
+    if (servicioSelect && duracionInput) {
+        servicioSelect.addEventListener('change', function () {
+            const duracion = duraciones[this.value];
+            if (duracion && !duracionInput.value) {
+                duracionInput.value = duracion;
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
