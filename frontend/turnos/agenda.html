@@ -144,13 +144,25 @@
             </div>
             <div class="card-body p-2" style="min-height: 200px;">
                 {% for t in grupo.turnos %}
+                {% if t.estado == 'CANCELADO' or t.estado == 'COMPLETADO' %}
+                <div class="p-2 mb-2 rounded small {% if t.estado == 'CANCELADO' %}bg-dark text-secondary text-decoration-line-through{% else %}bg-dark border border-success{% endif %}">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="fw-bold text-accent">{{ t.hora|time:"H:i" }}</div>
+                        {% if t.estado == 'COMPLETADO' %}<span class="badge bg-success"><i class="bi bi-check-lg"></i></span>{% endif %}
+                    </div>
+                    <div class="text-light">{{ t.cliente_nombre }}</div>
+                    <div class="text-secondary">{{ t.servicio.nombre }}</div>
+                    <div class="small {% if t.estado == 'COMPLETADO' %}text-success{% else %}text-secondary{% endif %}">{{ t.get_estado_display }}</div>
+                </div>
+                {% else %}
                 <a href="{% url 'turnos:editar_turno' t.pk %}" class="text-decoration-none">
-                    <div class="p-2 mb-2 rounded small {% if t.estado == 'CANCELADO' %}bg-dark text-secondary text-decoration-line-through{% else %}bg-dark border border-secondary border-opacity-25{% endif %}">
+                    <div class="p-2 mb-2 rounded small bg-dark border border-secondary border-opacity-25">
                         <div class="fw-bold text-accent">{{ t.hora|time:"H:i" }}</div>
                         <div class="text-light">{{ t.cliente_nombre }}</div>
                         <div class="text-secondary">{{ t.servicio.nombre }}</div>
                     </div>
                 </a>
+                {% endif %}
                 {% empty %}
                 <div class="text-secondary small text-center pt-3">Sin turnos</div>
                 {% endfor %}

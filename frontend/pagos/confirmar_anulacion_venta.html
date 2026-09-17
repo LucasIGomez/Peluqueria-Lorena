@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Anular Venta{% endblock %}
+{% block page_subtitle %}Anulación en conjunto de todos los ítems, con reposición de stock si corresponde.{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-danger mx-auto" style="max-width: 560px;">
+    <div class="card-header py-3 bg-danger bg-opacity-10">
+        <h5 class="mb-0 text-danger"><i class="bi bi-exclamation-triangle me-2"></i> Anular Venta ({{ cobros|length }} ítems)</h5>
+    </div>
+    <div class="card-body p-4">
+        <p class="text-light">Clienta: <strong>{{ cobros.0.cliente_nombre }}</strong></p>
+        <ul class="list-group list-group-flush mb-3">
+            {% for c in cobros %}
+            <li class="list-group-item bg-transparent text-secondary d-flex justify-content-between gap-2 px-0">
+                <span>
+                    <span class="badge bg-secondary-subtle text-light me-1">{{ c.get_tipo_display }}</span>
+                    {% if c.tipo == 'SERVICIO' %}
+                    {% if c.servicio %}{{ c.servicio.nombre }}{% else %}Servicio{% endif %}
+                    {% else %}
+                    {% if c.producto %}{{ c.producto.nombre }} x{{ c.cantidad }}{% else %}Producto x{{ c.cantidad }}{% endif %}
+                    {% endif %}
+                </span>
+                <strong class="text-light">${{ c.total|floatformat:2 }}</strong>
+            </li>
+            {% endfor %}
+        </ul>
+        <p class="text-secondary">Total a anular: <strong class="text-accent">${{ total|floatformat:2 }}</strong> ({{ cobros.0.get_medio_pago_display }})</p>
+        <div class="alert alert-info small">Al anular se darán de baja todos los ítems juntos y se repondrá el stock de los productos.</div>
+        <form method="POST" class="d-flex gap-2">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-danger fw-bold px-4">Sí, anular todo</button>
+            <a href="{% url 'pagos:caja_diaria' %}?fecha={{ cobros.0.fecha|date:'Y-m-d' }}" class="btn btn-outline-secondary">Cancelar</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

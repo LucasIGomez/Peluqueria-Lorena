@@ -1,23 +1,50 @@
 {% extends 'base.html' %}
 
 {% block page_title %}Registrar Cobro{% endblock %}
-{% block page_subtitle %}Cobro de servicio o venta de producto con medio de pago.{% endblock %}
+{% block page_subtitle %}Venta con carrito: múltiples servicios y/o productos en una transacción.{% endblock %}
 
 {% block extra_css %}
 {{ block.super }}
 <style>
-    /* Placeholder del descuento más claro para que se note el campo vacío. */
     #id_descuento::placeholder {
         color: #b6bfcc;
         opacity: 1;
     }
+
     #id_descuento::-webkit-input-placeholder {
         color: #b6bfcc;
         opacity: 1;
     }
+
     #id_descuento::-moz-placeholder {
         color: #b6bfcc;
         opacity: 1;
+    }
+
+    .tabla-carrito input {
+        background-color: #21252e;
+        border: 1px solid #3c4149;
+        color: #f1f3f5;
+        border-radius: 0.375rem;
+        padding: 0.25rem 0.5rem;
+        width: 100%;
+    }
+
+    .tabla-carrito input:focus {
+        outline: none;
+        border-color: #c9a227;
+    }
+
+    #id_add_cantidad:disabled {
+        opacity: 0.55;
+    }
+    /* Fila "Agregar ítems": etiquetas en una línea y ayudas con altura
+       reservada para que los 5 controles queden alineados. */
+    #filaAgregarItem .form-label {
+        white-space: nowrap;
+    }
+    #filaAgregarItem .form-text {
+        min-height: 1.5em;
     }
 </style>
 {% endblock %}
@@ -25,7 +52,7 @@
 {% block content %}
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-header py-3">
-        <h5 class="mb-0 text-light"><i class="bi bi-cash-coin me-2 text-accent"></i> Nuevo Cobro</h5>
+        <h5 class="mb-0 text-light"><i class="bi bi-cash-coin me-2 text-accent"></i> Nuevo Cobro — Carrito</h5>
     </div>
     <div class="card-body p-4">
         <form method="POST" novalidate id="formCobro">
@@ -33,11 +60,9 @@
             {% if form.non_field_errors %}
             <div class="alert alert-danger">{{ form.non_field_errors }}</div>
             {% endif %}
+            {{ form.items_json }}
+            {% if form.items_json.errors %}<div class="alert alert-danger">{{ form.items_json.errors }}</div>{% endif %}
             <div class="row g-3">
-                <div class="col-md-3">
-                    <label class="form-label text-secondary small fw-bold text-uppercase">Tipo de cobro</label>
-                    {{ form.tipo }}
-                </div>
                 <div class="col-md-3">
                     <label class="form-label text-secondary small fw-bold text-uppercase">Medio de pago</label>
                     {{ form.medio_pago }}
@@ -50,11 +75,16 @@
                     {{ form.porcentaje_descuento }}
                     {% if form.porcentaje_descuento.errors %}<div class="text-danger small">
                         {{ form.porcentaje_descuento.errors }}</div>{% endif %}
-                    <div class="form-text text-secondary">Solo efectivo y billeteras. Tarjetas: sin descuento. Vacío = sin descuento.</div>
+                    <div class="form-text text-secondary">Solo efectivo y billeteras. Tarjetas: sin descuento. Vacío =
+                        sin descuento.</div>
                 </div>
                 <div class="col-md-3">
                     <label class="form-label text-secondary small fw-bold text-uppercase">Fecha</label>
                     {{ form.fecha }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-secondary small fw-bold text-uppercase">Profesional que cobra</label>
+                    {{ form.profesional }}
                 </div>
                 <div class="col-md-6">
                     <label class="form-label text-secondary small fw-bold text-uppercase">Clienta registrada</label>
@@ -66,53 +96,93 @@
                     {% if form.cliente_nombre.errors %}<div class="text-danger small">{{ form.cliente_nombre.errors }}
                     </div>{% endif %}
                 </div>
-                <div class="col-md-6" id="grupoServicio">
-                    <label class="form-label text-secondary small fw-bold text-uppercase">Servicio del catálogo</label>
-                    {{ form.servicio }}
+            </div>
+
+            <hr class="border-secondary my-4">
+
+            <!-- Alta de ítems al carrito -->
+            <h6 class="text-light fw-bold mb-3"><i class="bi bi-cart-plus me-2 text-accent"></i> Agregar ítems</h6>
+            <div class="row g-3 align-items-start" id="filaAgregarItem">
+                <div class="col-md-2 d-flex flex-column">
+                    <label class="form-label text-secondary small fw-bold text-uppercase" for="id_add_tipo">Tipo</label>
+                    <select class="form-select" id="id_add_tipo">
+                        <option value="SERVICIO">Servicio</option>
+                        <option value="PRODUCTO">Producto</option>
+                    </select>
+                    <div class="form-text" aria-hidden="true">&nbsp;</div>
                 </div>
-                <div class="col-md-6" id="grupoAtencion">
-                    <label class="form-label text-secondary small fw-bold text-uppercase">Atención del día</label>
-                    {{ form.servicio_realizado }}
+                <div class="col-md-4 d-flex flex-column">
+                    <label class="form-label text-secondary small fw-bold text-uppercase" for="id_add_item">Ítem</label>
+                    <select class="form-select" id="id_add_item"></select>
+                    <div class="form-text text-secondary" id="textoStock">&nbsp;</div>
                 </div>
-                <div class="col-md-6 d-none" id="grupoProducto">
-                    <label class="form-label text-secondary small fw-bold text-uppercase">Producto a vender</label>
-                    {{ form.producto }}
-                    {% if form.producto.errors %}<div class="text-danger small">{{ form.producto.errors }}</div>{% endif %}
+                <div class="col-md-2 d-flex flex-column" id="grupoCantidad">
+                    <label class="form-label text-secondary small fw-bold text-uppercase" for="id_add_cantidad">Cantidad</label>
+                    <input type="number" class="form-control" id="id_add_cantidad" min="1" step="1" value="1">
+                    <div class="form-text text-secondary" id="textoCantidad">Solo productos.</div>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label text-secondary small fw-bold text-uppercase">Cantidad</label>
-                    {{ form.cantidad }}
+                <div class="col-md-2 d-flex flex-column">
+                    <label class="form-label text-secondary small fw-bold text-uppercase" for="id_add_precio">Precio unit. *</label>
+                    <input type="number" class="form-control" id="id_add_precio" min="0.01" step="0.01"
+                        placeholder="0.00">
+                    <div class="form-text text-secondary">Editable: promos o recargos.</div>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label text-secondary small fw-bold text-uppercase">Precio unitario *</label>
-                    {{ form.precio_unitario }}
-                    {% if form.precio_unitario.errors %}<div class="text-danger small">{{ form.precio_unitario.errors }}
-                    </div>{% endif %}
+                <div class="col-md-2 d-flex flex-column">
+                    <label class="form-label text-secondary small fw-bold text-uppercase"
+                        aria-hidden="true">&nbsp;</label>
+                    <button type="button" class="btn btn-accent text-dark fw-bold w-100" id="btnAgregarItem">
+                        <i class="bi bi-plus-circle me-1"></i> Agregar
+                    </button>
+                    <div class="form-text" aria-hidden="true">&nbsp;</div>
                 </div>
-                <div class="col-md-6">
-                    <label class="form-label text-secondary small fw-bold text-uppercase">Profesional que cobra</label>
-                    {{ form.profesional }}
-                </div>
-                <div class="col-md-6">
+            </div>
+            <div class="text-danger small mt-2 d-none" id="errorItem"></div>
+
+            <!-- Tabla del carrito -->
+            <div class="table-responsive mt-4">
+                <table class="table table-dark table-hover align-middle tabla-carrito mb-0">
+                    <thead>
+                        <tr>
+                            <th>Tipo</th>
+                            <th>Ítem</th>
+                            <th class="text-center" style="width: 110px;">Cantidad</th>
+                            <th style="width: 160px;">Precio unit.</th>
+                            <th class="text-end">Subtotal</th>
+                            <th style="width: 60px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="cuerpoCarrito">
+                        <tr id="filaCarritoVacio">
+                            <td colspan="6" class="text-center text-secondary py-4">Carrito vacío. Agregá al menos un
+                                servicio o producto.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Total general con descuento -->
+            <div class="alert alert-dark border border-secondary mt-4 d-flex flex-wrap gap-4 align-items-center"
+                id="vistaPrevia">
+                <div><span class="text-secondary small text-uppercase fw-bold">Subtotal carrito:</span><br><strong
+                        id="prevSubtotal" class="fs-5">$0,00</strong></div>
+                <div><span class="text-secondary small text-uppercase fw-bold">Descuento:</span><br><strong
+                        id="prevDescuento" class="fs-5 text-success">-$0,00 (0%)</strong></div>
+                <div><span class="text-secondary small text-uppercase fw-bold">Total general:</span><br><strong
+                        id="prevTotal" class="fs-4 text-accent">$0,00</strong></div>
+                <div class="ms-auto"><span class="text-secondary small text-uppercase fw-bold">Ítems:</span><br><strong
+                        id="prevCantidad" class="fs-5">0</strong></div>
+            </div>
+
+            <div class="row g-3 mt-1">
+                <div class="col-md-12">
                     <label class="form-label text-secondary small fw-bold text-uppercase">Observaciones</label>
                     {{ form.observaciones }}
                 </div>
             </div>
 
-            <!-- Vista previa del total con descuento -->
-            <div class="alert alert-dark border border-secondary mt-4 d-flex flex-wrap gap-4 align-items-center"
-                id="vistaPrevia">
-                <div><span class="text-secondary small text-uppercase fw-bold">Subtotal:</span><br><strong
-                        id="prevSubtotal" class="fs-5">$0,00</strong></div>
-                <div><span class="text-secondary small text-uppercase fw-bold">Descuento:</span><br><strong
-                        id="prevDescuento" class="fs-5 text-success">-$0,00 (0%)</strong></div>
-                <div><span class="text-secondary small text-uppercase fw-bold">Total a cobrar:</span><br><strong
-                        id="prevTotal" class="fs-4 text-accent">$0,00</strong></div>
-            </div>
-
             <div class="d-flex gap-2 mt-3">
-                <button type="submit" class="btn btn-accent text-dark fw-bold px-4">
-                    <i class="bi bi-check-circle me-1"></i> Confirmar Cobro
+                <button type="submit" class="btn btn-accent text-dark fw-bold px-4" id="btnConfirmarVenta">
+                    <i class="bi bi-check-circle me-1"></i> Confirmar Venta
                 </button>
                 <a href="{% url 'pagos:caja_diaria' %}" class="btn btn-outline-light px-4 text-center"
                     id="btnCancelarCobro">Cancelar</a>
@@ -121,28 +191,111 @@
     </div>
 </div>
 <!-- Modal Emergente de Confirmación de Cancelación (estilo Stock e Insumos) -->
-<div class="modal fade" id="modalCancelarCobro" tabindex="-1" aria-labelledby="modalCancelarCobroLabel" aria-hidden="true">
+<div class="modal fade" id="modalCancelarCobro" tabindex="-1" aria-labelledby="modalCancelarCobroLabel"
+    aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
             <div class="modal-header border-0 pb-0">
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
             </div>
             <div class="modal-body text-center pt-1 pb-3 px-4">
-                <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3" style="width: 60px; height: 60px;">
+                <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3"
+                    style="width: 60px; height: 60px;">
                     <i class="bi bi-exclamation-triangle-fill fs-2"></i>
                 </div>
-                <h5 class="modal-title fw-bold mb-2 text-light" id="modalCancelarCobroLabel">¿Estás seguro de Cancelar?</h5>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalCancelarCobroLabel">¿Estás seguro de Cancelar?
+                </h5>
                 <p class="text-secondary small mb-0">
                     Tienes un cobro en curso. Si decides cancelar ahora, se perderán todos los datos ingresados.
                 </p>
             </div>
-            <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+            <div
+                class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
                 <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
                     Continuar editando
                 </button>
-                <a href="{% url 'pagos:caja_diaria' %}" id="btnConfirmarCancelarCobro" class="btn btn-danger px-4 fw-semibold">
+                <a href="{% url 'pagos:caja_diaria' %}" id="btnConfirmarCancelarCobro"
+                    class="btn btn-danger px-4 fw-semibold">
                     <i class="bi bi-x-circle me-1"></i> Sí, cancelar
                 </a>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal Emergente de Validación de Venta (resumen antes de confirmar) -->
+<div class="modal fade" id="modalConfirmarVenta" tabindex="-1" aria-labelledby="modalConfirmarVentaLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body pt-1 pb-3 px-4">
+                <div class="text-center mb-3">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3"
+                        style="width: 60px; height: 60px;">
+                        <i class="bi bi-receipt-cutoff fs-2"></i>
+                    </div>
+                    <h5 class="modal-title fw-bold mb-2 text-light" id="modalConfirmarVentaLabel">¿Confirmar la venta?
+                    </h5>
+                    <p class="text-secondary small mb-0">Revisá el resumen antes de registrar el cobro.</p>
+                </div>
+                <dl class="row small mb-2">
+                    <dt class="col-4 text-secondary text-uppercase">Clienta</dt>
+                    <dd class="col-8 text-light fw-semibold" id="resumenClienta">—</dd>
+                    <dt class="col-4 text-secondary text-uppercase">Medio</dt>
+                    <dd class="col-8 text-light" id="resumenMedio">—</dd>
+                </dl>
+                <ul class="list-group list-group-flush mb-2 overflow-auto" id="listaResumenItems"
+                    style="max-height: 180px;"></ul>
+                <dl class="row small mb-0">
+                    <dt class="col-4 text-secondary text-uppercase">Descuento</dt>
+                    <dd class="col-8 text-success fw-semibold" id="resumenDescuento">—</dd>
+                    <dt class="col-4 text-secondary text-uppercase">Total</dt>
+                    <dd class="col-8 fs-5 fw-bold text-accent" id="resumenTotal">—</dd>
+                </dl>
+            </div>
+            <div
+                class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    Seguir editando
+                </button>
+                <button type="button" id="btnConfirmarVentaFinal" class="btn btn-accent text-dark px-4 fw-bold">
+                    <i class="bi bi-check-circle me-1"></i> Sí, confirmar venta
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Modal Emergente de Validación para Eliminar un Ítem del Carrito -->
+<div class="modal fade" id="modalEliminarItem" tabindex="-1" aria-labelledby="modalEliminarItemLabel"
+    aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body text-center pt-1 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger rounded-circle mb-3"
+                    style="width: 60px; height: 60px;">
+                    <i class="bi bi-trash fs-2"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalEliminarItemLabel">¿Eliminar este ítem?
+                </h5>
+                <p class="text-secondary small mb-0" id="textoEliminarItem"></p>
+            </div>
+            <div
+                class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
+                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    Volver
+                </button>
+                <button type="button" id="btnEliminarItemFinal" class="btn btn-danger px-4 fw-semibold"
+                    data-bs-dismiss="modal">
+                    <i class="bi bi-trash me-1"></i> Sí, eliminar
+                </button>
             </div>
         </div>
     </div>
@@ -151,158 +304,374 @@
 
 {% block extra_js %}
 {{ block.super }}
-{{ servicios_precios|json_script:"servicios-precios-data" }}
-{{ productos_precios|json_script:"productos-precios-data" }}
-{{ atenciones_data|json_script:"atenciones-data" }}
+{{ servicios_data|json_script:"servicios-data" }}
+{{ productos_data|json_script:"productos-data" }}
+{{ item_inicial|json_script:"item-inicial-data" }}
 <script>
     (function () {
-        const tipo = document.getElementById('id_tipo');
-        const servicio = document.getElementById('id_servicio');
-        const atencion = document.getElementById('id_servicio_realizado');
-        const producto = document.getElementById('id_producto');
-        const cantidad = document.getElementById('id_cantidad');
-        const precio = document.getElementById('id_precio_unitario');
+        const tipoAdd = document.getElementById('id_add_tipo');
+        const itemAdd = document.getElementById('id_add_item');
+        const cantAdd = document.getElementById('id_add_cantidad');
+        const precioAdd = document.getElementById('id_add_precio');
+        const textoStock = document.getElementById('textoStock');
+        const textoCantidad = document.getElementById('textoCantidad');
+        const errorItem = document.getElementById('errorItem');
+        const cuerpo = document.getElementById('cuerpoCarrito');
         const medio = document.getElementById('id_medio_pago');
         const descuento = document.getElementById('id_descuento');
         const cliente = document.getElementById('id_cliente');
         const clienteNombre = document.getElementById('id_cliente_nombre');
         const formCobro = document.getElementById('formCobro');
+        const itemsHidden = document.getElementById('id_items_json');
 
-        const dataServiciosEl = document.getElementById('servicios-precios-data');
-        const dataProductosEl = document.getElementById('productos-precios-data');
-        const dataAtencionesEl = document.getElementById('atenciones-data');
+        const serviciosData = JSON.parse(document.getElementById('servicios-data').textContent || '{}');
+        const productosData = JSON.parse(document.getElementById('productos-data').textContent || '{}');
+        const itemInicial = JSON.parse(document.getElementById('item-inicial-data').textContent || 'null');
 
-        const serviciosPrecios = dataServiciosEl ? JSON.parse(dataServiciosEl.textContent) : {};
-        const productosPrecios = dataProductosEl ? JSON.parse(dataProductosEl.textContent) : {};
-        const atencionesData = dataAtencionesEl ? JSON.parse(dataAtencionesEl.textContent) : {};
         const MEDIOS_CON_DESCUENTO = ['EFECTIVO', 'MERCADO_PAGO', 'UALA'];
         let ultimoDescuentoManual = (descuento && String(descuento.value || '').trim()) || '';
+        let carrito = [];
 
-    function actualizarEstadoDescuento() {
-        const conDescuento = MEDIOS_CON_DESCUENTO.includes(medio.value);
-        if (!descuento) return conDescuento;
-        if (conDescuento) {
-            descuento.disabled = false;
-            // Solo restaura lo que el usuario había escrito; si nunca escribió, queda vacío.
-            if (!descuento.value && ultimoDescuentoManual) {
-                descuento.value = ultimoDescuentoManual;
-            }
-        } else {
-            if (descuento.value && descuento.value !== '0') {
-                ultimoDescuentoManual = descuento.value;
-            }
-            descuento.value = 0;
-            descuento.disabled = true;
+        function mostrarError(msg) {
+            if (!msg) { errorItem.classList.add('d-none'); errorItem.textContent = ''; return; }
+            errorItem.textContent = msg;
+            errorItem.classList.remove('d-none');
         }
-        return conDescuento;
-    }
 
-    function alternarTipo() {
-        const esProducto = tipo.value === 'PRODUCTO';
-        document.getElementById('grupoProducto').classList.toggle('d-none', !esProducto);
-        document.getElementById('grupoServicio').classList.toggle('d-none', esProducto);
-        document.getElementById('grupoAtencion').classList.toggle('d-none', esProducto);
-    }
+        function poblarItems() {
+            const tipo = tipoAdd.value;
+            const fuente = tipo === 'SERVICIO' ? serviciosData : productosData;
+            itemAdd.innerHTML = '';
+            const ids = Object.keys(fuente);
+            if (!ids.length) {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = tipo === 'SERVICIO' ? 'Sin servicios activos' : 'Sin productos activos';
+                itemAdd.appendChild(opt);
+            } else {
+                const ph = document.createElement('option');
+                ph.value = '';
+                ph.textContent = '— Seleccioná —';
+                itemAdd.appendChild(ph);
+            }
+            ids.forEach(function (id) {
+                const info = fuente[id];
+                const opt = document.createElement('option');
+                opt.value = id;
+                opt.textContent = tipo === 'SERVICIO'
+                    ? info.nombre + ' — $' + Number(info.precio).toLocaleString('es-AR', { minimumFractionDigits: 2 })
+                    : info.nombre + ' (stock ' + info.stock + ') — $' + Number(info.precio).toLocaleString('es-AR', { minimumFractionDigits: 2 });
+                itemAdd.appendChild(opt);
+            });
+            actualizarPrecioSugerido();
+        }
 
-    function actualizarVistaPrevia() {
-        const cant = parseInt(cantidad.value || '1', 10) || 0;
-        const pu = parseFloat(precio.value || '0') || 0;
-        const subtotal = cant * pu;
-        const conDescuento = actualizarEstadoDescuento();
-        const pctIngresado = descuento ? (parseFloat(descuento.value || '0') || 0) : 0;
-        const pct = conDescuento ? Math.min(Math.max(pctIngresado, 0), 100) : 0;
-        const montoDesc = subtotal * pct / 100;
-        const total = subtotal - montoDesc;
-        const fmt = (n) => '$' + n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        document.getElementById('prevSubtotal').textContent = fmt(subtotal);
-        document.getElementById('prevDescuento').textContent = '-' + fmt(montoDesc).slice(0) + ' (' + pct + '%)';
-        document.getElementById('prevTotal').textContent = fmt(total);
-        const texto = document.getElementById('textoDescuento');
-        texto.textContent = conDescuento
-            ? 'Se aplicará -' + pct + '% de descuento por ' + medio.options[medio.selectedIndex].text + '.'
-            : 'Este medio de pago no admite descuento.';
-    }
+        function actualizarPrecioSugerido() {
+            const tipo = tipoAdd.value;
+            const fuente = tipo === 'SERVICIO' ? serviciosData : productosData;
+            const info = fuente[itemAdd.value];
+            if (info) {
+                precioAdd.value = info.precio;
+                textoStock.textContent = tipo === 'PRODUCTO' ? 'Stock disponible: ' + info.stock : '';
+            } else {
+                precioAdd.value = '';
+                textoStock.textContent = '';
+            }
+            actualizarEstadoCantidad();
+        }
 
-    tipo.addEventListener('change', alternarTipo);
-    [cantidad, precio, medio, descuento].forEach(el => el && el.addEventListener('input', actualizarVistaPrevia));
-    medio.addEventListener('change', actualizarVistaPrevia);
+        function actualizarEstadoCantidad() {
+            const esServicio = tipoAdd.value === 'SERVICIO';
+            cantAdd.value = esServicio ? 1 : (parseInt(cantAdd.value || '1', 10) || 1);
+            cantAdd.disabled = esServicio;
+            if (textoCantidad) {
+                textoCantidad.textContent = esServicio ? "" : "";
+            }
+        }
 
-    // Si el descuento queda vacío con un medio que lo admite, se registra sin descuento (0%).
-    if (formCobro && descuento) {
-        formCobro.addEventListener('submit', function () {
-            if (!descuento.disabled && !String(descuento.value || '').trim()) {
+        function actualizarEstadoDescuento() {
+            const conDescuento = MEDIOS_CON_DESCUENTO.includes(medio.value);
+            if (!descuento) return conDescuento;
+            if (conDescuento) {
+                descuento.disabled = false;
+                if (!descuento.value && ultimoDescuentoManual) {
+                    descuento.value = ultimoDescuentoManual;
+                }
+            } else {
+                if (descuento.value && descuento.value !== '0') {
+                    ultimoDescuentoManual = descuento.value;
+                }
                 descuento.value = 0;
+                descuento.disabled = true;
             }
+            return conDescuento;
+        }
+
+        function subtotalLinea(it) {
+            return (Number(it.cantidad) || 0) * (Number(it.precio_unitario) || 0);
+        }
+
+        function esc(s) {
+            return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+            });
+        }
+
+        function actualizarVistaPrevia() {
+            const conDescuento = actualizarEstadoDescuento();
+            const subtotal = carrito.reduce(function (acc, it) { return acc + subtotalLinea(it); }, 0);
+            const pctIngresado = descuento ? (parseFloat(descuento.value || '0') || 0) : 0;
+            const pct = conDescuento ? Math.min(Math.max(pctIngresado, 0), 100) : 0;
+            const montoDesc = subtotal * pct / 100;
+            const total = subtotal - montoDesc;
+            const fmt = (n) => '$' + n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            document.getElementById('prevSubtotal').textContent = fmt(subtotal);
+            document.getElementById('prevDescuento').textContent = '-' + fmt(montoDesc) + ' (' + pct + '%)';
+            document.getElementById('prevTotal').textContent = fmt(total);
+            document.getElementById('prevCantidad').textContent = carrito.length;
+            const texto = document.getElementById('textoDescuento');
+            texto.textContent = conDescuento
+                ? 'Se aplicará -' + pct + '% de descuento por ' + medio.options[medio.selectedIndex].text + '.'
+                : 'Este medio de pago no admite descuento.';
+            if (itemsHidden) {
+                itemsHidden.value = JSON.stringify(carrito.map(function (it) {
+                    return {
+                        tipo: it.tipo,
+                        servicio_id: it.servicio_id || null,
+                        producto_id: it.producto_id || null,
+                        cantidad: Number(it.cantidad),
+                        precio_unitario: String(it.precio_unitario),
+                    };
+                }));
+            }
+        }
+
+        function renderCarrito() {
+            cuerpo.innerHTML = '';
+            if (!carrito.length) {
+                const tr = document.createElement('tr');
+                tr.id = 'filaCarritoVacio';
+                tr.innerHTML = '<td colspan="6" class="text-center text-secondary py-4">Carrito vacío. Agregá al menos un servicio o producto.</td>';
+                cuerpo.appendChild(tr);
+            }
+            carrito.forEach(function (it, idx) {
+                const tr = document.createElement('tr');
+                const badge = it.tipo === 'SERVICIO'
+                    ? '<span class="badge bg-info text-dark">Servicio</span>'
+                    : '<span class="badge bg-warning text-dark">Producto</span>';
+                const celdaCantidad = it.tipo === 'SERVICIO'
+                    ? '<td class="text-center fw-bold">1</td>'
+                    : '<td><input type="number" min="1" step="1" value="' + it.cantidad + '" data-idx="' + idx + '" data-campo="cantidad" aria-label="Cantidad"></td>';
+                tr.innerHTML =
+                    '<td>' + badge + '</td>' +
+                    '<td>' + esc(it.nombre) + '</td>' +
+                    celdaCantidad +
+                    '<td><input type="number" min="0.01" step="0.01" value="' + it.precio_unitario + '" data-idx="' + idx + '" data-campo="precio_unitario" aria-label="Precio unitario"></td>' +
+                    '<td class="text-end fw-bold">$' + subtotalLinea(it).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '</td>' +
+                    '<td><button type="button" class="btn btn-sm btn-outline-danger" data-del="' + idx + '" aria-label="Eliminar"><i class="bi bi-trash"></i></button></td>';
+                cuerpo.appendChild(tr);
+            });
+            actualizarVistaPrevia();
+        }
+
+        document.getElementById('btnAgregarItem').addEventListener('click', function () {
+            mostrarError('');
+            const tipo = tipoAdd.value;
+            const id = itemAdd.value;
+            if (!id) { mostrarError('Seleccioná un ítem válido.'); return; }
+            const cant = tipo === 'SERVICIO' ? 1 : parseInt(cantAdd.value || '0', 10);
+            const precio = parseFloat(precioAdd.value || '0');
+            if (tipo === 'PRODUCTO' && (!cant || cant <= 0)) { mostrarError('La cantidad debe ser mayor a cero.'); return; }
+            if (!precio || precio <= 0) { mostrarError('El precio unitario debe ser mayor a cero.'); return; }
+            const fuente = tipo === 'SERVICIO' ? serviciosData : productosData;
+            const info = fuente[id];
+            if (!info) { mostrarError('Ítem no encontrado.'); return; }
+            if (tipo === 'PRODUCTO' && cant > Number(info.stock)) {
+                mostrarError('Stock insuficiente para "' + info.nombre + '". Disponible: ' + info.stock + '.');
+                return;
+            }
+            carrito.push({
+                tipo: tipo,
+                servicio_id: tipo === 'SERVICIO' ? id : null,
+                producto_id: tipo === 'PRODUCTO' ? id : null,
+                nombre: info.nombre,
+                cantidad: cant,
+                precio_unitario: Number(precio).toFixed(2),
+            });
+            renderCarrito();
         });
-    }
 
-    servicio.addEventListener('change', function () {
-        if (serviciosPrecios[this.value]) precio.value = serviciosPrecios[this.value];
-        actualizarVistaPrevia();
-    });
-    producto.addEventListener('change', function () {
-        if (productosPrecios[this.value]) precio.value = productosPrecios[this.value];
-        actualizarVistaPrevia();
-    });
-    atencion.addEventListener('change', function () {
-        const info = atencionesData[this.value];
-        if (info) {
-            precio.value = info.precio;
-            if (info.servicio && servicio) servicio.value = info.servicio;
-            if (info.cliente && clienteNombre && !clienteNombre.value) clienteNombre.value = info.cliente;
-        }
-        actualizarVistaPrevia();
-    });
-    cliente.addEventListener('change', function () {
-        const nombre = this.options[this.selectedIndex].text;
-        if (this.value && clienteNombre && !clienteNombre.value.trim()) clienteNombre.value = nombre;
-    });
-
-    // Sin diálogo nativo del navegador: la confirmación propia del modal es suficiente.
-    window._sinAvisoNavegador = true;
-
-    // ── Cancelar con confirmación (estilo Stock e Insumos / Proveedores) ──
-    const btnCancelarCobro = document.getElementById('btnCancelarCobro');
-    const btnConfirmarCancelarCobro = document.getElementById('btnConfirmarCancelarCobro');
-    const SELECTOR_CAMPOS_COBRO = 'input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, select';
-    const valoresInicialesCobro = new Map();
-    if (formCobro) {
-        formCobro.querySelectorAll(SELECTOR_CAMPOS_COBRO).forEach(function (campo) {
-            valoresInicialesCobro.set(campo, campo.value);
+        // Eliminar un ítem del carrito solo tras validar en el modal.
+        let indiceAEliminar = null;
+        cuerpo.addEventListener('click', function (e) {
+            const btn = e.target.closest('[data-del]');
+            if (!btn) return;
+            indiceAEliminar = Number(btn.getAttribute('data-del'));
+            const it = carrito[indiceAEliminar];
+            if (!it) return;
+            document.getElementById('textoEliminarItem').textContent =
+                '"' + it.nombre + '"' + (it.tipo === 'PRODUCTO' ? ' x' + it.cantidad : '') + ' se quitará del carrito.';
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEliminarItem')).show();
         });
-    }
-    function huboCambiosCobro() {
-        for (const [campo, inicial] of valoresInicialesCobro) {
-            if (campo.value !== inicial) return true;
+        const btnEliminarItemFinal = document.getElementById('btnEliminarItemFinal');
+        if (btnEliminarItemFinal) {
+            btnEliminarItemFinal.addEventListener('click', function () {
+                if (indiceAEliminar !== null && carrito[indiceAEliminar]) {
+                    carrito.splice(indiceAEliminar, 1);
+                    mostrarError('');
+                    renderCarrito();
+                }
+                indiceAEliminar = null;
+            });
         }
-        return false;
-    }
-    function debePreguntarSalidaCobro() {
-        if (window._enviandoFormulario) return false;
-        return huboCambiosCobro();
-    }
-    function pedirConfirmacionSalidaCobro(destino) {
-        if (btnConfirmarCancelarCobro && destino) {
-            btnConfirmarCancelarCobro.setAttribute('href', destino);
-        }
-        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCancelarCobro')).show();
-    }
-    if (btnCancelarCobro) {
-        btnCancelarCobro.addEventListener('click', function (e) {
-            if (debePreguntarSalidaCobro()) {
+
+        cuerpo.addEventListener('input', function (e) {
+            const input = e.target.closest('input[data-idx]');
+            if (!input) return;
+            const idx = Number(input.getAttribute('data-idx'));
+            const campo = input.getAttribute('data-campo');
+            if (campo === 'cantidad' && carrito[idx].tipo === 'SERVICIO') return;
+            const val = parseFloat(input.value || '0');
+            if (val <= 0) {
+                mostrarError('Cantidad y precio deben ser mayores a cero.');
+                return;
+            }
+            mostrarError('');
+            if (campo === 'cantidad') {
+                carrito[idx].cantidad = parseInt(input.value, 10);
+                const info = productosData[carrito[idx].producto_id];
+                if (info && carrito[idx].cantidad > Number(info.stock)) {
+                    mostrarError('Stock insuficiente para "' + info.nombre + '". Disponible: ' + info.stock + '.');
+                    return;
+                }
+            } else {
+                carrito[idx].precio_unitario = Number(val).toFixed(2);
+            }
+            renderCarrito();
+        });
+
+        tipoAdd.addEventListener('change', poblarItems);
+        itemAdd.addEventListener('change', actualizarPrecioSugerido);
+        [medio, descuento].forEach(el => el && el.addEventListener('input', actualizarVistaPrevia));
+        medio.addEventListener('change', actualizarVistaPrevia);
+
+        cliente.addEventListener('change', function () {
+            const nombre = this.options[this.selectedIndex].text;
+            if (this.value && clienteNombre && !clienteNombre.value.trim()) clienteNombre.value = nombre;
+        });
+
+        if (formCobro) {
+            formCobro.addEventListener('submit', function (e) {
+                // Siempre se intercepta: la venta solo se registra desde el modal de validación.
                 e.preventDefault();
-                pedirConfirmacionSalidaCobro(btnCancelarCobro.getAttribute('href'));
+                actualizarVistaPrevia();
+                if (!descuento.disabled && !String(descuento.value || '').trim()) {
+                    descuento.value = 0;
+                }
+                if (!carrito.length) {
+                    mostrarError('Agregá al menos un servicio o producto al carrito.');
+                    return;
+                }
+                mostrarError('');
+                document.getElementById('resumenClienta').textContent =
+                    (clienteNombre && clienteNombre.value.trim()) || '—';
+                document.getElementById('resumenMedio').textContent =
+                    medio.options[medio.selectedIndex].text;
+                const fmtResumen = (n) => '$' + n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                document.getElementById('listaResumenItems').innerHTML = carrito.map(function (it) {
+                    const detalle = it.tipo === 'SERVICIO' ? esc(it.nombre) : esc(it.nombre) + ' x' + it.cantidad;
+                    return '<li class="list-group-item bg-transparent text-light d-flex justify-content-between gap-2 px-0">'
+                        + '<span>' + detalle + '</span>'
+                        + '<strong>' + fmtResumen(subtotalLinea(it)) + '</strong></li>';
+                }).join('');
+                document.getElementById('resumenDescuento').textContent =
+                    document.getElementById('prevDescuento').textContent;
+                document.getElementById('resumenTotal').textContent =
+                    document.getElementById('prevTotal').textContent;
+                bootstrap.Modal.getOrCreateInstance(document.getElementById('modalConfirmarVenta')).show();
+            });
+        }
+        const btnConfirmarVentaFinal = document.getElementById('btnConfirmarVentaFinal');
+        if (btnConfirmarVentaFinal) {
+            btnConfirmarVentaFinal.addEventListener('click', function () {
+                actualizarVistaPrevia();
+                window._enviandoFormulario = true;
+                btnConfirmarVentaFinal.disabled = true;
+                formCobro.submit();
+            });
+        }
+
+        window._sinAvisoNavegador = true;
+
+        const btnCancelarCobro = document.getElementById('btnCancelarCobro');
+        function huboCambiosCobro() {
+            if (carrito.length) return true;
+            const campos = formCobro.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, select');
+            for (const campo of campos) {
+                if (campo.id === 'id_add_tipo' || campo.id === 'id_add_item' || campo.id === 'id_add_cantidad' || campo.id === 'id_add_precio') continue;
+                if ((campo.value || '') !== '') return true;
             }
-        });
-    }
+            return false;
+        }
+        if (btnCancelarCobro) {
+            btnCancelarCobro.addEventListener('click', function (e) {
+                if (window._enviandoFormulario) return;
+                if (huboCambiosCobro()) {
+                    e.preventDefault();
+                    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalCancelarCobro')).show();
+                }
+            });
+        }
 
-    // Conectar con el sistema global de navegación (alertas de barra lateral)
-    window.hayCambiosSinGuardar = function () {
-        return debePreguntarSalidaCobro() ? 'Tienes un cobro en curso. Si sales ahora se perderán los datos ingresados.' : false;
-    };
+        window.hayCambiosSinGuardar = function () {
+            if (window._enviandoFormulario) return false;
+            return huboCambiosCobro() ? 'Tienes un cobro en curso. Si sales ahora se perderán los datos ingresados.' : false;
+        };
 
-    alternarTipo();
-    actualizarVistaPrevia();
-})();
+        poblarItems();
+        // Restaurar carrito si el backend re-renderiza con errores (POST inválido).
+        let restaurado = false;
+        if (itemsHidden && itemsHidden.value) {
+            try {
+                const previos = JSON.parse(itemsHidden.value);
+                if (Array.isArray(previos) && previos.length) {
+                    previos.forEach(function (p) {
+                        const esServicio = p.tipo === 'SERVICIO';
+                        const fuente = esServicio ? serviciosData : productosData;
+                        const pid = p.producto_id || p.servicio_id;
+                        const info = fuente[String(pid)];
+                        if (info && Number(p.precio_unitario) > 0) {
+                            carrito.push({
+                                tipo: p.tipo,
+                                servicio_id: p.servicio_id || null,
+                                producto_id: p.producto_id || null,
+                                nombre: info.nombre,
+                                cantidad: esServicio ? 1 : Number(p.cantidad),
+                                precio_unitario: Number(p.precio_unitario).toFixed(2),
+                            });
+                        }
+                    });
+                    restaurado = carrito.length > 0;
+                }
+            } catch (e) { /* si el JSON está roto, se inicia vacío */ }
+        }
+        if (!restaurado && itemInicial && itemInicial.producto_id && productosData[itemInicial.producto_id]) {
+            const info = productosData[itemInicial.producto_id];
+            // Preseleccionar el producto en el alta para coherencia con el carrito.
+            tipoAdd.value = 'PRODUCTO';
+            poblarItems();
+            itemAdd.value = itemInicial.producto_id;
+            actualizarPrecioSugerido();
+            carrito.push({
+                tipo: 'PRODUCTO',
+                servicio_id: null,
+                producto_id: itemInicial.producto_id,
+                nombre: info.nombre,
+                cantidad: 1,
+                precio_unitario: Number(info.precio).toFixed(2),
+            });
+        }
+        renderCarrito();
+    })();
 </script>
 {% endblock %}

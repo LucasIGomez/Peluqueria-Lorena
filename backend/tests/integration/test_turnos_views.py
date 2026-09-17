@@ -52,6 +52,31 @@ class TestAgendaView:
         assert response.status_code == 200
         assert "Vera Semana" in response.content.decode("utf-8")
 
+    def test_agenda_vista_semana_distingue_turno_completado(self, client, servicio_corte) -> None:
+        empleada = EmpleadaFactory()
+        client.force_login(empleada)
+        dia = timezone.localdate()
+        turno = TurnoService.crear_turno(
+            cliente_nombre="Lucia Completa", servicio=servicio_corte, fecha=dia, hora=time(10, 0)
+        )
+        servicio_realizado = ServicioService.registrar_servicio_realizado(
+            servicio=servicio_corte,
+            cliente_nombre=turno.cliente_nombre,
+            profesional=empleada,
+            fecha=dia,
+            hora=time(10, 0),
+            precio_acordado=servicio_corte.precio_base,
+            duracion_minutos=turno.duracion_minutos,
+        )
+        TurnoService.completar_turno(turno, servicio_realizado)
+
+        response = client.get(f"{reverse('turnos:agenda')}?vista=semana&fecha={dia.isoformat()}")
+        contenido = response.content.decode("utf-8")
+        assert response.status_code == 200
+        assert "Lucia Completa" in contenido
+        # El turno completado no debe ofrecerse como editable, y debe distinguirse visualmente.
+        assert reverse("turnos:editar_turno", kwargs={"pk": turno.pk}) not in contenido
+
 
 @pytest.mark.django_db
 class TestCrearTurnoView:
@@ -74,6 +99,25 @@ class TestCrearTurnoView:
         )
         assert response.status_code == 302
         assert Turno.objects.filter(cliente_nombre="Carla Nueva").exists()
+
+    def test_crear_turno_fuera_de_horario_comercial_muestra_error(self, client, servicio_corte) -> None:
+        empleada = EmpleadaFactory()
+        client.force_login(empleada)
+        dia = timezone.localdate() + timedelta(days=1)
+
+        response = client.post(
+            reverse("turnos:crear_turno"),
+            data={
+                "cliente_nombre": "Carla Madrugada",
+                "servicio": servicio_corte.id,
+                "fecha": dia.isoformat(),
+                "hora": "03:00",
+                "duracion_minutos": "45",
+                "notas": "",
+            },
+        )
+        assert response.status_code == 200  # Vuelve a mostrar el form con el error
+        assert Turno.objects.filter(cliente_nombre="Carla Madrugada").exists() is False
 
     def test_crear_turno_con_solapamiento_muestra_error(self, client, servicio_corte) -> None:
         empleada = EmpleadaFactory()

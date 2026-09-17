@@ -3,6 +3,8 @@ Peluquería Lorena — Formularios del módulo de Turnos (Agenda).
 """
 from __future__ import annotations
 
+from datetime import time
+
 from django import forms
 from django.utils import timezone
 
@@ -11,6 +13,9 @@ from apps.servicios.models import Servicio
 from apps.usuarios.models import Usuario
 from .models import Turno
 from .services import TurnoService
+
+HORA_APERTURA = time(9, 0)
+HORA_CIERRE = time(20, 0)
 
 
 class TurnoForm(forms.ModelForm):
@@ -24,7 +29,7 @@ class TurnoForm(forms.ModelForm):
     )
     hora = forms.TimeField(
         label="Hora del Turno",
-        widget=forms.TimeInput(attrs={"class": "form-control", "type": "time"}),
+        widget=forms.TimeInput(attrs={"class": "form-control", "type": "time", "min": "09:00", "max": "20:00"}),
     )
 
     class Meta:
@@ -69,6 +74,15 @@ class TurnoForm(forms.ModelForm):
         if fecha and fecha < timezone.localdate():
             raise forms.ValidationError("No se puede agendar un turno en una fecha pasada.")
         return fecha
+
+    def clean_hora(self):
+        hora = self.cleaned_data.get("hora")
+        if hora and (hora < HORA_APERTURA or hora >= HORA_CIERRE):
+            raise forms.ValidationError(
+                f"El horario de atención es de {HORA_APERTURA.strftime('%H:%M')} a "
+                f"{HORA_CIERRE.strftime('%H:%M')}."
+            )
+        return hora
 
     def clean(self):
         datos = super().clean()

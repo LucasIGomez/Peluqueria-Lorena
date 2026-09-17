@@ -83,6 +83,22 @@
                         <div class="p-3 bg-dark rounded border border-secondary h-100 d-flex flex-column justify-content-between">
                             <div>
                                 <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="badge bg-accent text-dark fw-bold">Reservas</span>
+                                    <i class="bi bi-calendar-event text-accent fs-4"></i>
+                                </div>
+                                <h5 class="text-light fw-bold mb-1">Agenda y Turnos</h5>
+                                <p class="text-secondary small mb-3">Reservá horarios, asigná peluquera y hacé seguimiento de los turnos del día.</p>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <a href="{% url 'turnos:agenda' %}" class="btn btn-sm btn-accent text-dark fw-bold">Ver Agenda</a>
+                                <a href="{% url 'turnos:crear_turno' %}" class="btn btn-sm btn-outline-secondary">+ Turno</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 bg-dark rounded border border-secondary h-100 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
                                     <span class="badge bg-warning text-dark fw-bold">Bitácora en Vivo</span>
                                     <i class="bi bi-calendar-check text-accent fs-4"></i>
                                 </div>
@@ -102,7 +118,7 @@
                                     <span class="badge bg-info text-dark fw-bold">Fidelización</span>
                                     <i class="bi bi-people-fill text-info fs-4"></i>
                                 </div>
-                                <h5 class="text-light fw-bold mb-1">Agenda de Clientas</h5>
+                                <h5 class="text-light fw-bold mb-1">Fichas de Clientas</h5>
                                 <p class="text-secondary small mb-3">Historial técnico de procesos multisesión, consentimientos y alertas de cumpleaños.</p>
                             </div>
                             <div class="d-flex gap-2">
@@ -158,7 +174,7 @@
                     style="border-color: #3c4149 !important;">
                     <i class="bi bi-people-fill fs-4 text-info"></i>
                     <div>
-                        <h6 class="mb-0 text-info">Agenda de Clientas</h6>
+                        <h6 class="mb-0 text-info">Fichas de Clientas</h6>
                         <small class="text-secondary">Fichas técnicas, WhatsApp y cumpleaños</small>
                     </div>
                 </a>

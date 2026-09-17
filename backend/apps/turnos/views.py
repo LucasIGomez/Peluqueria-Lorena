@@ -114,15 +114,20 @@ def crear_turno_view(request):
                 initial["cliente_telefono"] = cli.telefono
         form = TurnoForm(initial=initial)
 
+    from apps.clientes.models import Cliente
     from apps.servicios.models import Servicio
 
     servicios = Servicio.objects.filter(activo=True).order_by("categoria", "nombre")
     duraciones = {str(s.pk): s.duracion_estimada_minutos for s in servicios}
+    clientes_data = {
+        str(c.pk): {"nombre": c.nombre, "telefono": c.telefono}
+        for c in Cliente.objects.filter(activo=True)
+    }
 
     return render(
         request,
         "turnos/form_turno.html",
-        {"form": form, "accion": "Agendar Turno", "duraciones": duraciones},
+        {"form": form, "accion": "Agendar Turno", "duraciones": duraciones, "clientes_data": clientes_data},
     )
 
 
@@ -154,15 +159,26 @@ def editar_turno_view(request, pk: int):
     else:
         form = TurnoForm(instance=turno)
 
+    from apps.clientes.models import Cliente
     from apps.servicios.models import Servicio
 
     servicios = Servicio.objects.filter(activo=True).order_by("categoria", "nombre")
     duraciones = {str(s.pk): s.duracion_estimada_minutos for s in servicios}
+    clientes_data = {
+        str(c.pk): {"nombre": c.nombre, "telefono": c.telefono}
+        for c in Cliente.objects.filter(activo=True)
+    }
 
     return render(
         request,
         "turnos/form_turno.html",
-        {"form": form, "accion": "Editar Turno", "turno": turno, "duraciones": duraciones},
+        {
+            "form": form,
+            "accion": "Editar Turno",
+            "turno": turno,
+            "duraciones": duraciones,
+            "clientes_data": clientes_data,
+        },
     )
 
 

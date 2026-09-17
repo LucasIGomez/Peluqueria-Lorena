@@ -26,6 +26,7 @@
                         <div class="col-md-6">
                             <label class="form-label text-light">Nombre de la Clienta <span class="text-danger">*</span></label>
                             {{ form.cliente_nombre }}
+                            <small id="ayudaDatosClienta" class="text-secondary d-none">Datos de la clienta registrada, no editables.</small>
                             {% if form.cliente_nombre.errors %}<div class="text-danger small mt-1">{{ form.cliente_nombre.errors }}</div>{% endif %}
                         </div>
                     </div>
@@ -89,6 +90,7 @@
 
 {% block extra_js %}
 {{ duraciones|json_script:"duraciones-data" }}
+{{ clientes_data|json_script:"clientes-data" }}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     const servicioSelect = document.getElementById('id_servicio');
@@ -103,6 +105,35 @@ document.addEventListener("DOMContentLoaded", function () {
                 duracionInput.value = duracion;
             }
         });
+    }
+
+    // Si se elige una clienta ya registrada, se autocompletan y bloquean
+    // su nombre y teléfono (ya están cargados en su ficha).
+    const clienteSelect = document.getElementById('id_cliente');
+    const nombreInput = document.getElementById('id_cliente_nombre');
+    const telefonoInput = document.getElementById('id_cliente_telefono');
+    const ayudaDatos = document.getElementById('ayudaDatosClienta');
+    const clientesEl = document.getElementById('clientes-data');
+    const clientesData = clientesEl ? JSON.parse(clientesEl.textContent) : {};
+
+    function aplicarClienteSeleccionado() {
+        const datos = clientesData[clienteSelect.value];
+        if (datos) {
+            nombreInput.value = datos.nombre;
+            telefonoInput.value = datos.telefono;
+            nombreInput.readOnly = true;
+            telefonoInput.readOnly = true;
+            if (ayudaDatos) ayudaDatos.classList.remove('d-none');
+        } else {
+            nombreInput.readOnly = false;
+            telefonoInput.readOnly = false;
+            if (ayudaDatos) ayudaDatos.classList.add('d-none');
+        }
+    }
+
+    if (clienteSelect && nombreInput && telefonoInput) {
+        clienteSelect.addEventListener('change', aplicarClienteSeleccionado);
+        aplicarClienteSeleccionado();
     }
 });
 </script>

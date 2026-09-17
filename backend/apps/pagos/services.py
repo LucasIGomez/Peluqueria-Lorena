@@ -188,8 +188,8 @@ class CajaService:
             raise CobroInvalidoError(
                 "Debe indicar el precio unitario o el servicio cobrado."
             )
-        if precio_final < Decimal("0.00"):
-            raise CobroInvalidoError("El precio unitario no puede ser negativo.")
+        if precio_final <= Decimal("0.00"):
+            raise CobroInvalidoError("El precio unitario debe ser mayor a cero.")
 
         subtotal = _a_dos_decimales(precio_final * cantidad)
         totales = cls.calcular_totales(subtotal, medio_pago, porcentaje_descuento)
@@ -235,6 +235,79 @@ class CajaService:
     def registrarCobro(cls, *args: Any, **kwargs: Any) -> Cobro:
         return cls.registrar_cobro(*args, **kwargs)
 
+    @classmethod
+    @transaction.atomic
+    def registrar_cobros_carrito(
+        cls,
+        items: list[dict],
+        cliente_nombre: str,
+        profesional: Any,
+        medio_pago: str = Cobro.MedioPago.EFECTIVO,
+        cliente: Any = None,
+        fecha: Optional[date] = None,
+        observaciones: str = "",
+        porcentaje_descuento: Optional[Union[Decimal, str, float]] = None,
+    ) -> list[Cobro]:
+        """
+        Registra una venta con múltiples ítems (carrito) como varios Cobro
+        vinculados por cabecera común, en una única transacción atómica.
+
+        Cada ítem requiere: tipo, cantidad (1 fija para servicios, > 0 para
+        productos), precio_unitario (> 0) y servicio o producto según el tipo.
+        El descuento porcentual de la cabecera se aplica a cada línea para que
+        el total general cuadre con el cierre y los reportes existentes.
+        """
+        if not items:
+            raise CobroInvalidoError("Agregá al menos un servicio o producto al carrito.")
+        dia = fecha or timezone.localdate()
+        if CierreCaja.objects.filter(fecha=dia).exists():
+            raise CajaCerradaError(
+                f"La caja del {dia.strftime('%d/%m/%Y')} ya fue cerrada. "
+                "No se pueden registrar ni anular cobros de ese día."
+            )
+        cobros: list[Cobro] = []
+        for indice, item in enumerate(items, start=1):
+            tipo = item.get("tipo")
+            cantidad = item.get("cantidad")
+            precio = item.get("precio_unitario")
+            try:
+                cantidad = int(cantidad)
+            except (TypeError, ValueError) as exc:
+                raise CobroInvalidoError(f"Ítem {indice}: cantidad inválida.") from exc
+            if cantidad <= 0:
+                raise CobroInvalidoError(f"Ítem {indice}: la cantidad debe ser mayor a cero.")
+            if tipo == Cobro.Tipo.SERVICIO and cantidad != 1:
+                raise CobroInvalidoError(
+                    f"Ítem {indice}: los servicios se cobran por unidad (cantidad 1)."
+                )
+            try:
+                precio_dec = _a_dos_decimales(Decimal(str(precio)))
+            except Exception as exc:
+                raise CobroInvalidoError(f"Ítem {indice}: precio inválido.") from exc
+            if precio_dec <= Decimal("0.00"):
+                raise CobroInvalidoError(f"Ítem {indice}: el precio debe ser mayor a cero.")
+            cobro = cls.registrar_cobro(
+                cliente_nombre=cliente_nombre,
+                profesional=profesional,
+                tipo=tipo,
+                medio_pago=medio_pago,
+                cantidad=cantidad,
+                precio_unitario=precio_dec,
+                servicio=item.get("servicio"),
+                servicio_realizado=None,
+                producto=item.get("producto"),
+                cliente=cliente,
+                fecha=dia,
+                observaciones=observaciones,
+                porcentaje_descuento=porcentaje_descuento,
+            )
+            cobros.append(cobro)
+        return cobros
+
+    @classmethod
+    def registrarCobrosCarrito(cls, *args: Any, **kwargs: Any) -> list[Cobro]:
+        return cls.registrar_cobros_carrito(*args, **kwargs)
+
     # ── Anulación ──
 
     @classmethod
@@ -268,6 +341,25 @@ class CajaService:
     @classmethod
     def anularCobro(cls, *args: Any, **kwargs: Any) -> Cobro:
         return cls.anular_cobro(*args, **kwargs)
+
+    @classmethod
+    @transaction.atomic
+    def anular_venta(cls, cobros: list, usuario: Any = None) -> list:
+        """
+        Anula todos los ítems de una venta en conjunto (baja lógica de cada
+        cobro con reposición de stock). Todo o nada: si un ítem falla
+        (caja cerrada o ya anulado), no se anula ninguno.
+        """
+        if not cobros:
+            raise CobroInvalidoError("La venta no tiene cobros vigentes para anular.")
+        anulados = []
+        for cobro in cobros:
+            anulados.append(cls.anular_cobro(cobro, usuario=usuario))
+        return anulados
+
+    @classmethod
+    def anularVenta(cls, *args: Any, **kwargs: Any) -> list:
+        return cls.anular_venta(*args, **kwargs)
 
     # ── Consultas ──
 

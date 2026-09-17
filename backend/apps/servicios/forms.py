@@ -113,7 +113,8 @@ class ServicioRealizadoForm(forms.ModelForm):
 
 class ConsentimientoInformadoForm(forms.ModelForm):
     """
-    Formulario legal y técnico de consentimiento informado para decoloración y alisado.
+    Formulario de consentimiento informado para servicios químicos
+    (coloración, decoloración, alisados, keratina, permanentes).
     """
 
     class Meta:
@@ -121,53 +122,26 @@ class ConsentimientoInformadoForm(forms.ModelForm):
         fields = [
             "cliente",
             "cliente_nombre",
-            "cliente_telefono",
             "cliente_dni",
             "tipo_procedimiento",
+            "otro_procedimiento_detalle",
             "profesional",
-            # Factores ajenos
-            "ha_usado_henna_o_sales_metalicas",
-            "tiene_alisados_o_permanentes_previos",
-            "detalle_quimicos_previos",
-            "tiene_decoloraciones_previas",
-            "alergias_o_sensibilidad_cuero_cabelludo",
-            "detalle_alergias",
-            "embarazo_o_lactancia",
-            "medicacion_o_tratamiento_medico",
-            # Diagnóstico
-            "prueba_mecha_realizada",
-            "resultado_prueba_mecha",
-            "elasticidad_cabello",
-            "porosidad_cabello",
-            # Conformidad
             "acepta_terminos",
             "firma_digital",
             "observaciones",
         ]
         widgets = {
             "cliente": forms.Select(attrs={"class": "form-select"}),
-            "cliente_nombre": forms.TextInput(attrs={"class": "form-control", "placeholder": "Nombre completo"}),
-            "cliente_telefono": forms.TextInput(attrs={"class": "form-control", "placeholder": "Teléfono de contacto"}),
-            "cliente_dni": forms.TextInput(attrs={"class": "form-control", "placeholder": "DNI / Documento"}),
+            "cliente_nombre": forms.TextInput(attrs={"class": "form-control", "placeholder": "Nombre y apellido"}),
+            "cliente_dni": forms.TextInput(attrs={"class": "form-control", "placeholder": "DNI"}),
             "tipo_procedimiento": forms.Select(attrs={"class": "form-select"}),
+            "otro_procedimiento_detalle": forms.TextInput(
+                attrs={"class": "form-control", "placeholder": "Detalle del servicio (si elegiste \"Otro\")"}
+            ),
             "profesional": forms.Select(attrs={"class": "form-select"}),
-            # Checkboxes
-            "ha_usado_henna_o_sales_metalicas": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "tiene_alisados_o_permanentes_previos": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "detalle_quimicos_previos": forms.Textarea(attrs={"class": "form-control", "rows": 2, "placeholder": "Marcas, fechas o tipos de productos previos."}),
-            "tiene_decoloraciones_previas": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "alergias_o_sensibilidad_cuero_cabelludo": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "detalle_alergias": forms.TextInput(attrs={"class": "form-control", "placeholder": "Persulfato, amoníaco, etc."}),
-            "embarazo_o_lactancia": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "medicacion_o_tratamiento_medico": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            # Diagnóstico
-            "prueba_mecha_realizada": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "resultado_prueba_mecha": forms.Select(attrs={"class": "form-select"}),
-            "elasticidad_cabello": forms.Select(attrs={"class": "form-select"}),
-            "porosidad_cabello": forms.Select(attrs={"class": "form-select"}),
             "acepta_terminos": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "firma_digital": forms.TextInput(attrs={"class": "form-control", "placeholder": "Aclaración o conformidad expresa de la clienta"}),
-            "observaciones": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+            "observaciones": forms.Textarea(attrs={"class": "form-control", "rows": 2, "placeholder": "Observaciones del diagnóstico"}),
         }
 
     def __init__(self, *args, **kwargs):

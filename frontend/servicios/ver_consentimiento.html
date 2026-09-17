@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Ficha Legal de Consentimiento #{{ consentimiento.pk }}{% endblock %}
-{% block page_subtitle %}Documento digital de conformidad y diagnóstico capilar.{% endblock %}
+{% block page_title %}Consentimiento Informado #{{ consentimiento.pk }}{% endblock %}
+{% block page_subtitle %}Documento digital de conformidad para servicios químicos.{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -31,122 +31,83 @@
                 </div>
             </div>
 
-            <div class="mb-4">
-                <h5 class="fw-bold text-light text-uppercase border-bottom border-secondary pb-2">
-                    Consentimiento Informado y Declaración Jurada Capilar
-                </h5>
-                <p class="text-secondary small">
-                    Tratamiento a realizar: <strong class="text-accent fs-6">{{ consentimiento.get_tipo_procedimiento_display }}</strong>
-                </p>
+            <h5 class="fw-bold text-light text-uppercase border-bottom border-secondary pb-2 mb-3">
+                Consentimiento Informado – Servicios Químicos
+            </h5>
+
+            <div class="small text-secondary mb-4" style="line-height: 1.7;">
+                <p>La clienta declara haber recibido información sobre el servicio solicitado y comprende que los servicios de coloración, decoloración, alisados, tratamientos de keratina, permanentes y otros procedimientos químicos producen una alteración de la fibra capilar y pueden modificar algunas de sus características naturales.</p>
+
+                <p>Estos procedimientos pueden generar cambios en la textura, porosidad, elasticidad, hidratación, brillo y resistencia del cabello, cuya intensidad puede variar según las características individuales, el estado previo del cabello, antecedentes de coloración, decoloración, alisados u otros tratamientos químicos y los productos utilizados anteriormente.</p>
+
+                <p>La clienta comprende que el resultado puede variar según las condiciones actuales del cabello y que, en determinadas circunstancias, puede ser necesario realizar el procedimiento en más de una sesión, modificar el servicio solicitado o recomendar un tratamiento alternativo con el objetivo de preservar la integridad de la fibra capilar.</p>
+
+                <p>La profesional realizará previamente un diagnóstico del cabello y cuero cabelludo, teniendo en cuenta la información proporcionada por la clienta y las condiciones observadas al momento de la consulta, con el objetivo de determinar la viabilidad del servicio y trabajar procurando preservar la integridad del cabello.</p>
+
+                <p>La clienta comprende que, aun realizando un diagnóstico previo y aplicando correctamente el procedimiento, todo servicio químico puede producir cambios en el cabello y existe la posibilidad de presentar sensibilidad, irritación o una reacción no deseada a determinados productos.</p>
+
+                <p>La clienta declara haber informado de manera completa y verdadera los antecedentes relacionados con su cabello, incluyendo coloraciones, decoloraciones, alisados, permanentes, tratamientos, productos utilizados en el hogar y cualquier reacción previa conocida.</p>
+
+                <p>Asimismo, se compromete a informar cualquier antecedente o condición que considere relevante antes de realizar el servicio.</p>
+
+                <p class="mb-0">La clienta manifiesta haber comprendido la información proporcionada, las características del procedimiento, sus posibles efectos, limitaciones y riesgos, y presta su conformidad para la realización del servicio.</p>
+            </div>
+
+            <!-- Servicio Solicitado -->
+            <h6 class="fw-bold text-light text-uppercase small mb-2">Servicio Solicitado:</h6>
+            <div class="p-3 bg-dark rounded border border-secondary mb-4 small">
+                <ul class="list-unstyled mb-0 row g-1">
+                    {% for valor, etiqueta in consentimiento.TipoProcedimiento.choices %}
+                        <li class="col-md-6">
+                            <i class="bi {% if consentimiento.tipo_procedimiento == valor %}bi-check-square-fill text-accent{% else %}bi-square text-secondary{% endif %} me-2"></i>
+                            <span class="{% if consentimiento.tipo_procedimiento == valor %}text-light fw-bold{% else %}text-secondary{% endif %}">{{ etiqueta }}</span>
+                            {% if consentimiento.tipo_procedimiento == valor and valor == 'OTRO' and consentimiento.otro_procedimiento_detalle %}
+                                <span class="text-light">: {{ consentimiento.otro_procedimiento_detalle }}</span>
+                            {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
             </div>
 
             <!-- Datos de la Clienta -->
             <div class="p-3 bg-dark rounded border border-secondary mb-4">
                 <div class="row g-2 small">
                     <div class="col-md-6">
-                        <span class="text-secondary">Clienta:</span>
+                        <span class="text-secondary">Nombre y apellido:</span>
                         <strong class="text-light ms-1">{{ consentimiento.cliente_nombre }}</strong>
                     </div>
                     <div class="col-md-6">
-                        <span class="text-secondary">Teléfono:</span>
-                        <span class="text-light ms-1">{{ consentimiento.cliente_telefono }}</span>
+                        <span class="text-secondary">DNI:</span>
+                        <span class="text-light ms-1">{{ consentimiento.cliente_dni|default:"—" }}</span>
                     </div>
-                    {% if consentimiento.cliente_dni %}
-                        <div class="col-md-6">
-                            <span class="text-secondary">DNI:</span>
-                            <span class="text-light ms-1">{{ consentimiento.cliente_dni }}</span>
-                        </div>
-                    {% endif %}
+                    <div class="col-md-6">
+                        <span class="text-secondary">Fecha:</span>
+                        <span class="text-light ms-1">{{ consentimiento.fecha_emision|date:"d/m/Y" }}</span>
+                    </div>
                     <div class="col-md-6">
                         <span class="text-secondary">Profesional:</span>
                         <strong class="text-light ms-1">{{ consentimiento.profesional.nombre|default:"Lorena Gómez" }}</strong>
                     </div>
-                </div>
-            </div>
-
-            <!-- Declaraciones de Factores Ajenos -->
-            <h6 class="fw-bold text-light text-uppercase small mb-2">Antecedentes Declarados por la Clienta:</h6>
-            <div class="p-3 bg-dark rounded border border-secondary mb-4 small">
-                <ul class="list-unstyled mb-0">
-                    <li class="mb-2">
-                        • Uso de Henna o Sales Metálicas: 
-                        <strong class="{% if consentimiento.ha_usado_henna_o_sales_metalicas %}text-danger{% else %}text-success{% endif %}">
-                            {{ consentimiento.ha_usado_henna_o_sales_metalicas|yesno:"SÍ,NO" }}
-                        </strong>
-                    </li>
-                    <li class="mb-2">
-                        • Alisados, Botox o Permanentes Previos: 
-                        <strong class="{% if consentimiento.tiene_alisados_o_permanentes_previos %}text-warning{% else %}text-success{% endif %}">
-                            {{ consentimiento.tiene_alisados_o_permanentes_previos|yesno:"SÍ,NO" }}
-                        </strong>
-                        {% if consentimiento.detalle_quimicos_previos %}
-                            <span class="text-secondary d-block ps-3">Detalle: {{ consentimiento.detalle_quimicos_previos }}</span>
-                        {% endif %}
-                    </li>
-                    <li class="mb-2">
-                        • Decoloraciones Anteriores en Medios/Puntas: 
-                        <strong class="text-light">{{ consentimiento.tiene_decoloraciones_previas|yesno:"SÍ,NO" }}</strong>
-                    </li>
-                    <li class="mb-2">
-                        • Alergias Cutáneas o Cuero Cabelludo Sensible: 
-                        <strong class="{% if consentimiento.alergias_o_sensibilidad_cuero_cabelludo %}text-danger{% else %}text-success{% endif %}">
-                            {{ consentimiento.alergias_o_sensibilidad_cuero_cabelludo|yesno:"SÍ,NO" }}
-                        </strong>
-                        {% if consentimiento.detalle_alergias %}
-                            <span class="text-secondary ms-2">({{ consentimiento.detalle_alergias }})</span>
-                        {% endif %}
-                    </li>
-                    <li>
-                        • Embarazo o Lactancia: <strong class="text-light">{{ consentimiento.embarazo_o_lactancia|yesno:"SÍ,NO" }}</strong>
-                    </li>
-                </ul>
-            </div>
-
-            <!-- Diagnóstico de la Profesional -->
-            <h6 class="fw-bold text-light text-uppercase small mb-2">Diagnóstico Técnico y Prueba de Mecha:</h6>
-            <div class="p-3 bg-dark rounded border border-secondary mb-4 small">
-                <div class="row g-2">
-                    <div class="col-md-6">
-                        <span class="text-secondary">Prueba de Mecha:</span>
-                        <span class="badge {% if consentimiento.resultado_prueba_mecha == 'APTO' %}bg-success{% elif consentimiento.resultado_prueba_mecha == 'APTO_PRECAUCION' %}bg-warning text-dark{% else %}bg-danger{% endif %} ms-1">
-                            {{ consentimiento.get_resultado_prueba_mecha_display }}
-                        </span>
-                    </div>
-                    <div class="col-md-6">
-                        <span class="text-secondary">Elasticidad de la Fibra:</span>
-                        <span class="text-light fw-bold ms-1">{{ consentimiento.get_elasticidad_cabello_display }}</span>
-                    </div>
-                    <div class="col-md-6">
-                        <span class="text-secondary">Porosidad:</span>
-                        <span class="text-light fw-bold ms-1">{{ consentimiento.get_porosidad_cabello_display }}</span>
-                    </div>
                     {% if consentimiento.observaciones %}
                         <div class="col-12 mt-2">
-                            <span class="text-secondary d-block">Observaciones Profesionales:</span>
+                            <span class="text-secondary d-block">Observaciones del diagnóstico:</span>
                             <span class="text-light">{{ consentimiento.observaciones }}</span>
                         </div>
                     {% endif %}
                 </div>
             </div>
 
-            <!-- Cláusula de Conformidad Legal y Firmas -->
-            <div class="p-3 rounded border border-warning-subtle mb-4 small text-secondary">
-                <p class="mb-0">
-                    <strong>Cláusula de Responsabilidad:</strong> La clienta manifiesta haber sido debidamente informada sobre las etapas, recaudos y riesgos inherentes al procedimiento químico solicitado. Declara que los datos sobre tratamientos anteriores provistos son fidedignos, asumiendo que la omisión de información técnica puede derivar en reacciones capilares imprevisibles. Se compromete asimismo a respetar el régimen de hidratación y cuidados post-tratamiento indicados por la profesional.
-                </p>
-            </div>
-
             <div class="row pt-5 mt-4 text-center">
                 <div class="col-6">
                     <div class="border-top border-secondary pt-2 mx-3">
                         <strong class="text-light d-block">{{ consentimiento.firma_digital|default:consentimiento.cliente_nombre }}</strong>
-                        <small class="text-secondary">Firma / Conformidad de la Clienta</small>
+                        <small class="text-secondary">Firma / Aceptación Digital de la Clienta</small>
                     </div>
                 </div>
                 <div class="col-6">
                     <div class="border-top border-secondary pt-2 mx-3">
                         <strong class="text-light d-block">{{ consentimiento.profesional.nombre|default:"Lorena Gómez" }}</strong>
-                        <small class="text-secondary">Peluquería Lorena — Mat. Profesional</small>
+                        <small class="text-secondary">Peluquería Lorena</small>
                     </div>
                 </div>
             </div>

@@ -14,8 +14,8 @@
         </form>
 
         <div class="d-flex flex-wrap gap-2">
-            <a href="{% url 'servicios:registrar_servicio_realizado' %}" class="btn btn-accent text-dark fw-bold btn-sm">
-                <i class="bi bi-calendar-plus-fill me-1"></i> Nueva Atención
+            <a href="{% url 'turnos:agenda' %}" class="btn btn-accent text-dark fw-bold btn-sm">
+                <i class="bi bi-calendar-week me-1"></i> Ir a la Agenda
             </a>
             <a href="{% url 'servicios:crear_consentimiento' %}" class="btn btn-outline-warning btn-sm">
                 <i class="bi bi-shield-plus me-1"></i> Ficha Consentimiento
@@ -154,8 +154,8 @@
                                 <i class="bi bi-calendar-x fs-1 d-block mb-2"></i>
                                 No hay servicios asentados para esta fecha.
                                 <div class="mt-2">
-                                    <a href="{% url 'servicios:registrar_servicio_realizado' %}" class="btn btn-sm btn-accent text-dark fw-bold">
-                                        <i class="bi bi-plus-circle me-1"></i> Asentar Primer Servicio
+                                    <a href="{% url 'turnos:agenda' %}" class="btn btn-sm btn-accent text-dark fw-bold">
+                                        <i class="bi bi-calendar-week me-1"></i> Ver Agenda de Turnos
                                     </a>
                                 </div>
                             </td>

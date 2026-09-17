@@ -7,15 +7,18 @@ y API REST de cobros y cierres.
 """
 from __future__ import annotations
 
+import io
 from datetime import date
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
+from .facturacion import FacturaError, FacturaService
 from .forms import CierreCajaForm, CobroForm, ReporteMediosForm
 from .models import CierreCaja, Cobro
 from .serializers import CierreCajaSerializer, CobroSerializer
@@ -44,18 +47,25 @@ def caja_diaria_view(request):
         dia = timezone.localdate()
 
     resumen = CajaService.resumen_caja_dia(fecha=dia)
+    # Si se acaba de confirmar una venta (?factura=<pk>), la plantilla abre
+    # el comprobante PDF en una pestaña nueva automáticamente.
+    factura_pk = request.GET.get("factura") or ""
+    factura_pk = factura_pk if factura_pk.isdigit() else ""
     context = {
         "fecha": dia,
         "fecha_str": dia.isoformat(),
         "resumen": resumen,
         "cobros": resumen["cobros"],
+        # Ventas agrupadas: los ítems vendidos en conjunto comparten una fila.
+        "ventas": FacturaService.agrupar_ventas(resumen["cobros"]),
+        "factura_pk": factura_pk,
     }
     return render(request, "pagos/caja_diaria.html", context)
 
 
 @login_required
 def registrar_cobro_view(request):
-    """Registra el cobro de un servicio o la venta de un producto."""
+    """Registra una venta con carrito de múltiples servicios y/o productos."""
     if CajaService.caja_esta_cerrada(timezone.localdate()) and request.method == "GET":
         messages.warning(request, "La caja de hoy ya fue cerrada.")
 
@@ -64,18 +74,51 @@ def registrar_cobro_view(request):
         if form.is_valid():
             datos = form.cleaned_data
             try:
+                items = datos.get("items") or []
+                fecha_cobro = datos.get("fecha") or timezone.localdate()
+                if items:
+                    from decimal import Decimal as _Decimal
+
+                    cobros = CajaService.registrar_cobros_carrito(
+                        items=items,
+                        cliente_nombre=datos["cliente_nombre"],
+                        profesional=datos["profesional"],
+                        medio_pago=datos["medio_pago"],
+                        cliente=datos.get("cliente"),
+                        fecha=fecha_cobro,
+                        observaciones=datos.get("observaciones", ""),
+                        porcentaje_descuento=datos.get("porcentaje_descuento"),
+                    )
+                    total_general = sum((c.total for c in cobros), _Decimal("0.00"))
+                    desc_total = sum((c.monto_descuento for c in cobros), _Decimal("0.00"))
+                    primero = cobros[0]
+                    if desc_total > 0:
+                        messages.success(
+                            request,
+                            f"Venta registrada: {len(cobros)} ítems por ${total_general:,.2f} "
+                            f"({primero.get_medio_pago_display()}, descuento "
+                            f"{primero.porcentaje_descuento}%: -${desc_total:,.2f}).",
+                        )
+                    else:
+                        messages.success(
+                            request,
+                            f"Venta registrada: {len(cobros)} ítems por ${total_general:,.2f} "
+                            f"({primero.get_medio_pago_display()}).",
+                        )
+                    return redirect(f"/pagos/?fecha={fecha_cobro.isoformat()}&factura={cobros[0].pk}")
+                # Compatibilidad con POST unitario (tests/API sin carrito).
                 cobro = CajaService.registrar_cobro(
                     cliente_nombre=datos["cliente_nombre"],
                     profesional=datos["profesional"],
-                    tipo=datos["tipo"],
+                    tipo=datos.get("tipo") or Cobro.Tipo.SERVICIO,
                     medio_pago=datos["medio_pago"],
-                    cantidad=datos["cantidad"],
+                    cantidad=datos.get("cantidad") or 1,
                     precio_unitario=datos.get("precio_unitario"),
                     servicio=datos.get("servicio"),
-                    servicio_realizado=datos.get("servicio_realizado"),
+                    servicio_realizado=None,
                     producto=datos.get("producto"),
                     cliente=datos.get("cliente"),
-                    fecha=datos.get("fecha") or timezone.localdate(),
+                    fecha=fecha_cobro,
                     observaciones=datos.get("observaciones", ""),
                     porcentaje_descuento=datos.get("porcentaje_descuento"),
                 )
@@ -92,74 +135,57 @@ def registrar_cobro_view(request):
                         f"Cobro #{cobro.pk} registrado: ${cobro.total:,.2f} "
                         f"({cobro.get_medio_pago_display()}).",
                     )
-                return redirect(f"/pagos/?fecha={cobro.fecha.isoformat()}")
+                return redirect(f"/pagos/?fecha={cobro.fecha.isoformat()}&factura={cobro.pk}")
             except (CobroInvalidoError, CajaCerradaError) as exc:
                 messages.error(request, str(exc))
     else:
         initial = {
             "fecha": timezone.localdate(),
-            "cantidad": 1,
             "medio_pago": Cobro.MedioPago.EFECTIVO,
-            "tipo": Cobro.Tipo.SERVICIO,
         }
-        # Precompletar desde una atención o clienta si vienen por querystring.
-        servicio_realizado_id = request.GET.get("atencion")
-        if servicio_realizado_id:
-            from apps.servicios.models import ServicioRealizado
-
-            atencion = ServicioRealizado.objects.filter(pk=servicio_realizado_id).first()
-            if atencion:
-                initial.update(
-                    {
-                        "servicio_realizado": atencion,
-                        "servicio": atencion.servicio,
-                        "cliente": atencion.cliente,
-                        "cliente_nombre": atencion.cliente_nombre,
-                        "precio_unitario": atencion.precio_acordado,
-                    }
-                )
+        # Precompletar clienta o producto inicial si vienen por querystring.
         cliente_id = request.GET.get("cliente")
-        if cliente_id and not initial.get("cliente_nombre"):
+        if cliente_id:
             from apps.clientes.models import Cliente
 
             cli = Cliente.objects.filter(pk=cliente_id).first()
             if cli:
                 initial["cliente"] = cli
                 initial["cliente_nombre"] = cli.nombre
-        producto_id = request.GET.get("producto")
-        if producto_id:
-            from apps.inventario.models import Producto
-
-            prod = Producto.objects.filter(pk=producto_id).first()
-            if prod:
-                initial.update(
-                    {
-                        "tipo": Cobro.Tipo.PRODUCTO,
-                        "producto": prod,
-                        "precio_unitario": prod.precio,
-                    }
-                )
         form = CobroForm(initial=initial)
 
     from apps.inventario.models import Producto
-    from apps.servicios.models import Servicio, ServicioRealizado
+    from apps.servicios.models import Servicio
 
     servicios = Servicio.objects.filter(activo=True).order_by("categoria", "nombre")
     productos = Producto.objects.filter(activo=True).order_by("nombre")
-    atenciones = ServicioRealizado.objects.filter(
-        fecha=timezone.localdate(), estado=ServicioRealizado.Estado.COMPLETADO
-    ).order_by("-hora")[:50]
 
-    servicios_precios = {str(s.pk): str(s.precio_base) for s in servicios}
-    productos_precios = {str(p.pk): str(p.precio) for p in productos}
-    atenciones_data = {
-        str(a.pk): {
-            "precio": str(a.precio_acordado),
-            "cliente": a.cliente_nombre,
-            "servicio": a.servicio_id,
-        }
-        for a in atenciones
+    servicios_data = {
+        str(s.pk): {"precio": str(s.precio_base), "nombre": s.nombre}
+        for s in servicios
     }
+    productos_data = {
+        str(p.pk): {
+            "precio": str(p.precio),
+            "nombre": p.nombre,
+            "stock": p.stock_actual,
+        }
+        for p in productos
+    }
+    # Compatibilidad con el JS anterior (solo precios).
+    servicios_precios = {k: v["precio"] for k, v in servicios_data.items()}
+    productos_precios = {k: v["precio"] for k, v in productos_data.items()}
+
+    # Ítem inicial si viene ?producto=<id> (precarga el carrito).
+    item_inicial = None
+    producto_id = request.GET.get("producto")
+    if producto_id and str(producto_id) in productos_data:
+        item_inicial = {
+            "tipo": Cobro.Tipo.PRODUCTO,
+            "producto_id": str(producto_id),
+            "cantidad": 1,
+            "precio_unitario": productos_data[str(producto_id)]["precio"],
+        }
 
     return render(
         request,
@@ -168,7 +194,9 @@ def registrar_cobro_view(request):
             "form": form,
             "servicios_precios": servicios_precios,
             "productos_precios": productos_precios,
-            "atenciones_data": atenciones_data,
+            "servicios_data": servicios_data,
+            "productos_data": productos_data,
+            "item_inicial": item_inicial,
         },
     )
 
@@ -185,6 +213,54 @@ def anular_cobro_view(request, pk: int):
             messages.error(request, str(exc))
         return redirect(f"/pagos/?fecha={cobro.fecha.isoformat()}")
     return render(request, "pagos/confirmar_anulacion.html", {"cobro": cobro})
+
+
+@login_required
+def anular_venta_view(request, pk: int):
+    """Anula todos los ítems de una venta en conjunto (repone stock)."""
+    from decimal import Decimal as _Decimal
+
+    cobro = get_object_or_404(Cobro, pk=pk)
+    cobros = FacturaService.cobros_de_venta(cobro)
+    if not cobros:
+        messages.error(request, f"El cobro #{cobro.pk} ya se encuentra anulado.")
+        return redirect(f"/pagos/?fecha={cobro.fecha.isoformat()}")
+    if request.method == "POST":
+        try:
+            anulados = CajaService.anular_venta(cobros, usuario=request.user)
+            total = sum((c.total for c in anulados), _Decimal("0.00"))
+            messages.success(
+                request,
+                f"Venta anulada: {len(anulados)} ítems por ${total:,.2f}.",
+            )
+        except (CobroInvalidoError, CajaCerradaError) as exc:
+            messages.error(request, str(exc))
+        return redirect(f"/pagos/?fecha={cobro.fecha.isoformat()}")
+    total = sum((c.total for c in cobros), _Decimal("0.00"))
+    return render(
+        request,
+        "pagos/confirmar_anulacion_venta.html",
+        {"cobros": cobros, "total": total},
+    )
+
+
+@login_required
+def factura_pdf_view(request, pk: int):
+    """Retorna el comprobante de venta en PDF para visualizar en el navegador."""
+    cobro = get_object_or_404(Cobro, pk=pk)
+    cobros = FacturaService.cobros_de_venta(cobro)
+    if not cobros:
+        messages.error(request, f"El cobro #{cobro.pk} está anulado y no admite comprobante.")
+        return redirect(f"/pagos/?fecha={cobro.fecha.isoformat()}")
+    try:
+        pdf_data = FacturaService.generar_pdf(cobros)
+    except FacturaError as exc:
+        messages.error(request, str(exc))
+        return redirect(f"/pagos/?fecha={cobro.fecha.isoformat()}")
+    numero = FacturaService.numero_comprobante(cobros)
+    respuesta = FileResponse(io.BytesIO(pdf_data), content_type="application/pdf")
+    respuesta["Content-Disposition"] = f'inline; filename="Factura_{numero}.pdf"'
+    return respuesta
 
 
 @login_required

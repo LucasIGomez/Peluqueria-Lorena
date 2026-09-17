@@ -79,23 +79,15 @@ class TestConsentimientoInformado:
             cliente_nombre=cliente.nombre,
             cliente_telefono=cliente.telefono,
             cliente_dni="35123456",
-            tipo_procedimiento=ConsentimientoInformado.TipoProcedimiento.DECOLORACION,
+            tipo_procedimiento=ConsentimientoInformado.TipoProcedimiento.DECOLORACION_MECHAS,
             profesional=profesional,
-            ha_usado_henna_o_sales_metalicas=False,
-            tiene_alisados_o_permanentes_previos=True,
-            detalle_quimicos_previos="Alisado con ácido glioxílico hace 4 meses",
-            prueba_mecha_realizada=True,
-            resultado_prueba_mecha=ConsentimientoInformado.ResultadoPruebaMecha.APTO_PRECAUCION,
-            elasticidad_cabello=ConsentimientoInformado.EstadoFibra.REGULAR,
-            porosidad_cabello=ConsentimientoInformado.EstadoFibra.REGULAR,
             acepta_terminos=True,
             firma_digital="Florencia Mechas - Acepto términos",
-            observaciones="Aclarar con oxidante de 20 volúmenes máximo para cuidar la fibra",
+            observaciones="Fibra en buen estado, aclarar con oxidante de 20 volúmenes máximo.",
         )
 
         assert consentimiento.cliente_nombre == "Florencia Mechas"
-        assert consentimiento.tiene_alisados_o_permanentes_previos is True
-        assert consentimiento.resultado_prueba_mecha == ConsentimientoInformado.ResultadoPruebaMecha.APTO_PRECAUCION
+        assert consentimiento.tipo_procedimiento == ConsentimientoInformado.TipoProcedimiento.DECOLORACION_MECHAS
         assert consentimiento.acepta_terminos is True
         assert consentimiento.cliente == cliente
 

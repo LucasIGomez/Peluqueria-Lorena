@@ -83,26 +83,18 @@ class Servicio(models.Model):
 
 class ConsentimientoInformado(models.Model):
     """
-    Ficha legal y técnica obligatoria para procedimientos químicos delicados
-    (decoloración y alisado). Releva factores ajenos al profesional para
-    evitar daños capilares y garantizar resguardo jurídico.
+    Ficha legal de consentimiento informado para servicios químicos
+    (coloración, decoloración, alisados, keratina, permanentes), con el
+    texto acordado con Lorena y sus clientas.
     """
 
     class TipoProcedimiento(models.TextChoices):
-        DECOLORACION = "DECOLORACION", "Decoloración / Balayage / Mechas"
-        ALISADO = "ALISADO", "Alisado Químico / Progresivo"
-        COLORACION_COMPLEJA = "COLORACION_COMPLEJA", "Coloración Compleja"
-        OTRO = "OTRO", "Otro Procedimiento Químico"
-
-    class ResultadoPruebaMecha(models.TextChoices):
-        APTO = "APTO", "Apto (Fibra capilar resistente)"
-        APTO_PRECAUCION = "APTO_PRECAUCION", "Apto con precaución (Aclaración gradual / menor oxidante)"
-        NO_APTO = "NO_APTO", "No apto (Riesgo inminente de quiebre o sobreprocesamiento)"
-
-    class EstadoFibra(models.TextChoices):
-        BUENA = "BUENA", "Buena / Resistente"
-        REGULAR = "REGULAR", "Regular / Porosidad Media"
-        FRAGIL = "FRAGIL", "Frágil / Alta Porosidad"
+        COLORACION = "COLORACION", "Coloración"
+        DECOLORACION_MECHAS = "DECOLORACION_MECHAS", "Decoloración / Mechas"
+        ALISADO = "ALISADO", "Alisado"
+        KERATINA = "KERATINA", "Keratina / Tratamiento de Alisado"
+        PERMANENTE = "PERMANENTE", "Permanente"
+        OTRO = "OTRO", "Otro"
 
     cliente = models.ForeignKey(
         "clientes.Cliente",
@@ -112,80 +104,32 @@ class ConsentimientoInformado(models.Model):
         related_name="consentimientos",
         verbose_name="clienta vinculada",
     )
-    cliente_nombre = models.CharField("nombre de la clienta", max_length=200)
-    cliente_telefono = models.CharField("teléfono / WhatsApp", max_length=50)
-    cliente_dni = models.CharField("DNI / Identificación", max_length=30, blank=True)
+    cliente_nombre = models.CharField("nombre y apellido", max_length=200)
+    cliente_telefono = models.CharField("teléfono / WhatsApp", max_length=50, blank=True)
+    cliente_dni = models.CharField("DNI", max_length=30, blank=True)
 
     tipo_procedimiento = models.CharField(
-        "tipo de procedimiento",
+        "servicio solicitado",
         max_length=30,
         choices=TipoProcedimiento.choices,
-        default=TipoProcedimiento.DECOLORACION,
+        default=TipoProcedimiento.COLORACION,
     )
-
-    # ── Factores Ajenos al Profesional (Historial previo de la clienta) ──
-    ha_usado_henna_o_sales_metalicas = models.BooleanField(
-        "¿Usó henna o tinturas progresivas con sales metálicas?",
-        default=False,
-        help_text="Reacciona violentamente con decolorantes y alisados generando corte químico o calor extremo.",
-    )
-    tiene_alisados_o_permanentes_previos = models.BooleanField(
-        "¿Tiene alisados, botox o permanentes previos?",
-        default=False,
-        help_text="Verificar compatibilidad química (ej: hidróxido de sodio vs tioglicolato o decolorante).",
-    )
-    detalle_quimicos_previos = models.TextField(
-        "detalle de procesos químicos en los últimos 12 meses",
-        blank=True,
-    )
-    tiene_decoloraciones_previas = models.BooleanField(
-        "¿Tiene decoloraciones anteriores en medios o puntas?",
-        default=False,
-    )
-    alergias_o_sensibilidad_cuero_cabelludo = models.BooleanField(
-        "¿Sufre de cuero cabelludo sensible, dermatitis o alergias conocidas?",
-        default=False,
-    )
-    detalle_alergias = models.CharField("detalle de alergias conocidas", max_length=255, blank=True)
-    embarazo_o_lactancia = models.BooleanField("¿Se encuentra cursando embarazo o lactancia?", default=False)
-    medicacion_o_tratamiento_medico = models.BooleanField(
-        "¿Toma medicación que pueda debilitar la fibra capilar (ej: tiroides, isotretinoína)?",
-        default=False,
-    )
-
-    # ── Diagnóstico Técnico Preliminar ──
-    prueba_mecha_realizada = models.BooleanField("prueba de mecha realizada", default=True)
-    resultado_prueba_mecha = models.CharField(
-        "resultado de la prueba de mecha",
-        max_length=25,
-        choices=ResultadoPruebaMecha.choices,
-        default=ResultadoPruebaMecha.APTO,
-    )
-    elasticidad_cabello = models.CharField(
-        "elasticidad de la fibra",
-        max_length=20,
-        choices=EstadoFibra.choices,
-        default=EstadoFibra.BUENA,
-    )
-    porosidad_cabello = models.CharField(
-        "porosidad",
-        max_length=20,
-        choices=EstadoFibra.choices,
-        default=EstadoFibra.REGULAR,
+    otro_procedimiento_detalle = models.CharField(
+        "detalle si el servicio es \"Otro\"", max_length=200, blank=True
     )
 
     # ── Conformidad y Resguardo Legal ──
     acepta_terminos = models.BooleanField(
         "conformidad y declaración jurada",
         default=True,
-        help_text="La clienta declara haber informado con veracidad todos sus antecedentes y acepta los riesgos inherentes.",
+        help_text="La clienta declara haber comprendido la información y presta su conformidad para el servicio.",
     )
     firma_digital = models.TextField(
-        "firma o conformidad expresa",
+        "firma / aceptación digital",
         blank=True,
         help_text="Firma digital o texto de conformidad expresa.",
     )
-    observaciones = models.TextField("observaciones de la profesional", blank=True)
+    observaciones = models.TextField("observaciones del diagnóstico", blank=True)
     profesional = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,

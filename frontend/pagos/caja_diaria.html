@@ -154,32 +154,53 @@
                         <th>Subtotal</th>
                         <th>Desc.</th>
                         <th>Total</th>
+                        <th>Factura</th>
                         <th></th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for c in cobros %}
+                    {% for v in ventas %}
+                    {% with p=v.principal %}
                     <tr>
-                        <td class="ps-4 text-secondary small">#{{ c.pk }}</td>
-                        <td class="fw-semibold text-light">{{ c.cliente_nombre }}</td>
-                        <td><span class="badge bg-secondary-subtle text-light">{{ c.get_tipo_display }}</span></td>
-                        <td class="text-secondary small">
-                            {% if c.tipo == 'SERVICIO' %}
-                            {% if c.servicio %}{{ c.servicio.nombre }}{% else %}Servicio{% endif %}
-                            {% else %}
-                            {% if c.producto %}{{ c.producto.nombre }} x{{ c.cantidad }}{% else %}Producto x{{
-                            c.cantidad }}{% endif %}
+                        <td class="ps-4 text-secondary small">
+                            #{{ p.pk }}
+                            {% if v.es_grupo %}
+                            <div><span class="badge bg-dark border border-secondary">{{ v.cobros|length }} ítems</span></div>
                             {% endif %}
-                            <div>{{ c.profesional.nombre }}</div>
                         </td>
-                        <td><span class="badge bg-info-subtle text-info">{{ c.get_medio_pago_display }}</span></td>
-                        <td class="text-secondary">${{ c.subtotal|floatformat:2 }}</td>
-                        <td class="text-success small">{% if c.monto_descuento %}-${{ c.monto_descuento|floatformat:2 }} ({{ c.porcentaje_descuento|floatformat:"-2" }}%){% else %}<span class="text-secondary">—</span>{% endif %}</td>
-                        <td class="fw-bold text-accent">${{ c.total|floatformat:2 }}</td>
+                        <td class="fw-semibold text-light">{{ p.cliente_nombre }}</td>
+                        <td>
+                            {% for c in v.cobros %}
+                            <div><span class="badge bg-secondary-subtle text-light">{{ c.get_tipo_display }}</span></div>
+                            {% endfor %}
+                        </td>
+                        <td class="text-secondary small">
+                            {% for c in v.cobros %}
+                            <div>
+                                {% if c.tipo == 'SERVICIO' %}
+                                {% if c.servicio %}{{ c.servicio.nombre }}{% else %}Servicio{% endif %}
+                                {% else %}
+                                {% if c.producto %}{{ c.producto.nombre }} x{{ c.cantidad }}{% else %}Producto x{{ c.cantidad }}{% endif %}
+                                {% endif %}
+                                <span class="text-secondary opacity-75">${{ c.subtotal|floatformat:2 }}</span>
+                            </div>
+                            {% endfor %}
+                            <div>{{ p.profesional.nombre }}</div>
+                        </td>
+                        <td><span class="badge bg-info-subtle text-info">{{ p.get_medio_pago_display }}</span></td>
+                        <td class="text-secondary">${{ v.subtotal|floatformat:2 }}</td>
+                        <td class="text-success small">{% if v.monto_descuento %}-${{ v.monto_descuento|floatformat:2 }} ({{ p.porcentaje_descuento|floatformat:"-2" }}%){% else %}<span class="text-secondary">—</span>{% endif %}</td>
+                        <td class="fw-bold text-accent">${{ v.total|floatformat:2 }}</td>
+                        <td>
+                            <a href="{% url 'pagos:factura_pdf' p.pk %}" target="_blank" rel="noopener"
+                                class="btn btn-sm btn-outline-info" title="Ver factura">
+                                <i class="bi bi-receipt"></i>
+                            </a>
+                        </td>
                         <td>
                             {% if not resumen.caja_cerrada %}
-                            <a href="{% url 'pagos:anular_cobro' c.pk %}" class="btn btn-sm btn-outline-danger"
-                                title="Anular cobro">
+                            <a href="{% url 'pagos:anular_venta' p.pk %}" class="btn btn-sm btn-outline-danger"
+                                title="{% if v.es_grupo %}Anular venta completa ({{ v.cobros|length }} ítems){% else %}Anular cobro{% endif %}">
                                 <i class="bi bi-x-circle"></i>
                             </a>
                             {% else %}
@@ -187,9 +208,10 @@
                             {% endif %}
                         </td>
                     </tr>
+                    {% endwith %}
                     {% empty %}
                     <tr>
-                        <td colspan="9" class="text-center py-5 text-secondary">
+                        <td colspan="10" class="text-center py-5 text-secondary">
                             <i class="bi bi-cash-coin fs-1 d-block mb-2"></i>
                             Sin cobros registrados para esta fecha.
                             <div class="mt-2">
@@ -243,6 +265,11 @@
 <script>
     // Sin diálogo nativo del navegador: la confirmación propia del modal es suficiente.
     window._sinAvisoNavegador = true;
+
+    // Venta recién confirmada: abrir el comprobante PDF en una pestaña nueva.
+    {% if factura_pk %}
+    window.open("{% url 'pagos:factura_pdf' factura_pk %}", "_blank");
+    {% endif %}
 
     // Reabrir Caja con confirmación propia (sin diálogo nativo).
     let reaperturaConfirmada = false;

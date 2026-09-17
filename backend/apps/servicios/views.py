@@ -210,13 +210,20 @@ def registrar_servicio_realizado_view(request):
 
         form = ServicioRealizadoForm(initial=initial_data)
 
+    from apps.clientes.models import Cliente
+
     servicios_disponibles = Servicio.objects.filter(activo=True)
     servicios_data = {
         str(s.pk): {
             "precio": str(s.precio_base),
             "duracion": s.duracion_estimada_minutos,
+            "requiere_consentimiento": s.requiere_consentimiento,
         }
         for s in servicios_disponibles
+    }
+    clientes_data = {
+        str(c.pk): {"nombre": c.nombre, "telefono": c.telefono}
+        for c in Cliente.objects.filter(activo=True)
     }
     return render(
         request,
@@ -225,6 +232,7 @@ def registrar_servicio_realizado_view(request):
             "form": form,
             "servicios_disponibles": servicios_disponibles,
             "servicios_data": servicios_data,
+            "clientes_data": clientes_data,
             "turno": turno,
         },
     )
@@ -244,6 +252,8 @@ def crear_consentimiento_view(request):
         form = ConsentimientoInformadoForm(request.POST)
         if form.is_valid():
             consentimiento = form.save(commit=False)
+            if consentimiento.cliente and not consentimiento.cliente_telefono:
+                consentimiento.cliente_telefono = consentimiento.cliente.telefono
             if request.user.is_authenticated and not consentimiento.profesional:
                 consentimiento.profesional = request.user
             consentimiento.save()
@@ -261,7 +271,6 @@ def crear_consentimiento_view(request):
             if cliente_obj:
                 initial_data["cliente"] = cliente_obj
                 initial_data["cliente_nombre"] = cliente_obj.nombre
-                initial_data["cliente_telefono"] = cliente_obj.telefono
         form = ConsentimientoInformadoForm(initial=initial_data)
 
     return render(request, "servicios/ficha_consentimiento.html", {"form": form})

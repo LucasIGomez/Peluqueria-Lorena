@@ -36,6 +36,8 @@ Thumbs.db
 # Documentación Interna
 documentacion/
 plantilla_factura.docx
+# Excepción: plantilla del comprobante de venta (se versiona con el proyecto).
+!backend/apps/pagos/templates_docx/plantilla_factura.docx
 /.agents
 AGENTS.md
 AGENTS.md

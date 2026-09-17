@@ -43,6 +43,7 @@
                         <div class="col-md-6">
                             <label class="form-label text-light">Nombre de la Clienta <span class="text-danger">*</span></label>
                             {{ form.cliente_nombre }}
+                            <small id="ayudaDatosClienta" class="text-secondary d-none">Datos de la clienta registrada, no editables.</small>
                             {% if form.cliente_nombre.errors %}<div class="text-danger small mt-1">{{ form.cliente_nombre.errors }}</div>{% endif %}
                         </div>
                     </div>
@@ -56,6 +57,12 @@
                             <label class="form-label text-light">Ficha de Consentimiento Informado (Si aplica)</label>
                             {{ form.consentimiento }}
                         </div>
+                    </div>
+
+                    <div id="avisoConsentimiento" class="alert alert-warning small d-none">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        Este servicio requiere ficha de consentimiento informado.
+                        <a id="linkCrearConsentimiento" href="{% url 'servicios:crear_consentimiento' %}" target="_blank" class="alert-link">Crear ficha ahora</a>
                     </div>
 
                     <hr class="border-secondary my-3">
@@ -73,20 +80,22 @@
                     </div>
 
                     <!-- Campos personalizables por clienta -->
-                    <div class="row g-3 mb-3 p-3 rounded bg-dark border border-secondary">
-                        <div class="col-12 mb-1">
+                    <div class="mb-3 p-3 rounded bg-dark border border-secondary">
+                        <div class="mb-2">
                             <span class="badge bg-warning text-dark fw-bold">Personalización por Clienta</span>
                             <small class="text-secondary ms-2">Ajuste el precio y plazo según el largo, volumen y porosidad del cabello.</small>
                         </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-light fw-bold">Precio Acordado / Cobrado ($) <span class="text-danger">*</span></label>
-                            {{ form.precio_acordado }}
-                            <small class="text-secondary">Se precarga con el precio base oficial pero es editable.</small>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label text-light fw-bold">Duración Real / Estimada (Minutos) <span class="text-danger">*</span></label>
-                            {{ form.duracion_minutos }}
-                            <small class="text-secondary">Tiempo que demandará la sesión.</small>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label text-light fw-bold">Precio Acordado / Cobrado ($) <span class="text-danger">*</span></label>
+                                {{ form.precio_acordado }}
+                                <small class="text-secondary">Se precarga con el precio base oficial pero es editable.</small>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label text-light fw-bold">Duración Real / Estimada (Minutos) <span class="text-danger">*</span></label>
+                                {{ form.duracion_minutos }}
+                                <small class="text-secondary">Tiempo que demandará la sesión.</small>
+                            </div>
                         </div>
                     </div>
 
@@ -114,6 +123,7 @@
 </div>
 
 {{ servicios_data|json_script:"servicios-data" }}
+{{ clientes_data|json_script:"clientes-data" }}
 
 <!-- Script dinámico para autocompletar precio y duración al cambiar el selector de servicio -->
 <script>
@@ -124,6 +134,24 @@
         const servicioSelect = document.getElementById("id_servicio_select");
         const precioInput = document.getElementById("id_precio_acordado");
         const duracionInput = document.getElementById("id_duracion_minutos");
+        const avisoConsentimiento = document.getElementById("avisoConsentimiento");
+        const linkCrearConsentimiento = document.getElementById("linkCrearConsentimiento");
+        const clienteSelectParaLink = document.getElementById("id_cliente_select");
+        const consentimientoSelect = document.getElementById("id_consentimiento");
+
+        function actualizarAvisoConsentimiento() {
+            const datos = servicioData[servicioSelect.value];
+            const requiereConsentimiento = !!(datos && datos.requiere_consentimiento);
+            const yaVinculado = !!(consentimientoSelect && consentimientoSelect.value);
+            if (avisoConsentimiento) {
+                avisoConsentimiento.classList.toggle("d-none", !requiereConsentimiento || yaVinculado);
+            }
+            if (linkCrearConsentimiento) {
+                const base = "{% url 'servicios:crear_consentimiento' %}";
+                const clienteId = clienteSelectParaLink ? clienteSelectParaLink.value : "";
+                linkCrearConsentimiento.href = clienteId ? `${base}?cliente=${clienteId}` : base;
+            }
+        }
 
         if (servicioSelect && precioInput && duracionInput) {
             servicioSelect.addEventListener("change", function () {
@@ -132,20 +160,42 @@
                     precioInput.value = servicioData[val].precio;
                     duracionInput.value = servicioData[val].duracion;
                 }
+                actualizarAvisoConsentimiento();
             });
+            if (consentimientoSelect) {
+                consentimientoSelect.addEventListener("change", actualizarAvisoConsentimiento);
+            }
+            actualizarAvisoConsentimiento();
         }
 
-        // Auto rellenar nombre y teléfono si se selecciona clienta de la lista
+        // Si se elige una clienta ya registrada, se autocompletan y bloquean
+        // su nombre y teléfono (ya están cargados en su ficha).
         const clienteSelect = document.getElementById("id_cliente_select");
         const clienteNombreInput = document.getElementById("id_cliente_nombre");
-        if (clienteSelect && clienteNombreInput) {
-            clienteSelect.addEventListener("change", function () {
-                const selectedText = this.options[this.selectedIndex].text;
-                if (this.value && (!clienteNombreInput.value || clienteNombreInput.value.trim() === "")) {
-                    const nombreLimpio = selectedText.split("(")[0].trim();
-                    clienteNombreInput.value = nombreLimpio;
-                }
-            });
+        const clienteTelefonoInput = document.getElementById("id_cliente_telefono");
+        const ayudaDatos = document.getElementById("ayudaDatosClienta");
+        const clientesEl = document.getElementById("clientes-data");
+        const clientesData = clientesEl ? JSON.parse(clientesEl.textContent) : {};
+
+        function aplicarClienteSeleccionado() {
+            const datos = clientesData[clienteSelect.value];
+            if (datos) {
+                clienteNombreInput.value = datos.nombre;
+                clienteTelefonoInput.value = datos.telefono;
+                clienteNombreInput.readOnly = true;
+                clienteTelefonoInput.readOnly = true;
+                if (ayudaDatos) ayudaDatos.classList.remove("d-none");
+            } else {
+                clienteNombreInput.readOnly = false;
+                clienteTelefonoInput.readOnly = false;
+                if (ayudaDatos) ayudaDatos.classList.add("d-none");
+            }
+            actualizarAvisoConsentimiento();
+        }
+
+        if (clienteSelect && clienteNombreInput && clienteTelefonoInput) {
+            clienteSelect.addEventListener("change", aplicarClienteSeleccionado);
+            aplicarClienteSeleccionado();
         }
     });
 </script>
