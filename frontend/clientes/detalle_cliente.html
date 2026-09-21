@@ -146,7 +146,7 @@
                                 </span>
                                 {% if t.estado != 'FINALIZADO' %}
                                     <a href="{% url 'clientes:registrar_evolucion' tratamiento_pk=t.pk %}" class="btn btn-sm btn-accent text-dark fw-bold">
-                                        <i class="bi bi-journal-plus me-1"></i> Registrar Sesión #{{ t.sesion_actual|add:"1" }}
+                                        <i class="bi bi-journal-plus me-1"></i> Registrar Sesión #{{ t.siguiente_numero_sesion }}
                                     </a>
                                 {% endif %}
                             </div>
@@ -160,7 +160,7 @@
                                     <span class="fw-bold text-accent">{{ t.porcentaje_progreso }}%</span>
                                 </div>
                                 <div class="progress" style="height: 10px; background-color: #2a2e35;">
-                                    <div class="progress-bar bg-accent" role="progressbar" style="width: {{ t.porcentaje_progreso }}%;"></div>
+                                    <div class="progress-bar bg-accent" role="progressbar" aria-valuenow="{{ t.porcentaje_progreso }}" aria-valuemin="0" aria-valuemax="100" data-width="{{ t.porcentaje_progreso }}%"></div>
                                 </div>
                             </div>
 
@@ -249,8 +249,8 @@
                                 <tr>
                                     <th>Fecha</th>
                                     <th>Procedimiento</th>
-                                    <th>Prueba de Mecha</th>
-                                    <th>Resguardo Henna / Alisados</th>
+                                    <th>Conformidad Legal</th>
+                                    <th>Observaciones</th>
                                     <th>Profesional</th>
                                     <th class="text-end">Acción</th>
                                 </tr>
@@ -259,23 +259,28 @@
                                 {% for c in consentimientos %}
                                     <tr>
                                         <td>{{ c.fecha_emision|date:"d/m/Y H:i" }}</td>
-                                        <td><strong class="text-light">{{ c.get_tipo_procedimiento_display }}</strong></td>
                                         <td>
-                                            {% if c.resultado_prueba_mecha == 'APTO' %}
-                                                <span class="badge bg-success-subtle text-success">Apto</span>
-                                            {% elif c.resultado_prueba_mecha == 'APTO_PRECAUCION' %}
-                                                <span class="badge bg-warning-subtle text-warning">Apto con Precaución</span>
-                                            {% else %}
-                                                <span class="badge bg-danger-subtle text-danger">No Apto</span>
+                                            <strong class="text-light">{{ c.get_tipo_procedimiento_display }}</strong>
+                                            {% if c.tipo_procedimiento == 'OTRO' and c.otro_procedimiento_detalle %}
+                                                <small class="text-secondary d-block">{{ c.otro_procedimiento_detalle }}</small>
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% if c.ha_usado_henna_o_sales_metalicas %}
-                                                <span class="badge bg-danger-subtle text-danger">Usó Henna</span>
-                                            {% elif c.tiene_alisados_o_permanentes_previos %}
-                                                <span class="badge bg-warning-subtle text-warning">Alisados Previos</span>
+                                            {% if c.acepta_terminos %}
+                                                <span class="badge bg-success-subtle text-success">
+                                                    <i class="bi bi-shield-check me-1"></i>Conforme
+                                                </span>
                                             {% else %}
-                                                <span class="badge bg-dark border border-secondary text-secondary">Sin antecedentes de riesgo</span>
+                                                <span class="badge bg-warning-subtle text-warning">
+                                                    <i class="bi bi-exclamation-triangle me-1"></i>Pendiente
+                                                </span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if c.observaciones %}
+                                                <span class="text-light small">{{ c.observaciones|truncatechars:45 }}</span>
+                                            {% else %}
+                                                <span class="text-secondary small fst-italic">Sin observaciones</span>
                                             {% endif %}
                                         </td>
                                         <td>{{ c.profesional.nombre|default:"Lorena Gómez" }}</td>
@@ -341,4 +346,14 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.progress-bar[data-width]').forEach(function(bar) {
+            bar.style.width = bar.getAttribute('data-width');
+        });
+    });
+</script>
 {% endblock %}

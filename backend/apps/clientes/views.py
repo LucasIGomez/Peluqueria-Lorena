@@ -175,8 +175,7 @@ def registrar_evolucion_view(request, tratamiento_pk: int):
             )
             return redirect("clientes:detalle_cliente", pk=tratamiento.cliente.pk)
     else:
-        siguiente_sesion = tratamiento.sesion_actual + (1 if tratamiento.sesiones_evolucion.exists() else 0)
-        form = EvolucionSesionForm(initial={"numero_sesion": siguiente_sesion})
+        form = EvolucionSesionForm(initial={"numero_sesion": tratamiento.siguiente_numero_sesion})
 
     return render(
         request,

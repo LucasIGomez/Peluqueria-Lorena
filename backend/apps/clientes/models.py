@@ -65,9 +65,15 @@ class Cliente(models.Model):
         if not self.fecha_nacimiento:
             return None
         hoy = timezone.localdate()
-        proximo_cumple = date(hoy.year, self.fecha_nacimiento.month, self.fecha_nacimiento.day)
+        try:
+            proximo_cumple = date(hoy.year, self.fecha_nacimiento.month, self.fecha_nacimiento.day)
+        except ValueError:
+            proximo_cumple = date(hoy.year, 2, 28)
         if proximo_cumple < hoy:
-            proximo_cumple = date(hoy.year + 1, self.fecha_nacimiento.month, self.fecha_nacimiento.day)
+            try:
+                proximo_cumple = date(hoy.year + 1, self.fecha_nacimiento.month, self.fecha_nacimiento.day)
+            except ValueError:
+                proximo_cumple = date(hoy.year + 1, 2, 28)
         return (proximo_cumple - hoy).days
 
     @property
@@ -184,7 +190,18 @@ class TratamientoProgreso(models.Model):
         pct = int((self.sesion_actual / self.total_sesiones_estimadas) * 100)
         return min(pct, 100)
 
+    @property
+    def siguiente_numero_sesion(self) -> int:
+        """Determina el número correlativo de la próxima sesión técnica a registrar."""
+        if not self.sesiones_evolucion.exists():
+            return 1
+        return self.sesion_actual + 1
+
     # ── Aliases camelCase ──
+
+    @property
+    def siguienteNumeroSesion(self) -> int:
+        return self.siguiente_numero_sesion
 
     @property
     def tituloTratamiento(self) -> str:

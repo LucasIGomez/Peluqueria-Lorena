@@ -10,6 +10,12 @@ from datetime import timedelta
 from pathlib import Path
 from typing import List
 
+try:
+    from decouple import config
+except ImportError:
+    def config(key, default=""):
+        return os.environ.get(key, default)
+
 # ──────────────────────────────────────────────
 # RUTAS BASE
 # ──────────────────────────────────────────────
@@ -54,6 +60,7 @@ LOCAL_APPS: List[str] = [
     "apps.servicios",
     "apps.turnos",
     "apps.pagos",
+    "apps.bot_asistente",
 ]
 
 INSTALLED_APPS: List[str] = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -203,6 +210,21 @@ DATOS_PELUQUERIA = {
     "TELEFONO": os.environ.get("PELUQUERIA_TELEFONO", "+54 9 297 534-9278"),
     "EMAIL": os.environ.get("PELUQUERIA_EMAIL", "lrnortigoza@gmail.com"),
     "DIRECCION": os.environ.get("PELUQUERIA_DIRECCION", "Comodoro Rivadavia, Chubut, Argentina"),
+}
+
+# ──────────────────────────────────────────────
+# BOT ASISTENTE Y WHATSAPP BUSINESS
+# ──────────────────────────────────────────────
+GEMINI_API_KEY: str = config("GEMINI_API_KEY", default=os.environ.get("GEMINI_API_KEY", ""))
+GEMINI_MODEL: str = config("GEMINI_MODEL", default="gemini-2.5-flash")
+WHATSAPP_VERIFY_TOKEN: str = config("WHATSAPP_VERIFY_TOKEN", default="pelulorena_whatsapp_token_seguro")
+WHATSAPP_PHONE_NUMBER_ID: str = config("WHATSAPP_PHONE_NUMBER_ID", default="")
+WHATSAPP_ACCESS_TOKEN: str = config("WHATSAPP_ACCESS_TOKEN", default="")
+
+BOT_CONFIG = {
+    "HORARIO_APERTURA": 9,   # 09:00
+    "HORARIO_CIERRE": 19,    # 19:00
+    "DIAS_ATENCION": [1, 2, 3, 4, 5],  # Martes (1) a Sábado (5). Lunes=0, Domingo=6 cerrados
 }
 
 

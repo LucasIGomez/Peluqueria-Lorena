@@ -35,5 +35,6 @@ urlpatterns = [
     path("api/v1/usuarios/", include(("apps.usuarios.urls", "usuarios"), namespace="usuarios-api")),
     path("servicios/", include("apps.servicios.urls")),
     path("pagos/", include("apps.pagos.urls")),
+    path("api/v1/bot/", include("apps.bot_asistente.urls", namespace="bot_asistente")),
 ]
 

@@ -22,6 +22,10 @@ Faker>=28.0,<29.0
 python-decouple>=3.8,<4.0
 django-extensions>=3.2,<5.0
 
+# Artificial Intelligence
+google-genai>=2.24.0
+pydantic>=2.10,<3.0
+
 # Document Generation
 docxtpl>=0.17.0,<0.18.0
 
