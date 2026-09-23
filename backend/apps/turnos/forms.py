@@ -15,7 +15,8 @@ from .models import Turno
 from .services import TurnoService
 
 HORA_APERTURA = time(9, 0)
-HORA_CIERRE = time(20, 0)
+HORA_CIERRE = time(19, 0)
+DIAS_HABILITADOS = {1, 2, 3, 4, 5}  # Martes (1) a Sábado (5). 0=Lunes, 6=Domingo
 
 
 class TurnoForm(forms.ModelForm):
@@ -29,7 +30,7 @@ class TurnoForm(forms.ModelForm):
     )
     hora = forms.TimeField(
         label="Hora del Turno",
-        widget=forms.TimeInput(attrs={"class": "form-control", "type": "time", "min": "09:00", "max": "20:00"}),
+        widget=forms.TimeInput(attrs={"class": "form-control", "type": "time", "min": "09:00", "max": "19:00"}),
     )
 
     class Meta:
@@ -73,6 +74,10 @@ class TurnoForm(forms.ModelForm):
         fecha = self.cleaned_data.get("fecha")
         if fecha and fecha < timezone.localdate():
             raise forms.ValidationError("No se puede agendar un turno en una fecha pasada.")
+        if fecha and fecha.weekday() not in DIAS_HABILITADOS:
+            raise forms.ValidationError(
+                "El salón atiende de martes a sábado. Elegí una fecha dentro de ese rango."
+            )
         return fecha
 
     def clean_hora(self):

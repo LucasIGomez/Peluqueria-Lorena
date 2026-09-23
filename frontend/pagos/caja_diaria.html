@@ -43,13 +43,9 @@
         </div>
     </div>
     {% if request.user.es_administradora %}
-    <form method="POST" action="{% url 'pagos:reabrir_caja' %}" class="m-0 flex-shrink-0" id="formReabrirCaja">
-        {% csrf_token %}
-        <input type="hidden" name="fecha" value="{{ fecha_str }}">
-        <button type="submit" class="btn btn-outline-warning btn-sm">
-            <i class="bi bi-unlock me-1"></i> Reabrir
-        </button>
-    </form>
+    <a href="{% url 'pagos:reabrir_caja' %}?fecha={{ fecha_str }}" class="btn btn-outline-warning btn-sm flex-shrink-0">
+        <i class="bi bi-unlock me-1"></i> Reabrir
+    </a>
     {% endif %}
 </div>
 {% endif %}
@@ -57,7 +53,7 @@
 <!-- Métricas -->
 <div class="row g-3 mb-4">
     <div class="col-md-4">
-        <div class="card border-0 bg-dark p-3 h-100">
+        <div class="card border-0 bg-dark p-3">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <span class="text-secondary small text-uppercase fw-bold">Total del Día</span>
@@ -70,7 +66,7 @@
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card border-0 bg-dark p-3 h-100">
+        <div class="card border-0 bg-dark p-3">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
                     <span class="text-secondary small text-uppercase fw-bold">Cobros</span>
@@ -83,10 +79,10 @@
         </div>
     </div>
     <div class="col-md-4">
-        <div class="card border-0 bg-dark p-3 h-100">
+        <div class="card border-0 bg-dark p-3">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <span class="text-secondary small text-uppercase fw-bold">Descuentos</span>
+                    <span class="text-secondary small text-uppercase fw-bold">Descuentos (10%)</span>
                     <h3 class="mb-0 text-success fw-bold">-${{ resumen.total_descuentos|floatformat:2 }}</h3>
                 </div>
                 <div class="p-3 bg-success bg-opacity-25 rounded-circle text-success">
@@ -101,7 +97,8 @@
 <!-- Resumen por medio de pago -->
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-header py-3">
-        <h5 class="mb-0 text-light"><i class="bi bi-wallet2 me-2 text-accent"></i> Ingresos por Medio de Pago — {{ fecha|date:"d/m/Y" }}</h5>
+        <h5 class="mb-0 text-light"><i class="bi bi-wallet2 me-2 text-accent"></i> Ingresos por Medio de Pago — {{
+            fecha|date:"d/m/Y" }}</h5>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -121,8 +118,8 @@
                         <td><span class="badge bg-dark border border-secondary">{{ item.cantidad }}</span></td>
                         <td class="fw-bold text-accent">${{ item.total|floatformat:2 }}</td>
                         <td>
-                            {% if item.descuento %}
-                            <span class="text-success small fw-semibold">-${{ item.descuento|floatformat:2 }}</span>
+                            {% if item.con_descuento %}
+                            <span class="badge bg-success-subtle text-success">-10% auto</span>
                             {% else %}
                             <span class="text-secondary small">—</span>
                             {% endif %}
@@ -138,7 +135,8 @@
 <!-- Listado de cobros -->
 <div class="card shadow-sm border-0">
     <div class="card-header d-flex justify-content-between align-items-center py-3">
-        <h5 class="mb-0 text-light"><i class="bi bi-list-check me-2 text-accent"></i> Cobros del {{ fecha|date:"l, d F Y" }}</h5>
+        <h5 class="mb-0 text-light"><i class="bi bi-list-check me-2 text-accent"></i> Cobros del {{ fecha|date:"l, d F
+            Y" }}</h5>
         <span class="badge bg-dark border border-secondary text-secondary">{{ resumen.cantidad_cobros }} en lista</span>
     </div>
     <div class="card-body p-0">
@@ -154,53 +152,32 @@
                         <th>Subtotal</th>
                         <th>Desc.</th>
                         <th>Total</th>
-                        <th>Factura</th>
                         <th></th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for v in ventas %}
-                    {% with p=v.principal %}
+                    {% for c in cobros %}
                     <tr>
-                        <td class="ps-4 text-secondary small">
-                            #{{ p.pk }}
-                            {% if v.es_grupo %}
-                            <div><span class="badge bg-dark border border-secondary">{{ v.cobros|length }} ítems</span></div>
-                            {% endif %}
-                        </td>
-                        <td class="fw-semibold text-light">{{ p.cliente_nombre }}</td>
-                        <td>
-                            {% for c in v.cobros %}
-                            <div><span class="badge bg-secondary-subtle text-light">{{ c.get_tipo_display }}</span></div>
-                            {% endfor %}
-                        </td>
+                        <td class="ps-4 text-secondary small">#{{ c.pk }}</td>
+                        <td class="fw-semibold text-light">{{ c.cliente_nombre }}</td>
+                        <td><span class="badge bg-secondary-subtle text-light">{{ c.get_tipo_display }}</span></td>
                         <td class="text-secondary small">
-                            {% for c in v.cobros %}
-                            <div>
-                                {% if c.tipo == 'SERVICIO' %}
-                                {% if c.servicio %}{{ c.servicio.nombre }}{% else %}Servicio{% endif %}
-                                {% else %}
-                                {% if c.producto %}{{ c.producto.nombre }} x{{ c.cantidad }}{% else %}Producto x{{ c.cantidad }}{% endif %}
-                                {% endif %}
-                                <span class="text-secondary opacity-75">${{ c.subtotal|floatformat:2 }}</span>
-                            </div>
-                            {% endfor %}
-                            <div>{{ p.profesional.nombre }}</div>
+                            {% if c.tipo == 'SERVICIO' %}
+                            {% if c.servicio %}{{ c.servicio.nombre }}{% else %}Servicio{% endif %}
+                            {% else %}
+                            {% if c.producto %}{{ c.producto.nombre }} x{{ c.cantidad }}{% else %}Producto x{{
+                            c.cantidad }}{% endif %}
+                            {% endif %}
+                            <div>{{ c.profesional.nombre }}</div>
                         </td>
-                        <td><span class="badge bg-info-subtle text-info">{{ p.get_medio_pago_display }}</span></td>
-                        <td class="text-secondary">${{ v.subtotal|floatformat:2 }}</td>
-                        <td class="text-success small">{% if v.monto_descuento %}-${{ v.monto_descuento|floatformat:2 }} ({{ p.porcentaje_descuento|floatformat:"-2" }}%){% else %}<span class="text-secondary">—</span>{% endif %}</td>
-                        <td class="fw-bold text-accent">${{ v.total|floatformat:2 }}</td>
-                        <td>
-                            <a href="{% url 'pagos:factura_pdf' p.pk %}" target="_blank" rel="noopener"
-                                class="btn btn-sm btn-outline-info" title="Ver factura">
-                                <i class="bi bi-receipt"></i>
-                            </a>
-                        </td>
+                        <td><span class="badge bg-info-subtle text-info">{{ c.get_medio_pago_display }}</span></td>
+                        <td class="text-secondary">${{ c.subtotal|floatformat:2 }}</td>
+                        <td class="text-success small">-${{ c.monto_descuento|floatformat:2 }}</td>
+                        <td class="fw-bold text-accent">${{ c.total|floatformat:2 }}</td>
                         <td>
                             {% if not resumen.caja_cerrada %}
-                            <a href="{% url 'pagos:anular_venta' p.pk %}" class="btn btn-sm btn-outline-danger"
-                                title="{% if v.es_grupo %}Anular venta completa ({{ v.cobros|length }} ítems){% else %}Anular cobro{% endif %}">
+                            <a href="{% url 'pagos:anular_cobro' c.pk %}" class="btn btn-sm btn-outline-danger"
+                                title="Anular cobro">
                                 <i class="bi bi-x-circle"></i>
                             </a>
                             {% else %}
@@ -208,10 +185,9 @@
                             {% endif %}
                         </td>
                     </tr>
-                    {% endwith %}
                     {% empty %}
                     <tr>
-                        <td colspan="10" class="text-center py-5 text-secondary">
+                        <td colspan="9" class="text-center py-5 text-secondary">
                             <i class="bi bi-cash-coin fs-1 d-block mb-2"></i>
                             Sin cobros registrados para esta fecha.
                             <div class="mt-2">
@@ -228,68 +204,4 @@
         </div>
     </div>
 </div>
-
-<!-- Modal Emergente de Confirmación de Reapertura (estilo Stock e Insumos) -->
-{% if resumen.caja_cerrada and request.user.es_administradora %}
-<div class="modal fade" id="modalReabrirCaja" tabindex="-1" aria-labelledby="modalReabrirCajaLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
-            <div class="modal-header border-0 pb-0">
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-            </div>
-            <div class="modal-body text-center pt-1 pb-3 px-4">
-                <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-warning rounded-circle mb-3" style="width: 60px; height: 60px;">
-                    <i class="bi bi-unlock-fill fs-2"></i>
-                </div>
-                <h5 class="modal-title fw-bold mb-2 text-light" id="modalReabrirCajaLabel">¿Reabrir la caja?</h5>
-                <p class="text-secondary small mb-0">
-                    Se eliminará el cierre actual del {{ fecha|date:"d/m/Y" }} y se habilitarán nuevos cobros y anulaciones para esa fecha.
-                </p>
-            </div>
-            <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
-                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
-                    Volver
-                </button>
-                <button type="button" id="btnConfirmarReabrirCaja" class="btn btn-warning text-dark px-4 fw-semibold">
-                    <i class="bi bi-unlock-fill me-1"></i> Sí, reabrir
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
-{% endif %}
-{% endblock %}
-
-{% block extra_js %}
-{{ block.super }}
-<script>
-    // Sin diálogo nativo del navegador: la confirmación propia del modal es suficiente.
-    window._sinAvisoNavegador = true;
-
-    // Venta recién confirmada: abrir el comprobante PDF en una pestaña nueva.
-    {% if factura_pk %}
-    window.open("{% url 'pagos:factura_pdf' factura_pk %}", "_blank");
-    {% endif %}
-
-    // Reabrir Caja con confirmación propia (sin diálogo nativo).
-    let reaperturaConfirmada = false;
-    const formReabrirCaja = document.getElementById('formReabrirCaja');
-    const btnConfirmarReabrirCaja = document.getElementById('btnConfirmarReabrirCaja');
-    if (formReabrirCaja) {
-        formReabrirCaja.addEventListener('submit', function (e) {
-            if (reaperturaConfirmada) return;
-            e.preventDefault();
-            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalReabrirCaja')).show();
-        });
-    }
-    if (btnConfirmarReabrirCaja && formReabrirCaja) {
-        btnConfirmarReabrirCaja.addEventListener('click', function () {
-            reaperturaConfirmada = true;
-            window._enviandoFormulario = true;
-            btnConfirmarReabrirCaja.disabled = true;
-            btnConfirmarReabrirCaja.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Reabriendo...';
-            formReabrirCaja.submit();
-        });
-    }
-</script>
 {% endblock %}

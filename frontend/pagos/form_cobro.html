@@ -39,12 +39,34 @@
         opacity: 0.55;
     }
     /* Fila "Agregar ítems": etiquetas en una línea y ayudas con altura
-       reservada para que los 5 controles queden alineados. */
+       reservada para que los controles queden alineados. */
     #filaAgregarItem .form-label {
         white-space: nowrap;
     }
     #filaAgregarItem .form-text {
         min-height: 1.5em;
+    }
+    /* Buscador dinámico de ítems: dropdown sobre fondo oscuro. */
+    #resultadosBuscador {
+        z-index: 1050;
+        max-height: 280px;
+        overflow-y: auto;
+        background-color: #22262e;
+        border: 1px solid #3c4149;
+        border-radius: 0.5rem;
+    }
+    #resultadosBuscador .list-group-item {
+        background-color: transparent;
+        border-color: #2a2e35;
+        cursor: pointer;
+    }
+    #resultadosBuscador .list-group-item:hover,
+    #resultadosBuscador .list-group-item.active {
+        background-color: rgba(229, 193, 88, 0.12);
+        border-color: #c9a227;
+    }
+    #resultadosBuscador .sin-stock {
+        opacity: 0.55;
     }
 </style>
 {% endblock %}
@@ -100,21 +122,31 @@
 
             <hr class="border-secondary my-4">
 
-            <!-- Alta de ítems al carrito -->
+            <!-- Alta de ítems al carrito con buscador dinámico -->
             <h6 class="text-light fw-bold mb-3"><i class="bi bi-cart-plus me-2 text-accent"></i> Agregar ítems</h6>
             <div class="row g-3 align-items-start" id="filaAgregarItem">
                 <div class="col-md-2 d-flex flex-column">
                     <label class="form-label text-secondary small fw-bold text-uppercase" for="id_add_tipo">Tipo</label>
-                    <select class="form-select" id="id_add_tipo">
+                    <select class="form-select" id="id_add_tipo" aria-label="Filtrar por tipo">
+                        <option value="TODOS" selected>Todos</option>
                         <option value="SERVICIO">Servicio</option>
                         <option value="PRODUCTO">Producto</option>
                     </select>
-                    <div class="form-text" aria-hidden="true">&nbsp;</div>
+                    <div class="form-text text-secondary">Filtra la búsqueda.</div>
                 </div>
-                <div class="col-md-4 d-flex flex-column">
-                    <label class="form-label text-secondary small fw-bold text-uppercase" for="id_add_item">Ítem</label>
-                    <select class="form-select" id="id_add_item"></select>
-                    <div class="form-text text-secondary" id="textoStock">&nbsp;</div>
+                <div class="col-md-6 d-flex flex-column">
+                    <label class="form-label text-secondary small fw-bold text-uppercase" for="id_add_buscador">Buscar
+                        ítem</label>
+                    <div class="position-relative">
+                        <input type="text" class="form-control" id="id_add_buscador" autocomplete="off"
+                            placeholder="Escribí nombre o código… Ej: corte, tintura, shampoo"
+                            aria-label="Buscar producto o servicio" aria-expanded="false"
+                            aria-controls="resultadosBuscador">
+                        <div id="resultadosBuscador" class="list-group position-absolute w-100 shadow d-none mt-1"
+                            role="listbox" aria-label="Resultados de búsqueda"></div>
+                    </div>
+                    <div class="form-text text-secondary" id="textoStock">Escribí para filtrar. Enter agrega el primer
+                        resultado.</div>
                 </div>
                 <div class="col-md-2 d-flex flex-column" id="grupoCantidad">
                     <label class="form-label text-secondary small fw-bold text-uppercase" for="id_add_cantidad">Cantidad</label>
@@ -122,18 +154,11 @@
                     <div class="form-text text-secondary" id="textoCantidad">Solo productos.</div>
                 </div>
                 <div class="col-md-2 d-flex flex-column">
-                    <label class="form-label text-secondary small fw-bold text-uppercase" for="id_add_precio">Precio unit. *</label>
+                    <label class="form-label text-secondary small fw-bold text-uppercase" for="id_add_precio">Precio
+                        (opcional)</label>
                     <input type="number" class="form-control" id="id_add_precio" min="0.01" step="0.01"
-                        placeholder="0.00">
-                    <div class="form-text text-secondary">Editable: promos o recargos.</div>
-                </div>
-                <div class="col-md-2 d-flex flex-column">
-                    <label class="form-label text-secondary small fw-bold text-uppercase"
-                        aria-hidden="true">&nbsp;</label>
-                    <button type="button" class="btn btn-accent text-dark fw-bold w-100" id="btnAgregarItem">
-                        <i class="bi bi-plus-circle me-1"></i> Agregar
-                    </button>
-                    <div class="form-text" aria-hidden="true">&nbsp;</div>
+                        placeholder="Sugerido">
+                    <div class="form-text text-secondary">Vacío = precio sugerido.</div>
                 </div>
             </div>
             <div class="text-danger small mt-2 d-none" id="errorItem"></div>
@@ -310,7 +335,8 @@
 <script>
     (function () {
         const tipoAdd = document.getElementById('id_add_tipo');
-        const itemAdd = document.getElementById('id_add_item');
+        const buscador = document.getElementById('id_add_buscador');
+        const cajaResultados = document.getElementById('resultadosBuscador');
         const cantAdd = document.getElementById('id_add_cantidad');
         const precioAdd = document.getElementById('id_add_precio');
         const textoStock = document.getElementById('textoStock');
@@ -338,54 +364,56 @@
             errorItem.classList.remove('d-none');
         }
 
-        function poblarItems() {
-            const tipo = tipoAdd.value;
-            const fuente = tipo === 'SERVICIO' ? serviciosData : productosData;
-            itemAdd.innerHTML = '';
-            const ids = Object.keys(fuente);
-            if (!ids.length) {
-                const opt = document.createElement('option');
-                opt.value = '';
-                opt.textContent = tipo === 'SERVICIO' ? 'Sin servicios activos' : 'Sin productos activos';
-                itemAdd.appendChild(opt);
-            } else {
-                const ph = document.createElement('option');
-                ph.value = '';
-                ph.textContent = '— Seleccioná —';
-                itemAdd.appendChild(ph);
-            }
-            ids.forEach(function (id) {
-                const info = fuente[id];
-                const opt = document.createElement('option');
-                opt.value = id;
-                opt.textContent = tipo === 'SERVICIO'
-                    ? info.nombre + ' — $' + Number(info.precio).toLocaleString('es-AR', { minimumFractionDigits: 2 })
-                    : info.nombre + ' (stock ' + info.stock + ') — $' + Number(info.precio).toLocaleString('es-AR', { minimumFractionDigits: 2 });
-                itemAdd.appendChild(opt);
-            });
-            actualizarPrecioSugerido();
+        // ── Catálogo unificado indexado para el buscador dinámico ──
+        function normalizar(texto) {
+            return String(texto == null ? '' : texto).toLowerCase()
+                .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         }
+        const catalogo = [];
+        Object.keys(serviciosData).forEach(function (id) {
+            const info = serviciosData[id];
+            catalogo.push({
+                clave: 'S-' + id, tipo: 'SERVICIO', id: String(id),
+                nombre: info.nombre, precio: info.precio, stock: null,
+                categoria: info.categoria || '',
+                indice: normalizar(id + ' ' + info.nombre + ' ' + (info.categoria || '')),
+            });
+        });
+        Object.keys(productosData).forEach(function (id) {
+            const info = productosData[id];
+            catalogo.push({
+                clave: 'P-' + id, tipo: 'PRODUCTO', id: String(id),
+                nombre: info.nombre, precio: info.precio, stock: info.stock,
+                categoria: '',
+                indice: normalizar(id + ' ' + info.nombre),
+            });
+        });
+        catalogo.sort(function (a, b) { return a.nombre.localeCompare(b.nombre, 'es'); });
 
-        function actualizarPrecioSugerido() {
-            const tipo = tipoAdd.value;
-            const fuente = tipo === 'SERVICIO' ? serviciosData : productosData;
-            const info = fuente[itemAdd.value];
-            if (info) {
-                precioAdd.value = info.precio;
-                textoStock.textContent = tipo === 'PRODUCTO' ? 'Stock disponible: ' + info.stock : '';
-            } else {
-                precioAdd.value = '';
-                textoStock.textContent = '';
-            }
-            actualizarEstadoCantidad();
+        let resultadosActuales = [];
+        let indiceActivo = -1;
+
+        function filtrarCatalogo(query) {
+            const filtroTipo = tipoAdd ? tipoAdd.value : 'TODOS';
+            const q = normalizar(query.trim());
+            const tokens = q ? q.split(/\s+/).filter(Boolean) : [];
+            const base = catalogo.filter(function (it) {
+                if (filtroTipo !== 'TODOS' && it.tipo !== filtroTipo) return false;
+                if (!tokens.length) return true;
+                return tokens.every(function (t) { return it.indice.includes(t); });
+            });
+            return base.slice(0, 30);
         }
 
         function actualizarEstadoCantidad() {
-            const esServicio = tipoAdd.value === 'SERVICIO';
-            cantAdd.value = esServicio ? 1 : (parseInt(cantAdd.value || '1', 10) || 1);
-            cantAdd.disabled = esServicio;
-            if (textoCantidad) {
-                textoCantidad.textContent = esServicio ? "" : "";
+            const soloServicios = tipoAdd && tipoAdd.value === 'SERVICIO';
+            if (soloServicios) {
+                cantAdd.value = 1;
+                cantAdd.disabled = true;
+                if (textoCantidad) textoCantidad.textContent = 'Servicios: cantidad 1.';
+            } else {
+                cantAdd.disabled = false;
+                if (textoCantidad) textoCantidad.textContent = 'Solo productos.';
             }
         }
 
@@ -474,32 +502,122 @@
             actualizarVistaPrevia();
         }
 
-        document.getElementById('btnAgregarItem').addEventListener('click', function () {
+        // ── Buscador dinámico: filtra en vivo y agrega al seleccionar ──
+        function formatearPrecio(valor) {
+            return '$' + Number(valor).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function renderResultados(lista, query) {
+            resultadosActuales = lista;
+            indiceActivo = lista.length ? 0 : -1;
+            cajaResultados.innerHTML = '';
+            if (!lista.length) {
+                const vacio = document.createElement('div');
+                vacio.className = 'list-group-item text-secondary small';
+                vacio.textContent = query && query.trim()
+                    ? 'Sin coincidencias para "' + query.trim() + '".'
+                    : 'Sin ítems para este filtro.';
+                cajaResultados.appendChild(vacio);
+            } else {
+                lista.forEach(function (it, idx) {
+                    const boton = document.createElement('button');
+                    boton.type = 'button';
+                    boton.className = 'list-group-item list-group-item-action d-flex justify-content-between align-items-center gap-2 text-start' + (idx === indiceActivo ? ' active' : '');
+                    boton.setAttribute('role', 'option');
+                    boton.dataset.clave = it.clave;
+                    const sinStock = it.tipo === 'PRODUCTO' && Number(it.stock) <= 0;
+                    if (sinStock) boton.classList.add('sin-stock');
+                    const insignia = it.tipo === 'SERVICIO'
+                        ? '<span class="badge bg-info text-dark">Servicio</span>'
+                        : '<span class="badge bg-warning text-dark">Producto</span>';
+                    const detalle = it.tipo === 'PRODUCTO'
+                        ? '<small class="text-secondary d-block">stock ' + esc(it.stock) + ' · cód. ' + esc(it.id) + '</small>'
+                        : '<small class="text-secondary d-block">cód. ' + esc(it.id) + '</small>';
+                    boton.innerHTML =
+                        '<span>' + insignia + ' <strong class="text-light">' + esc(it.nombre) + '</strong>' + detalle + '</span>' +
+                        '<strong class="text-accent text-nowrap">' + formatearPrecio(it.precio) + (sinStock ? '<small class="d-block text-danger">Sin stock</small>' : '') + '</strong>';
+                    boton.addEventListener('click', function () {
+                        agregarItemDesdeBuscador(it);
+                    });
+                    boton.addEventListener('mousemove', function () {
+                        if (indiceActivo !== idx) {
+                            indiceActivo = idx;
+                            pintarActivo();
+                        }
+                    });
+                    cajaResultados.appendChild(boton);
+                });
+            }
+            const visible = true;
+            cajaResultados.classList.toggle('d-none', !visible);
+            if (buscador) buscador.setAttribute('aria-expanded', 'true');
+            if (textoStock) {
+                textoStock.textContent = lista.length
+                    ? lista.length + ' resultado(s). Clic o Enter para agregar.'
+                    : 'Sin coincidencias.';
+            }
+        }
+
+        function pintarActivo() {
+            Array.from(cajaResultados.children).forEach(function (nodo, idx) {
+                nodo.classList.toggle('active', idx === indiceActivo);
+            });
+        }
+
+        function ocultarResultados() {
+            cajaResultados.classList.add('d-none');
+            if (buscador) buscador.setAttribute('aria-expanded', 'false');
+            indiceActivo = -1;
+        }
+
+        function mostrarResultadosIniciales() {
+            renderResultados(filtrarCatalogo(buscador ? buscador.value || '' : ''), buscador ? buscador.value || '' : '');
+        }
+
+        function debounce(fn, espera) {
+            let t = null;
+            return function () {
+                const args = arguments;
+                const ctx = this;
+                clearTimeout(t);
+                t = setTimeout(function () { fn.apply(ctx, args); }, espera || 120);
+            };
+        }
+
+        function agregarItemDesdeBuscador(item) {
             mostrarError('');
-            const tipo = tipoAdd.value;
-            const id = itemAdd.value;
-            if (!id) { mostrarError('Seleccioná un ítem válido.'); return; }
-            const cant = tipo === 'SERVICIO' ? 1 : parseInt(cantAdd.value || '0', 10);
-            const precio = parseFloat(precioAdd.value || '0');
-            if (tipo === 'PRODUCTO' && (!cant || cant <= 0)) { mostrarError('La cantidad debe ser mayor a cero.'); return; }
-            if (!precio || precio <= 0) { mostrarError('El precio unitario debe ser mayor a cero.'); return; }
-            const fuente = tipo === 'SERVICIO' ? serviciosData : productosData;
-            const info = fuente[id];
-            if (!info) { mostrarError('Ítem no encontrado.'); return; }
-            if (tipo === 'PRODUCTO' && cant > Number(info.stock)) {
-                mostrarError('Stock insuficiente para "' + info.nombre + '". Disponible: ' + info.stock + '.');
+            if (!item) { mostrarError('Seleccioná un ítem válido.'); return; }
+            const esServicio = item.tipo === 'SERVICIO';
+            const cant = esServicio ? 1 : parseInt((cantAdd && cantAdd.value) || '1', 10);
+            // Precio: si hay override manual válido se usa; si no, el sugerido del catálogo.
+            const overrideCrudo = precioAdd ? String(precioAdd.value || '').trim() : '';
+            const override = overrideCrudo ? parseFloat(overrideCrudo) : NaN;
+            const precioFinal = !isNaN(override) && override > 0 ? override : parseFloat(item.precio);
+            if (!esServicio && (!cant || cant <= 0)) { mostrarError('La cantidad debe ser mayor a cero.'); return; }
+            if (!precioFinal || precioFinal <= 0) { mostrarError('El precio unitario debe ser mayor a cero.'); return; }
+            if (!esServicio && cant > Number(item.stock)) {
+                mostrarError('Stock insuficiente para "' + item.nombre + '". Disponible: ' + item.stock + '.');
                 return;
             }
             carrito.push({
-                tipo: tipo,
-                servicio_id: tipo === 'SERVICIO' ? id : null,
-                producto_id: tipo === 'PRODUCTO' ? id : null,
-                nombre: info.nombre,
+                tipo: item.tipo,
+                servicio_id: esServicio ? item.id : null,
+                producto_id: esServicio ? null : item.id,
+                nombre: item.nombre,
                 cantidad: cant,
-                precio_unitario: Number(precio).toFixed(2),
+                precio_unitario: Number(precioFinal).toFixed(2),
             });
             renderCarrito();
-        });
+            // Limpieza inmediata para la siguiente carga ágil.
+            if (buscador) {
+                buscador.value = '';
+                buscador.focus();
+            }
+            if (cantAdd) cantAdd.value = 1;
+            if (precioAdd) precioAdd.value = '';
+            ocultarResultados();
+            mostrarResultadosIniciales();
+        }
 
         // Eliminar un ítem del carrito solo tras validar en el modal.
         let indiceAEliminar = null;
@@ -550,8 +668,47 @@
             renderCarrito();
         });
 
-        tipoAdd.addEventListener('change', poblarItems);
-        itemAdd.addEventListener('change', actualizarPrecioSugerido);
+        const filtrarConDebounce = debounce(function () {
+            renderResultados(filtrarCatalogo(buscador.value || ''), buscador.value || '');
+        }, 120);
+        if (buscador) {
+            buscador.addEventListener('input', filtrarConDebounce);
+            buscador.addEventListener('focus', mostrarResultadosIniciales);
+            buscador.addEventListener('keydown', function (e) {
+                if (cajaResultados.classList.contains('d-none')) return;
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    if (resultadosActuales.length) {
+                        indiceActivo = (indiceActivo + 1) % resultadosActuales.length;
+                        pintarActivo();
+                    }
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    if (resultadosActuales.length) {
+                        indiceActivo = (indiceActivo - 1 + resultadosActuales.length) % resultadosActuales.length;
+                        pintarActivo();
+                    }
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const elegido = resultadosActuales[indiceActivo] || resultadosActuales[0];
+                    if (elegido) agregarItemDesdeBuscador(elegido);
+                } else if (e.key === 'Escape') {
+                    ocultarResultados();
+                }
+            });
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest || (!e.target.closest('#resultadosBuscador') && e.target !== buscador)) {
+                    ocultarResultados();
+                }
+            });
+        }
+        if (tipoAdd) {
+            tipoAdd.addEventListener('change', function () {
+                actualizarEstadoCantidad();
+                mostrarResultadosIniciales();
+                if (buscador) buscador.focus();
+            });
+        }
         [medio, descuento].forEach(el => el && el.addEventListener('input', actualizarVistaPrevia));
         medio.addEventListener('change', actualizarVistaPrevia);
 
@@ -608,7 +765,7 @@
             if (carrito.length) return true;
             const campos = formCobro.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, select');
             for (const campo of campos) {
-                if (campo.id === 'id_add_tipo' || campo.id === 'id_add_item' || campo.id === 'id_add_cantidad' || campo.id === 'id_add_precio') continue;
+                if (campo.id === 'id_add_tipo' || campo.id === 'id_add_buscador' || campo.id === 'id_add_cantidad' || campo.id === 'id_add_precio') continue;
                 if ((campo.value || '') !== '') return true;
             }
             return false;
@@ -628,7 +785,7 @@
             return huboCambiosCobro() ? 'Tienes un cobro en curso. Si sales ahora se perderán los datos ingresados.' : false;
         };
 
-        poblarItems();
+        actualizarEstadoCantidad();
         // Restaurar carrito si el backend re-renderiza con errores (POST inválido).
         let restaurado = false;
         if (itemsHidden && itemsHidden.value) {
@@ -657,11 +814,9 @@
         }
         if (!restaurado && itemInicial && itemInicial.producto_id && productosData[itemInicial.producto_id]) {
             const info = productosData[itemInicial.producto_id];
-            // Preseleccionar el producto en el alta para coherencia con el carrito.
-            tipoAdd.value = 'PRODUCTO';
-            poblarItems();
-            itemAdd.value = itemInicial.producto_id;
-            actualizarPrecioSugerido();
+            // Precarga el carrito si viene ?producto=<id> (coherente con el buscador).
+            if (tipoAdd) tipoAdd.value = 'PRODUCTO';
+            actualizarEstadoCantidad();
             carrito.push({
                 tipo: 'PRODUCTO',
                 servicio_id: null,

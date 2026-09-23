@@ -15,6 +15,22 @@ from apps.turnos.services import TurnoService
 from tests.factories.usuario_factory import AdministradoraFactory, EmpleadaFactory
 
 
+def _proximo_dia_de_semana(objetivo_weekday, desde=None):
+    """Próxima fecha futura (a partir de mañana) que caiga en el día de semana indicado."""
+    dia = (desde or timezone.localdate()) + timedelta(days=1)
+    while dia.weekday() != objetivo_weekday:
+        dia += timedelta(days=1)
+    return dia
+
+
+def _proximo_dia_habil(desde=None):
+    """Primer día Martes a Sábado a partir de mañana (el form rechaza Lunes y Domingo)."""
+    dia = (desde or timezone.localdate()) + timedelta(days=1)
+    while dia.weekday() not in {1, 2, 3, 4, 5}:
+        dia += timedelta(days=1)
+    return dia
+
+
 @pytest.fixture
 def servicio_corte(db):
     return ServicioService.crear_servicio(
@@ -83,7 +99,7 @@ class TestCrearTurnoView:
     def test_crear_turno_web(self, client, servicio_corte) -> None:
         empleada = EmpleadaFactory()
         client.force_login(empleada)
-        dia = timezone.localdate() + timedelta(days=1)
+        dia = _proximo_dia_habil()
 
         response = client.post(
             reverse("turnos:crear_turno"),
@@ -103,7 +119,7 @@ class TestCrearTurnoView:
     def test_crear_turno_fuera_de_horario_comercial_muestra_error(self, client, servicio_corte) -> None:
         empleada = EmpleadaFactory()
         client.force_login(empleada)
-        dia = timezone.localdate() + timedelta(days=1)
+        dia = _proximo_dia_habil()
 
         response = client.post(
             reverse("turnos:crear_turno"),
@@ -119,10 +135,32 @@ class TestCrearTurnoView:
         assert response.status_code == 200  # Vuelve a mostrar el form con el error
         assert Turno.objects.filter(cliente_nombre="Carla Madrugada").exists() is False
 
+    def test_crear_turno_en_dia_no_habilitado_muestra_error(self, client, servicio_corte) -> None:
+        """El salón atiende Martes a Sábado: Lunes y Domingo deben rechazarse."""
+        empleada = EmpleadaFactory()
+        client.force_login(empleada)
+        domingo = _proximo_dia_de_semana(6)
+        lunes = _proximo_dia_de_semana(0)
+
+        for nombre, fecha_invalida in [("Carla Domingo", domingo), ("Carla Lunes", lunes)]:
+            response = client.post(
+                reverse("turnos:crear_turno"),
+                data={
+                    "cliente_nombre": nombre,
+                    "servicio": servicio_corte.id,
+                    "fecha": fecha_invalida.isoformat(),
+                    "hora": "14:00",
+                    "duracion_minutos": "45",
+                    "notas": "",
+                },
+            )
+            assert response.status_code == 200  # Vuelve a mostrar el form con el error
+            assert Turno.objects.filter(cliente_nombre=nombre).exists() is False
+
     def test_crear_turno_con_solapamiento_muestra_error(self, client, servicio_corte) -> None:
         empleada = EmpleadaFactory()
         client.force_login(empleada)
-        dia = timezone.localdate() + timedelta(days=1)
+        dia = _proximo_dia_habil()
         TurnoService.crear_turno(
             cliente_nombre="Primera", servicio=servicio_corte, fecha=dia, hora=time(10, 0), profesional=empleada
         )

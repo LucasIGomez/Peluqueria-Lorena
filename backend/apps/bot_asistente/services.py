@@ -19,6 +19,7 @@ from typing import Optional
 from django.utils import timezone
 
 from apps.clientes.models import Cliente
+from apps.clientes.services import ClienteService
 from apps.servicios.models import Servicio
 from apps.turnos.models import Turno
 from apps.turnos.services import TurnoService
@@ -28,6 +29,13 @@ from .handlers.business_hours import BusinessHoursValidator
 from .models import ConversacionBot, MensajeBot
 
 logger = logging.getLogger(__name__)
+
+
+def normalizar_telefono(telefono: str) -> str:
+    """
+    Sanitiza y normaliza un número de teléfono a solo dígitos.
+    """
+    return re.sub(r"\D", "", telefono or "")
 
 
 class TurnoBotService:
@@ -244,12 +252,18 @@ class TurnoBotService:
         )
 
     @classmethod
-    def _menu_ver_turnos(cls, conversacion: ConversacionBot, telefono: str) -> str:
-        turnos = Turno.objects.filter(
-            cliente_telefono__icontains=telefono[-8:],
+    def _buscar_turnos_activos(cls, telefono: str):
+        """Busca turnos futuros activos por coincidencia exacta normalizada de teléfono."""
+        tel_normalizado = normalizar_telefono(telefono)
+        return Turno.objects.filter(
+            cliente_telefono=tel_normalizado,
             fecha__gte=timezone.localdate(),
             estado__in=[Turno.Estado.CONFIRMADO, Turno.Estado.PENDIENTE],
         ).order_by("fecha", "hora")
+
+    @classmethod
+    def _menu_ver_turnos(cls, conversacion: ConversacionBot, telefono: str) -> str:
+        turnos = cls._buscar_turnos_activos(telefono)
 
         if not turnos.exists():
             return "No tenés turnos programados en este momento. Si querés agendar uno, escribí *1*."
@@ -265,19 +279,14 @@ class TurnoBotService:
 
     @classmethod
     def _menu_cancelar_turno(cls, conversacion: ConversacionBot, telefono: str) -> str:
-        turnos = Turno.objects.filter(
-            cliente_telefono__icontains=telefono[-8:],
-            fecha__gte=timezone.localdate(),
-            estado__in=[Turno.Estado.CONFIRMADO, Turno.Estado.PENDIENTE],
-        ).order_by("fecha", "hora")
+        turnos = cls._buscar_turnos_activos(telefono)
 
         if not turnos.exists():
             return "No encontramos ningún turno activo próximo asociado a tu número para cancelar."
 
         if turnos.count() == 1:
             turno = turnos.first()
-            turno.estado = Turno.Estado.CANCELADO
-            turno.save(update_fields=["estado"])
+            TurnoService.cancelar_turno(turno)
             return f"Tu turno para *{turno.servicio.nombre}* del *{turno.fecha.strftime('%d/%m/%Y')}* a las *{turno.hora.strftime('%H:%M')} hs* fue cancelado correctamente. ¡Te esperamos cuando gustes!"
 
         # Si tiene varios turnos
@@ -356,33 +365,35 @@ class TurnoBotService:
         # Calcular duración estimada
         duracion = servicio_obj.duracion_estimada_minutos
 
-        # 4. Obtener o crear Clienta
+        # 4. Obtener o crear Clienta a través de ClienteService
+        tel_normalizado = normalizar_telefono(telefono)
         cliente = conversacion.cliente
         if not cliente:
             nombre_cliente = nombre_remitente or conversacion.nombre_remitente or "Clienta WhatsApp"
-            cliente = Cliente.objects.filter(telefono__icontains=telefono[-8:]).first()
+            cliente = Cliente.objects.filter(telefono=tel_normalizado).first()
             if not cliente:
-                cliente = Cliente.objects.create(
+                cliente = ClienteService.crear_cliente(
                     nombre=nombre_cliente,
-                    telefono=telefono,
+                    telefono=tel_normalizado,
                 )
             conversacion.cliente = cliente
             conversacion.save(update_fields=["cliente"])
 
-        # 5. Crear el Turno en Bolsa Común (profesional=None)
+        # 5. Crear el Turno en Bolsa Común a través de TurnoService (profesional=None)
         # La clienta no elige peluquera; se asigna internamente en el salón.
-        turno = Turno.objects.create(
+        turno = TurnoService.crear_turno(
             cliente=cliente,
             cliente_nombre=cliente.nombre,
-            cliente_telefono=telefono,
+            cliente_telefono=tel_normalizado,
             servicio=servicio_obj,
             profesional=None,  # Bolsa común
             fecha=fecha_turno,
             hora=hora_turno,
             duracion_minutos=duracion,
-            estado=Turno.Estado.CONFIRMADO,
             notas="Agendado automáticamente por Asistente Virtual WhatsApp",
         )
+        if turno.estado != Turno.Estado.CONFIRMADO:
+            TurnoService.cambiar_estado(turno, Turno.Estado.CONFIRMADO)
 
         aviso_tecnico = ""
         if servicio_obj.requiere_consentimiento:

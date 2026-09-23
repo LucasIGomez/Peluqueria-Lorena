@@ -215,9 +215,10 @@ DATOS_PELUQUERIA = {
 # ──────────────────────────────────────────────
 # BOT ASISTENTE Y WHATSAPP BUSINESS
 # ──────────────────────────────────────────────
-GEMINI_API_KEY: str = config("GEMINI_API_KEY", default=os.environ.get("GEMINI_API_KEY", ""))
+GEMINI_API_KEY: str = config("GEMINI_API_KEY", default="")
 GEMINI_MODEL: str = config("GEMINI_MODEL", default="gemini-2.5-flash")
-WHATSAPP_VERIFY_TOKEN: str = config("WHATSAPP_VERIFY_TOKEN", default="pelulorena_whatsapp_token_seguro")
+WHATSAPP_VERIFY_TOKEN: str = config("WHATSAPP_VERIFY_TOKEN", default="")
+WHATSAPP_APP_SECRET: str = config("WHATSAPP_APP_SECRET", default="")
 WHATSAPP_PHONE_NUMBER_ID: str = config("WHATSAPP_PHONE_NUMBER_ID", default="")
 WHATSAPP_ACCESS_TOKEN: str = config("WHATSAPP_ACCESS_TOKEN", default="")
 

@@ -40,3 +40,11 @@ EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
 # para poder crear usuarios con passwords simples
 # ──────────────────────────────────────────────
 AUTH_PASSWORD_VALIDATORS = []
+
+# ──────────────────────────────────────────────
+# WHATSAPP Y BOT — Configuración mock para testing
+# ──────────────────────────────────────────────
+WHATSAPP_VERIFY_TOKEN = "test_verify_token"
+WHATSAPP_APP_SECRET = "test_secret_key_12345"
+WHATSAPP_PHONE_NUMBER_ID = "100200300"
+WHATSAPP_ACCESS_TOKEN = "test_access_token"
