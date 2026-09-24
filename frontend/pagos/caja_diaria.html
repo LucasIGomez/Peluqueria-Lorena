@@ -97,8 +97,7 @@
 <!-- Resumen por medio de pago -->
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-header py-3">
-        <h5 class="mb-0 text-light"><i class="bi bi-wallet2 me-2 text-accent"></i> Ingresos por Medio de Pago — {{
-            fecha|date:"d/m/Y" }}</h5>
+        <h5 class="mb-0 text-light"><i class="bi bi-wallet2 me-2 text-accent"></i> Ingresos por Medio de Pago — {% if fecha %}{{ fecha|date:"d/m/Y" }}{% else %}{% now "d/m/Y" %}{% endif %}</h5>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
@@ -135,8 +134,7 @@
 <!-- Listado de cobros -->
 <div class="card shadow-sm border-0">
     <div class="card-header d-flex justify-content-between align-items-center py-3">
-        <h5 class="mb-0 text-light"><i class="bi bi-list-check me-2 text-accent"></i> Cobros del {{ fecha|date:"l, d F
-            Y" }}</h5>
+        <h5 class="mb-0 text-light"><i class="bi bi-list-check me-2 text-accent"></i> Cobros del {% if fecha %}{{ fecha|date:"d/m/Y" }}{% else %}{% now "d/m/Y" %}{% endif %}</h5>
         <span class="badge bg-dark border border-secondary text-secondary">{{ resumen.cantidad_cobros }} en lista</span>
     </div>
     <div class="card-body p-0">

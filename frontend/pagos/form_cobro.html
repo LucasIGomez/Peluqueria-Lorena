@@ -599,6 +599,34 @@
                 mostrarError('Stock insuficiente para "' + item.nombre + '". Disponible: ' + item.stock + '.');
                 return;
             }
+            // Validación de duplicados: clave única por tipo + id antes de insertar al arreglo/DOM.
+            const idClave = String(item.id);
+            const idxExistente = carrito.findIndex(function (ex) {
+                const exId = ex.tipo === 'SERVICIO' ? ex.servicio_id : ex.producto_id;
+                return ex.tipo === item.tipo && String(exId) === idClave;
+            });
+            if (idxExistente !== -1) {
+                const existente = carrito[idxExistente];
+                if (esServicio) {
+                    mostrarError('Este servicio ya está en la lista. Los servicios son únicos por venta.');
+                } else {
+                    const nuevaCant = Number(existente.cantidad) + cant;
+                    if (nuevaCant > Number(item.stock)) {
+                        mostrarError('Stock insuficiente para "' + item.nombre + '". En carrito: ' + existente.cantidad + '. Disponible: ' + item.stock + '.');
+                        return;
+                    }
+                    existente.cantidad = nuevaCant;
+                    mostrarError('');
+                    renderCarrito();
+                    if (textoStock) textoStock.textContent = '"' + item.nombre + '" actualizado: x' + nuevaCant + '.';
+                }
+                if (buscador) { buscador.value = ''; buscador.focus(); }
+                if (cantAdd) cantAdd.value = 1;
+                if (precioAdd) precioAdd.value = '';
+                ocultarResultados();
+                mostrarResultadosIniciales();
+                return;
+            }
             carrito.push({
                 tipo: item.tipo,
                 servicio_id: esServicio ? item.id : null,

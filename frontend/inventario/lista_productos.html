@@ -257,11 +257,11 @@
             </div>
 
             <!-- Buscador y Botón Ver solo bajo stock A LA DERECHA (sin saltar de línea) -->
-            <form method="get" class="d-flex align-items-center gap-2 flex-nowrap" id="form-busqueda-productos">
+            <form method="get" class="d-flex align-items-center gap-2 flex-wrap flex-lg-nowrap flex-grow-1 justify-content-start justify-content-lg-end" id="form-busqueda-productos" style="flex: 1 1 420px; min-width: min(320px, 100%);">
                 {% if filtro_bajo_stock %}
                 <input type="hidden" name="bajo_stock" value="1">
                 {% endif %}
-                <div class="position-relative flex-grow-1" style="max-width: 360px; min-width: 180px;">
+                <div class="position-relative flex-grow-1 w-100" style="flex: 1 1 320px; min-width: min(320px, 100%); max-width: 520px;">
                     <div class="input-group input-group-sm">
                         <span class="input-group-text bg-dark text-secondary border-secondary"><i
                                 class="bi bi-search"></i></span>
