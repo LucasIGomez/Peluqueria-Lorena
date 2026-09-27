@@ -1,0 +1,458 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Registrar Trabajo Realizado{% endblock %}
+{% block page_subtitle %}Asiente los servicios efectuados para el cálculo automático de su comisión.{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <!-- Columna Izquierda: Formulario Rápido -->
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-light"><i class="bi bi-scissors me-2 text-accent"></i> Carga Rápida de Atención</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="POST" id="formRegistroTrabajo">
+                    {% csrf_token %}
+
+                    {% if request.user.es_administradora %}
+                    <div class="mb-3">
+                        <label class="form-label text-light fw-bold">Profesional que realizó el trabajo <span class="text-danger">*</span></label>
+                        {{ form.profesional }}
+                        {% if form.profesional.errors %}<div class="text-danger small mt-1">{{ form.profesional.errors }}</div>{% endif %}
+                    </div>
+                    {% else %}
+                        {{ form.profesional }}
+                        <div class="alert alert-secondary py-2 px-3 small d-flex align-items-center justify-content-between mb-3 bg-dark border-secondary">
+                            <span><i class="bi bi-person-circle me-1 text-accent"></i> Profesional: <strong>{{ request.user.nombre }}</strong></span>
+                            <span class="badge bg-info-subtle text-info">Mi Comisión</span>
+                        </div>
+                    {% endif %}
+
+                    <!-- Selector de Servicio -->
+                    <div class="mb-3">
+                        <label class="form-label text-light fw-bold">Servicio Realizado <span class="text-danger">*</span></label>
+                        {{ form.servicio }}
+                        {% if form.servicio.errors %}<div class="text-danger small mt-1">{{ form.servicio.errors }}</div>{% endif %}
+                    </div>
+
+                    <!-- Clienta: Selector y Nombre Libre -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Clienta Frecuente (Opcional)</label>
+                            {{ form.cliente }}
+                            <small class="text-secondary">Autocompleta nombre y teléfono.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-light fw-bold">Nombre de la Clienta <span class="text-danger">*</span></label>
+                            {{ form.cliente_nombre }}
+                            {% if form.cliente_nombre.errors %}<div class="text-danger small mt-1">{{ form.cliente_nombre.errors }}</div>{% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-light">Teléfono / WhatsApp (Opcional)</label>
+                        {{ form.cliente_telefono }}
+                    </div>
+
+                    <hr class="border-secondary my-3">
+
+                    <!-- Presupuesto Acordado y Cálculo en Vivo -->
+                    <div class="p-3 rounded bg-dark border border-secondary mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="badge bg-warning text-dark fw-bold">Presupuesto Cargado</span>
+                            <span id="badgeCategoria" class="badge bg-secondary">Sin servicio seleccionado</span>
+                        </div>
+                        <div class="row g-3 align-items-center">
+                            <div class="col-md-6">
+                                <label class="form-label text-light fw-bold">Precio Acordado / Cobrado ($) <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-secondary border-secondary text-light">$</span>
+                                    {{ form.precio_acordado }}
+                                </div>
+                                <small class="text-secondary">Precio base oficial: <span id="labelPrecioBase" class="fw-bold text-light">$0.00</span></small>
+                                {% if form.precio_acordado.errors %}<div class="text-danger small mt-1">{{ form.precio_acordado.errors }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-6">
+                                <!-- Tarjeta Reactiva de Comisión (RF 8.2) -->
+                                <div class="p-3 rounded bg-black border border-warning border-opacity-50 text-center">
+                                    <div class="text-secondary small text-uppercase fw-bold">Comisión Estimada (<span id="labelPorcentaje">0%</span>)</div>
+                                    <div class="fs-3 fw-bold text-accent my-1" id="labelMontoComision">$0.00</div>
+                                    <small class="text-muted" style="font-size: 0.75rem;">Calculado automáticamente sobre el presupuesto</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Fecha y Horario -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Fecha de Atención <span class="text-danger">*</span></label>
+                            {{ form.fecha }}
+                            {% if form.fecha.errors %}<div class="text-danger small mt-1">{{ form.fecha.errors }}</div>{% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Horario de Inicio <span class="text-danger">*</span></label>
+                            {{ form.hora }}
+                        </div>
+                    </div>
+
+                    <!-- Notas -->
+                    <div class="mb-4">
+                        <label class="form-label text-light">Notas o Especificaciones Técnicas (Opcional)</label>
+                        {{ form.notas }}
+                    </div>
+
+                    <!-- Botones de Acción -->
+                    <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center">
+                        <a href="{% url 'comisiones:mis_comisiones' %}" id="btnIrMisComisiones" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-left me-1"></i> Ir a Mis Comisiones
+                        </a>
+                        <div class="d-flex gap-2">
+                            <button type="submit" name="guardar_y_otro" value="1" class="btn btn-outline-warning">
+                                <i class="bi bi-plus-circle me-1"></i> Guardar y Cargar Otro
+                            </button>
+                            <button type="submit" class="btn btn-accent text-dark fw-bold px-4">
+                                <i class="bi bi-check2-circle me-1"></i> Registrar Trabajo
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Columna Derecha: Resumen de Trabajos de Hoy -->
+    <div class="col-lg-5">
+        <div class="card border-0 bg-dark p-3 mb-4 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-secondary small text-uppercase fw-bold">Comisiones Acumuladas Hoy</span>
+                    <h2 class="mb-0 text-accent fw-bold">${{ total_comision_hoy|floatformat:2 }}</h2>
+                    <small class="text-secondary">{{ total_trabajos_hoy }} trabajo{{ total_trabajos_hoy|pluralize:"s" }} realizado{{ total_trabajos_hoy|pluralize:"s" }} hoy</small>
+                </div>
+                <div class="p-3 bg-warning bg-opacity-25 rounded-circle text-accent">
+                    <i class="bi bi-wallet2 fs-2"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h6 class="mb-0 text-light"><i class="bi bi-clock-history me-2 text-warning"></i> Últimos Trabajos de Hoy</h6>
+                <a href="{% url 'comisiones:mis_comisiones' %}" class="btn btn-sm btn-outline-secondary py-0" style="font-size: 0.8rem;">Ver Todos</a>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for trabajo in trabajos_hoy %}
+                    <div class="list-group-item bg-dark border-secondary text-light py-3 px-3">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <strong class="text-light">{{ trabajo.servicio.nombre }}</strong>
+                                <div class="small text-secondary">Clienta: {{ trabajo.cliente_nombre }} &bull; {{ trabajo.hora|time:"H:i" }}</div>
+                            </div>
+                            <div class="text-end">
+                                <div class="text-accent fw-bold">+${{ trabajo.monto_comision|floatformat:2 }}</div>
+                                <span class="badge bg-secondary" style="font-size: 0.7rem;">{{ trabajo.porcentaje_comision }}% de ${{ trabajo.precio_acordado|floatformat:0 }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-4 text-secondary small">
+                        <i class="bi bi-emoji-smile fs-3 d-block mb-1 text-muted"></i>
+                        Aún no registraste trabajos en el día de hoy.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Confirmación de Salida con Datos Cargados -->
+<div class="modal fade" id="modalConfirmarSalidaRegistro" tabindex="-1" aria-labelledby="modalConfirmarSalidaRegistroLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-secondary text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-warning" id="modalConfirmarSalidaRegistroLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Atención sin Registrar
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2">Tienes datos ingresados en el formulario que aún no fueron registrados:</p>
+                <div class="p-3 bg-black rounded border border-secondary mb-3">
+                    <div class="text-secondary small text-uppercase fw-bold mb-2">Datos detectados:</div>
+                    <ul class="list-group list-group-flush mb-0" id="listaDatosPendientesRegistro">
+                        <!-- Generado dinámicamente -->
+                    </ul>
+                </div>
+                <p class="text-danger small mb-0">Si sales ahora hacia <strong>Mis Comisiones</strong>, esta atención no se asentará y perderás los datos cargados.</p>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Continuar Cargando</button>
+                <a href="{% url 'comisiones:mis_comisiones' %}" id="btnDescartarYSalir" class="btn btn-danger fw-bold">
+                    Descartar y Salir
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // Datos inyectados desde Django para reactividad instantánea
+    const serviciosData = {{ servicios_data_json|safe }};
+    const clientesData = {{ clientes_data_json|safe }};
+
+    const selectServicio = document.getElementById('id_servicio_select');
+    const selectCliente = document.getElementById('id_cliente_select');
+    const inputClienteNombre = document.getElementById('id_cliente_nombre');
+    const inputClienteTelefono = document.getElementById('id_cliente_telefono');
+    const inputPrecioAcordado = document.getElementById('id_precio_acordado');
+    const inputNotas = document.getElementById('id_notas') || document.querySelector('textarea[name="notas"]');
+    const badgeCategoria = document.getElementById('badgeCategoria');
+    const labelPrecioBase = document.getElementById('labelPrecioBase');
+    const labelPorcentaje = document.getElementById('labelPorcentaje');
+    const labelMontoComision = document.getElementById('labelMontoComision');
+    const form = document.getElementById('formRegistroTrabajo');
+
+    const modalSalidaEl = document.getElementById('modalConfirmarSalidaRegistro');
+    const modalSalida = modalSalidaEl && typeof bootstrap !== 'undefined' ? bootstrap.Modal.getOrCreateInstance(modalSalidaEl) : null;
+    const listaDatosPendientes = document.getElementById('listaDatosPendientesRegistro');
+
+    let formularioGuardando = false;
+
+    function formatearMoneda(val) {
+        return '$' + Number(val).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function recalcularComision() {
+        if (!selectServicio) return;
+        const srvId = selectServicio.value;
+        const precio = inputPrecioAcordado ? (parseFloat(inputPrecioAcordado.value.replace(',', '.')) || 0) : 0;
+
+        if (srvId && serviciosData[srvId]) {
+            const srv = serviciosData[srvId];
+            const pct = parseFloat(srv.porcentaje_comision) || 0;
+            const comision = (precio * pct) / 100.0;
+
+            if (badgeCategoria) {
+                badgeCategoria.textContent = srv.categoria_display;
+                badgeCategoria.className = srv.categoria === 'CORTES' ? 'badge bg-success text-dark fw-bold' : 'badge bg-info text-dark fw-bold';
+            }
+            if (labelPrecioBase) labelPrecioBase.textContent = formatearMoneda(srv.precio_base);
+            if (labelPorcentaje) labelPorcentaje.textContent = pct + '%';
+            if (labelMontoComision) labelMontoComision.textContent = formatearMoneda(comision);
+        } else {
+            if (badgeCategoria) {
+                badgeCategoria.textContent = 'Sin servicio seleccionado';
+                badgeCategoria.className = 'badge bg-secondary';
+            }
+            if (labelPrecioBase) labelPrecioBase.textContent = '$0.00';
+            if (labelPorcentaje) labelPorcentaje.textContent = '0%';
+            if (labelMontoComision) labelMontoComision.textContent = '$0.00';
+        }
+    }
+
+    // Al cambiar de servicio: precargar precio base sugerido y recalcular
+    if (selectServicio) {
+        selectServicio.addEventListener('change', function () {
+            const srvId = this.value;
+            if (srvId && serviciosData[srvId]) {
+                const srv = serviciosData[srvId];
+                if (inputPrecioAcordado) {
+                    inputPrecioAcordado.value = parseFloat(srv.precio_base).toFixed(2);
+                }
+            }
+            selectServicio.classList.remove('is-invalid');
+            recalcularComision();
+        });
+    }
+
+    // Al editar precio acordado: recalcular comisión en tiempo real
+    if (inputPrecioAcordado) {
+        inputPrecioAcordado.addEventListener('input', function () {
+            inputPrecioAcordado.classList.remove('is-invalid');
+            recalcularComision();
+        });
+    }
+
+    // Al elegir clienta existente: autocompletar nombre y teléfono
+    if (selectCliente) {
+        selectCliente.addEventListener('change', function () {
+            const cliId = this.value;
+            if (cliId && clientesData[cliId]) {
+                const cli = clientesData[cliId];
+                if (inputClienteNombre) {
+                    inputClienteNombre.value = cli.nombre || '';
+                    inputClienteNombre.classList.remove('is-invalid');
+                }
+                if (inputClienteTelefono) {
+                    inputClienteTelefono.value = cli.telefono || '';
+                }
+            }
+        });
+    }
+
+    if (inputClienteNombre) {
+        inputClienteNombre.addEventListener('input', function () {
+            inputClienteNombre.classList.remove('is-invalid');
+        });
+    }
+
+    // Sincronización inicial si ya hay selección previa
+    if (selectServicio && selectServicio.value) {
+        if (inputPrecioAcordado && (!inputPrecioAcordado.value || inputPrecioAcordado.value === '0' || inputPrecioAcordado.value === '0.00')) {
+            const srv = serviciosData[selectServicio.value];
+            if (srv) {
+                inputPrecioAcordado.value = parseFloat(srv.precio_base).toFixed(2);
+            }
+        }
+    }
+    if (selectCliente && selectCliente.value) {
+        if (inputClienteNombre && !inputClienteNombre.value) {
+            const cli = clientesData[selectCliente.value];
+            if (cli) {
+                inputClienteNombre.value = cli.nombre || '';
+                if (inputClienteTelefono && !inputClienteTelefono.value) {
+                    inputClienteTelefono.value = cli.telefono || '';
+                }
+            }
+        }
+    }
+    recalcularComision();
+
+    // Función que verifica si el usuario cargó datos en cualquier campo
+    function obtenerDatosCargados() {
+        const datos = [];
+        const srvId = selectServicio ? selectServicio.value : '';
+        const nombre = inputClienteNombre ? inputClienteNombre.value.trim() : '';
+        const telefono = inputClienteTelefono ? inputClienteTelefono.value.trim() : '';
+        const precio = inputPrecioAcordado ? (parseFloat(inputPrecioAcordado.value.replace(',', '.')) || 0) : 0;
+        const notas = inputNotas ? inputNotas.value.trim() : '';
+
+        if (srvId && serviciosData[srvId]) {
+            datos.push(`Servicio: <strong>${serviciosData[srvId].nombre}</strong>`);
+        }
+        if (nombre) {
+            datos.push(`Clienta: <strong>${nombre}</strong>`);
+        }
+        if (telefono) {
+            datos.push(`Teléfono: <strong>${telefono}</strong>`);
+        }
+        if (precio > 0) {
+            datos.push(`Presupuesto pactado: <strong>$${precio.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong>`);
+        }
+        if (notas) {
+            const preview = notas.length > 35 ? notas.substring(0, 35) + '...' : notas;
+            datos.push(`Notas: <em>"${preview}"</em>`);
+        }
+        return datos;
+    }
+
+    // Validación al enviar el formulario
+    if (form) {
+        form.addEventListener('submit', function (e) {
+            let hayErrores = false;
+            const srvId = selectServicio ? selectServicio.value : '';
+            const nombre = inputClienteNombre ? inputClienteNombre.value.trim() : '';
+            const precio = inputPrecioAcordado ? (parseFloat(inputPrecioAcordado.value.replace(',', '.')) || 0) : 0;
+
+            if (selectServicio) selectServicio.classList.remove('is-invalid');
+            if (inputClienteNombre) inputClienteNombre.classList.remove('is-invalid');
+            if (inputPrecioAcordado) inputPrecioAcordado.classList.remove('is-invalid');
+
+            if (!srvId) {
+                if (selectServicio) selectServicio.classList.add('is-invalid');
+                hayErrores = true;
+            }
+
+            if (!nombre) {
+                if (inputClienteNombre) inputClienteNombre.classList.add('is-invalid');
+                hayErrores = true;
+            }
+
+            if (precio <= 0) {
+                if (inputPrecioAcordado) inputPrecioAcordado.classList.add('is-invalid');
+                hayErrores = true;
+            }
+
+            if (hayErrores) {
+                e.preventDefault();
+                alert('Por favor complete todos los campos obligatorios antes de registrar.');
+                if (!srvId && selectServicio) selectServicio.focus();
+                else if (!nombre && inputClienteNombre) inputClienteNombre.focus();
+                else if (precio <= 0 && inputPrecioAcordado) inputPrecioAcordado.focus();
+                return false;
+            }
+
+            formularioGuardando = true;
+            window._enviandoFormulario = true;
+            window._sinAvisoNavegador = true;
+        });
+    }
+
+    // Advertencia con modal al hacer clic en "Ir a Mis Comisiones" si hay datos en cualquier campo
+    const btnVolver = document.getElementById('btnIrMisComisiones');
+    if (btnVolver) {
+        btnVolver.addEventListener('click', function (e) {
+            const datos = obtenerDatosCargados();
+            if (datos.length > 0) {
+                e.preventDefault();
+                if (listaDatosPendientes) {
+                    listaDatosPendientes.innerHTML = '';
+                    datos.forEach(d => {
+                        const li = document.createElement('li');
+                        li.className = 'list-group-item bg-transparent text-light border-secondary px-0 py-1 small';
+                        li.innerHTML = d;
+                        listaDatosPendientes.appendChild(li);
+                    });
+                }
+                if (modalSalida) {
+                    modalSalida.show();
+                } else if (confirm('Tienes datos de una atención sin asentar. ¿Deseas salir y descartarlos?')) {
+                    formularioGuardando = true;
+                    window._enviandoFormulario = true;
+                    window._sinAvisoNavegador = true;
+                    window.location.href = btnVolver.href;
+                }
+            }
+        });
+    }
+
+    // Confirmar salida descartando atención
+    const btnDescartarYSalir = document.getElementById('btnDescartarYSalir');
+    if (btnDescartarYSalir) {
+        btnDescartarYSalir.addEventListener('click', function () {
+            formularioGuardando = true;
+            window._enviandoFormulario = true;
+            window._sinAvisoNavegador = true;
+        });
+    }
+
+    // Integración con sistema de confirmación global de navegación
+    window.hayCambiosSinGuardar = function () {
+        if (formularioGuardando) return false;
+        const datos = obtenerDatosCargados();
+        if (datos.length > 0) {
+            return 'Tienes datos de una atención sin asentar. Si sales ahora, se perderán todos los datos cargados.';
+        }
+        return false;
+    };
+
+    // Advertencia al recargar o cerrar pestaña si hay datos ingresados
+    window.addEventListener('beforeunload', function (e) {
+        if (formularioGuardando || window._enviandoFormulario || window._sinAvisoNavegador) return;
+        const datos = obtenerDatosCargados();
+        if (datos.length > 0) {
+            e.preventDefault();
+            e.returnValue = 'Tienes una atención con datos sin registrar. ¿Deseas salir de todas formas?';
+            return e.returnValue;
+        }
+    });
+});
+</script>
+{% endblock %}

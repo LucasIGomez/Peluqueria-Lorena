@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Cupón {{ beneficio.codigo }}{% endblock %}
+{% block page_subtitle %}{{ beneficio.cliente.nombre }} · {{ beneficio.descripcion_beneficio }}{% endblock %}
+
+{% block content %}
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                <h5 class="mb-0 text-light"><i class="bi bi-ticket-perforated me-2 text-accent"></i> Ficha del cupón</h5>
+                {% if beneficio.estado == 'DISPONIBLE' %}
+                <span class="badge bg-success">Disponible</span>
+                {% elif beneficio.estado == 'CANJEADO' %}
+                <span class="badge bg-info text-dark">Canjeado</span>
+                {% else %}
+                <span class="badge bg-secondary">Vencido</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                <dl class="row mb-0 small">
+                    <dt class="col-5 text-secondary">Clienta</dt>
+                    <dd class="col-7 text-light">{{ beneficio.cliente.nombre }} ({{ beneficio.cliente.telefono }})</dd>
+                    <dt class="col-5 text-secondary">Beneficio</dt>
+                    <dd class="col-7 text-light">{{ beneficio.descripcion_beneficio }}</dd>
+                    <dt class="col-5 text-secondary">Regla aplicada</dt>
+                    <dd class="col-7 text-light">{% if beneficio.regla %}{{ beneficio.regla.nombre }}{% else %}Regla eliminada{% endif %}</dd>
+                    <dt class="col-5 text-secondary">Otorgado / Vence</dt>
+                    <dd class="col-7 text-light">{{ beneficio.fecha_otorgamiento|date:"d/m/Y H:i" }} → {{ beneficio.fecha_vencimiento|date:"d/m/Y" }}</dd>
+                    {% if beneficio.visitas_contadas or beneficio.monto_acumulado %}
+                    <dt class="col-5 text-secondary">Métricas al otorgar</dt>
+                    <dd class="col-7 text-light">{{ beneficio.visitas_contadas }} visita(s) · ${{ beneficio.monto_acumulado }}</dd>
+                    {% endif %}
+                    {% if beneficio.fecha_canje %}
+                    <dt class="col-5 text-secondary">Canje</dt>
+                    <dd class="col-7 text-light">{{ beneficio.fecha_canje|date:"d/m/Y H:i" }}{% if beneficio.canjeado_por %} por {{ beneficio.canjeado_por.nombre }}{% endif %}</dd>
+                    {% endif %}
+                    {% if beneficio.observaciones %}
+                    <dt class="col-5 text-secondary">Observaciones</dt>
+                    <dd class="col-7 text-light">{{ beneficio.observaciones }}</dd>
+                    {% endif %}
+                </dl>
+                <div class="alert alert-dark border-secondary mt-3 mb-0">
+                    <div class="text-secondary small text-uppercase fw-bold mb-1">Mensaje enviado a la clienta</div>
+                    <p class="mb-0 text-light small">{{ beneficio.mensaje_renderizado }}</p>
+                </div>
+            </div>
+        </div>
+
+        {% if beneficio.estado == 'DISPONIBLE' and beneficio.esta_vigente %}
+        <form method="POST" class="card shadow-sm border-0 mt-4">
+            {% csrf_token %}
+            <div class="card-header py-3">
+                <h6 class="mb-0 text-light"><i class="bi bi-cash-coin me-2 text-warning"></i> Canjear en caja</h6>
+            </div>
+            <div class="card-body">
+                {{ form.observaciones }}
+            </div>
+            <div class="card-footer bg-dark d-flex justify-content-end">
+                <button type="submit" name="canjear" class="btn btn-accent text-dark fw-bold px-4">
+                    <i class="bi bi-check2-circle me-1"></i> Confirmar canje
+                </button>
+            </div>
+        </form>
+        {% elif beneficio.estado == 'DISPONIBLE' %}
+        <div class="alert alert-danger mt-4">El cupón superó su fecha de vencimiento. Se marcará como vencido en el próximo proceso.</div>
+        {% endif %}
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card shadow-sm border-0">
+            <div class="card-header py-3">
+                <h6 class="mb-0 text-light"><i class="bi bi-send me-2 text-accent"></i> Historial de avisos</h6>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush">
+                    {% for m in mensajes %}
+                    <li class="list-group-item bg-transparent text-light border-secondary">
+                        <div class="d-flex justify-content-between small">
+                            <span><strong>{{ m.get_canal_display }}</strong> → {{ m.destinatario|default:"sin destinatario" }}</span>
+                            <span class="badge {% if m.estado_envio == 'ENVIADO' %}bg-success{% elif m.estado_envio == 'FALLIDO' %}bg-danger{% else %}bg-warning text-dark{% endif %}">{{ m.get_estado_envio_display }}</span>
+                        </div>
+                        <div class="text-secondary small mt-1">{{ m.contenido|truncatechars:180 }}</div>
+                        <div class="text-secondary small">{{ m.fecha_creacion|date:"d/m/Y H:i" }}</div>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item bg-transparent text-secondary text-center py-4">Sin avisos registrados.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="card-footer bg-dark">
+                <form method="POST" class="d-flex gap-2">
+                    {% csrf_token %}
+                    <select name="canal" class="form-select">
+                        {% for valor, etiqueta in canales %}
+                        <option value="{{ valor }}">{{ etiqueta }} (mock)</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" name="reenviar" class="btn btn-outline-secondary text-nowrap">
+                        <i class="bi bi-arrow-repeat me-1"></i> Reenviar
+                    </button>
+                </form>
+                <small class="text-secondary">El adaptador es simulado (logger extensible). Para proveedor real, implemente <code>CanalBase.despachar</code>.</small>
+            </div>
+        </div>
+
+        <a href="{% url 'fidelizacion:panel_beneficios' %}" class="btn btn-outline-secondary mt-3">
+            <i class="bi bi-arrow-left me-1"></i> Volver al panel
+        </a>
+    </div>
+</div>
+{% endblock %}

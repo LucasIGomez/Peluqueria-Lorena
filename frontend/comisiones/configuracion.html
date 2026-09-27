@@ -1,0 +1,362 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Configuración de Comisiones{% endblock %}
+{% block page_subtitle %}Defina el porcentaje de retribución por categoría de servicio.{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <!-- Alerta informativa de cambios no guardados -->
+        <div id="alertaSinCambios" class="alert alert-info border-info d-none align-items-center gap-2 mb-3">
+            <i class="bi bi-info-circle-fill fs-5"></i>
+            <span>No se han detectado modificaciones en los porcentajes. Edite algún valor para poder guardar.</span>
+        </div>
+
+        <!-- Tarjeta Informativa de Relevamiento -->
+        <div class="alert alert-dark border-secondary d-flex align-items-center gap-3 mb-4 shadow-sm">
+            <div class="p-3 bg-warning bg-opacity-10 rounded-circle text-accent">
+                <i class="bi bi-info-circle-fill fs-3"></i>
+            </div>
+            <div>
+                <h6 class="mb-1 text-accent fw-bold">Esquema Relevado Oficial de Peluquería Lorena</h6>
+                <p class="mb-0 text-secondary small">
+                    El modelo del salón establece una retribución del <strong>50% en Cortes</strong> y del <strong>25% en Trabajos Técnicos</strong> (Color, Mechas y Tratamientos Capilares). Los porcentajes definidos aquí se aplicarán automáticamente a cada nuevo servicio registrado sobre el presupuesto acordado.
+                </p>
+            </div>
+        </div>
+
+        <form method="POST" id="formConfiguracionComisiones">
+            {% csrf_token %}
+            <div class="card shadow-sm border-0">
+                <div class="card-header py-3 d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0 text-light"><i class="bi bi-sliders me-2 text-accent"></i> Porcentajes por Categoría de Servicio</h5>
+                    <span id="badgeEstadoFormulario" class="badge bg-secondary">Sin cambios</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover align-middle mb-0">
+                            <thead class="table-secondary text-uppercase small">
+                                <tr>
+                                    <th class="ps-4">Categoría de Servicio</th>
+                                    <th style="width: 190px;">Porcentaje Comisión (%)</th>
+                                    <th>Detalle / Especificación</th>
+                                    <th class="text-center" style="width: 100px;">Estado</th>
+                                    <th class="text-secondary small text-end pe-4" style="width: 140px;">Base Relevada</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for config in configuraciones %}
+                                <tr class="fila-categoria" 
+                                    data-pk="{{ config.pk }}"
+                                    data-categoria="{{ config.get_categoria_display }}"
+                                    data-initial-pct="{{ config.porcentaje|stringformat:'.2f' }}"
+                                    data-initial-desc="{{ config.descripcion }}"
+                                    data-initial-activo="{% if config.activo %}1{% else %}0{% endif %}">
+                                    <td class="ps-4">
+                                        <div class="fw-bold text-light fs-6">{{ config.get_categoria_display }}</div>
+                                        <small class="text-secondary">Código: <code>{{ config.categoria }}</code></small>
+                                    </td>
+                                    <td>
+                                        <div class="input-group">
+                                            <input type="number" step="0.01" min="0" max="100" 
+                                                   name="porcentaje_{{ config.pk }}" 
+                                                   id="inputPct_{{ config.pk }}"
+                                                   value="{{ config.porcentaje|stringformat:'.2f' }}" 
+                                                   class="form-control fw-bold text-end text-accent bg-dark border-secondary input-pct" required>
+                                            <span class="input-group-text bg-secondary border-secondary text-light">%</span>
+                                        </div>
+                                        <div class="invalid-feedback small d-none" id="errorPct_{{ config.pk }}">
+                                            Debe ser entre 0% y 100%
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <input type="text" name="descripcion_{{ config.pk }}" 
+                                               id="inputDesc_{{ config.pk }}"
+                                               value="{{ config.descripcion }}" 
+                                               class="form-control form-control-sm bg-dark border-secondary text-light input-desc"
+                                               placeholder="Notas o descripción técnica">
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="form-check form-switch d-inline-block">
+                                            <input class="form-check-input input-activo" type="checkbox" 
+                                                   name="activo_{{ config.pk }}" 
+                                                   id="inputActivo_{{ config.pk }}"
+                                                   role="switch" {% if config.activo %}checked{% endif %}>
+                                        </div>
+                                    </td>
+                                    <td class="text-end pe-4">
+                                        {% if config.categoria == 'CORTES' %}
+                                            <span class="badge bg-success bg-opacity-25 text-success border border-success fw-bold">50.00%</span>
+                                        {% else %}
+                                            <span class="badge bg-info bg-opacity-25 text-info border border-info fw-bold">25.00%</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-4 text-secondary">
+                                        No se encontraron configuraciones. Recargue la página para sembrar los valores oficiales.
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card-footer py-3 d-flex justify-content-between align-items-center bg-dark">
+                    <small class="text-secondary"><i class="bi bi-shield-check me-1 text-warning"></i> Cambios aplicables a futuros servicios registrados.</small>
+                    <div class="d-flex gap-2">
+                        <button type="button" id="btnCancelar" class="btn btn-outline-secondary">Cancelar</button>
+                        <button type="button" id="btnSolicitarGuardar" class="btn btn-accent text-dark fw-bold px-4">
+                            <i class="bi bi-check-circle me-1"></i> Guardar Configuración
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal 1: Confirmación de Cambios a Efectuar -->
+<div class="modal fade" id="modalConfirmarGuardado" tabindex="-1" aria-labelledby="modalConfirmarGuardadoLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-secondary text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-warning" id="modalConfirmarGuardadoLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> Confirmar Modificación de Comisiones
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2">¿Estás segura de que deseas aplicar los siguientes cambios en las comisiones?</p>
+                <div class="p-3 bg-black rounded border border-secondary mb-3">
+                    <div class="text-secondary small text-uppercase fw-bold mb-2">Detalle de modificaciones detectadas:</div>
+                    <ul class="list-group list-group-flush mb-0" id="listaCambiosConfirmar">
+                        <!-- Generado dinámicamente -->
+                    </ul>
+                </div>
+                <div class="alert alert-warning py-2 px-3 small d-flex align-items-center gap-2 mb-0">
+                    <i class="bi bi-info-circle-fill fs-5"></i>
+                    <span>Los nuevos porcentajes impactarán en <strong>todas las nuevas atenciones</strong> registradas a partir de este momento.</span>
+                </div>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Revisar</button>
+                <button type="button" id="btnConfirmarSubmit" class="btn btn-accent text-dark fw-bold px-4">
+                    <i class="bi bi-check2-circle me-1"></i> Sí, Aplicar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal 2: Confirmación de Cancelación / Descarte de Cambios -->
+<div class="modal fade" id="modalConfirmarCancelacion" tabindex="-1" aria-labelledby="modalConfirmarCancelacionLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-secondary text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-danger" id="modalConfirmarCancelacionLabel">
+                    <i class="bi bi-x-circle-fill me-2"></i> Descartar Cambios sin Guardar
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2">Has realizado modificaciones en los porcentajes que aún no fueron guardadas:</p>
+                <div class="p-3 bg-black rounded border border-secondary mb-3">
+                    <ul class="list-group list-group-flush mb-0" id="listaCambiosCancelar">
+                        <!-- Generado dinámicamente -->
+                    </ul>
+                </div>
+                <p class="text-danger small mb-0">Si sales o retrocedes ahora, <strong>se perderán todos los cambios</strong> efectuados.</p>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Continuar Editando</button>
+                <a href="{% url 'comisiones:reporte_liquidacion' %}" id="btnConfirmarSalida" class="btn btn-danger fw-bold">
+                    Descartar y Salir
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('formConfiguracionComisiones');
+    const filas = document.querySelectorAll('.fila-categoria');
+    const btnSolicitarGuardar = document.getElementById('btnSolicitarGuardar');
+    const btnConfirmarSubmit = document.getElementById('btnConfirmarSubmit');
+    const btnCancelar = document.getElementById('btnCancelar');
+    const badgeEstado = document.getElementById('badgeEstadoFormulario');
+    const alertaSinCambios = document.getElementById('alertaSinCambios');
+
+    const modalGuardadoEl = document.getElementById('modalConfirmarGuardado');
+    const modalGuardado = modalGuardadoEl && typeof bootstrap !== 'undefined' ? bootstrap.Modal.getOrCreateInstance(modalGuardadoEl) : null;
+    const listaCambiosConfirmar = document.getElementById('listaCambiosConfirmar');
+
+    const modalCancelacionEl = document.getElementById('modalConfirmarCancelacion');
+    const modalCancelacion = modalCancelacionEl && typeof bootstrap !== 'undefined' ? bootstrap.Modal.getOrCreateInstance(modalCancelacionEl) : null;
+    const listaCambiosCancelar = document.getElementById('listaCambiosCancelar');
+
+    let formularioEnviando = false;
+
+    // Detectar cambios en las filas
+    function obtenerCambios() {
+        const cambios = [];
+        let hayErrores = false;
+
+        filas.forEach(fila => {
+            const pk = fila.dataset.pk;
+            const categoria = fila.dataset.categoria;
+            const initialPct = parseFloat(fila.dataset.initialPct);
+            const initialDesc = fila.dataset.initialDesc.trim();
+            const initialActivo = fila.dataset.initialActivo === '1';
+
+            const inputPct = document.getElementById('inputPct_' + pk);
+            const inputDesc = document.getElementById('inputDesc_' + pk);
+            const inputActivo = document.getElementById('inputActivo_' + pk);
+            const errorDiv = document.getElementById('errorPct_' + pk);
+
+            const currentPctVal = inputPct.value.trim().replace(',', '.');
+            const currentPct = parseFloat(currentPctVal);
+            const currentDesc = inputDesc.value.trim();
+            const currentActivo = inputActivo.checked;
+
+            // Validación de rango de porcentaje
+            if (isNaN(currentPct) || currentPct < 0 || currentPct > 100) {
+                inputPct.classList.add('is-invalid');
+                errorDiv.classList.remove('d-none');
+                hayErrores = true;
+            } else {
+                inputPct.classList.remove('is-invalid');
+                errorDiv.classList.add('d-none');
+            }
+
+            const detalleFila = [];
+            if (!isNaN(currentPct) && Math.abs(currentPct - initialPct) > 0.001) {
+                detalleFila.push(`Porcentaje: <span class="text-secondary">${initialPct.toFixed(2)}%</span> ➔ <strong class="text-accent">${currentPct.toFixed(2)}%</strong>`);
+            }
+            if (currentActivo !== initialActivo) {
+                const estadoTxt = currentActivo ? '<span class="text-success">Activo</span>' : '<span class="text-danger">Inactivo</span>';
+                detalleFila.push(`Estado: ${estadoTxt}`);
+            }
+            if (currentDesc !== initialDesc) {
+                detalleFila.push(`Detalle actualizado`);
+            }
+
+            if (detalleFila.length > 0) {
+                cambios.push({
+                    categoria: categoria,
+                    detalles: detalleFila
+                });
+            }
+        });
+
+        return { cambios, hayErrores };
+    }
+
+    // Actualizar badge de estado en tiempo real
+    function actualizarEstado() {
+        const { cambios, hayErrores } = obtenerCambios();
+        if (hayErrores) {
+            badgeEstado.textContent = 'Valores inválidos';
+            badgeEstado.className = 'badge bg-danger';
+        } else if (cambios.length > 0) {
+            badgeEstado.textContent = `${cambios.length} cambio${cambios.length > 1 ? 's' : ''} pendiente${cambios.length > 1 ? 's' : ''}`;
+            badgeEstado.className = 'badge bg-warning text-dark fw-bold';
+            alertaSinCambios.classList.add('d-none');
+        } else {
+            badgeEstado.textContent = 'Sin cambios';
+            badgeEstado.className = 'badge bg-secondary';
+        }
+    }
+
+    // Escuchar inputs para detectar cambios en tiempo real
+    filas.forEach(fila => {
+        const pk = fila.dataset.pk;
+        document.getElementById('inputPct_' + pk).addEventListener('input', actualizarEstado);
+        document.getElementById('inputDesc_' + pk).addEventListener('input', actualizarEstado);
+        document.getElementById('inputActivo_' + pk).addEventListener('change', actualizarEstado);
+    });
+
+    // Botón Guardar: Validar y preguntar con resumen de cambios
+    btnSolicitarGuardar.addEventListener('click', function (e) {
+        e.preventDefault();
+        const { cambios, hayErrores } = obtenerCambios();
+
+        if (hayErrores) {
+            alert('Por favor revise los porcentajes. Deben encontrarse estrictamente entre 0% y 100%.');
+            return;
+        }
+
+        if (cambios.length === 0) {
+            alertaSinCambios.classList.remove('d-none');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
+
+        alertaSinCambios.classList.add('d-none');
+
+        // Construir lista de cambios en el modal
+        listaCambiosConfirmar.innerHTML = '';
+        cambios.forEach(c => {
+            const li = document.createElement('li');
+            li.className = 'list-group-item bg-transparent text-light border-secondary px-0 py-2';
+            li.innerHTML = `
+                <div class="fw-bold text-light">${c.categoria}</div>
+                <div class="small ms-2">${c.detalles.join(' &bull; ')}</div>
+            `;
+            listaCambiosConfirmar.appendChild(li);
+        });
+
+        modalGuardado.show();
+    });
+
+    // Confirmar en el modal de guardado
+    btnConfirmarSubmit.addEventListener('click', function () {
+        formularioEnviando = true;
+        form.submit();
+    });
+
+    // Botón Cancelar: Preguntar si hay cambios sin guardar
+    btnCancelar.addEventListener('click', function (e) {
+        const { cambios } = obtenerCambios();
+        if (cambios.length > 0) {
+            e.preventDefault();
+            listaCambiosCancelar.innerHTML = '';
+            cambios.forEach(c => {
+                const li = document.createElement('li');
+                li.className = 'list-group-item bg-transparent text-light border-secondary px-0 py-1 small';
+                li.innerHTML = `<strong>${c.categoria}</strong>: ${c.detalles.join(', ')}`;
+                listaCambiosCancelar.appendChild(li);
+            });
+            modalCancelacion.show();
+        } else {
+            window.location.href = "{% url 'comisiones:reporte_liquidacion' %}";
+        }
+    });
+
+    // Confirmar salida descartando cambios (evita que el navegador repita la pregunta en beforeunload)
+    const btnConfirmarSalida = document.getElementById('btnConfirmarSalida');
+    if (btnConfirmarSalida) {
+        btnConfirmarSalida.addEventListener('click', function () {
+            formularioEnviando = true;
+            window._enviandoFormulario = true;
+            window._sinAvisoNavegador = true;
+        });
+    }
+
+    // Interceptar retroceso / cierre si hay cambios sin guardar
+    window.addEventListener('beforeunload', function (e) {
+        if (formularioEnviando || window._enviandoFormulario || window._sinAvisoNavegador) return;
+        const { cambios } = obtenerCambios();
+        if (cambios.length > 0) {
+            e.preventDefault();
+            e.returnValue = 'Tienes cambios de comisiones sin guardar. ¿Deseas salir de todas formas?';
+            return e.returnValue;
+        }
+    });
+});
+</script>
+{% endblock %}

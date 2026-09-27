@@ -192,6 +192,8 @@
                         id="prevSubtotal" class="fs-5">$0,00</strong></div>
                 <div><span class="text-secondary small text-uppercase fw-bold">Descuento:</span><br><strong
                         id="prevDescuento" class="fs-5 text-success">-$0,00 (0%)</strong></div>
+                <div><span class="text-secondary small text-uppercase fw-bold">Beneficio cupón:</span><br><strong
+                        id="prevCupon" class="fs-5 text-accent">-$0,00</strong></div>
                 <div><span class="text-secondary small text-uppercase fw-bold">Total general:</span><br><strong
                         id="prevTotal" class="fs-4 text-accent">$0,00</strong></div>
                 <div class="ms-auto"><span class="text-secondary small text-uppercase fw-bold">Ítems:</span><br><strong
@@ -204,6 +206,40 @@
                     {{ form.observaciones }}
                 </div>
             </div>
+
+            {% if es_administradora %}
+            <hr class="border-secondary my-4">
+
+            <!-- Otorgar cupón de fidelización (solo administradora) -->
+            <h6 class="text-light fw-bold mb-3"><i class="bi bi-gift me-2 text-accent"></i> Otorgar cupón de
+                fidelización <span class="badge bg-secondary fw-normal">opcional</span></h6>
+            <div class="row g-3">
+                <div class="col-md-8 position-relative">
+                    <label class="form-label text-secondary small fw-bold text-uppercase" for="buscadorCupon">Buscar
+                        beneficio existente</label>
+                    <div class="d-none">{{ form.regla_beneficio }}</div>
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark border-secondary text-secondary"><i
+                                class="bi bi-search"></i></span>
+                        <input type="text" id="buscadorCupon" class="form-control"
+                            placeholder="Buscar regla por nombre... Ej: cumpleaños, regularidad" autocomplete="off">
+                        <button type="button" id="btnLimpiarCupon" class="btn btn-outline-secondary"
+                            title="Quitar selección">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                    <div id="resultadosCupon" class="list-group position-absolute shadow d-none w-100"
+                        style="z-index: 1050; max-height: 220px; overflow-y: auto;"></div>
+                    <small class="text-secondary" id="cuponElegido">Sin cupón seleccionado: la venta se registra sin
+                        beneficio.</small>
+                    {% if form.regla_beneficio.errors %}<div class="text-danger small">
+                        {{ form.regla_beneficio.errors }}</div>{% endif %}
+                    <div class="form-text text-secondary">Requiere clienta registrada. El cupón se crea al confirmar
+                        la venta (un cupón por compra).</div>
+                    <div class="text-warning small mt-1 d-none" id="avisoCupon"></div>
+                </div>
+            </div>
+            {% endif %}
 
             <div class="d-flex gap-2 mt-3">
                 <button type="submit" class="btn btn-accent text-dark fw-bold px-4" id="btnConfirmarVenta">
@@ -280,6 +316,10 @@
                     <dd class="col-8 text-success fw-semibold" id="resumenDescuento">—</dd>
                     <dt class="col-4 text-secondary text-uppercase">Total</dt>
                     <dd class="col-8 fs-5 fw-bold text-accent" id="resumenTotal">—</dd>
+                    {% if es_administradora %}
+                    <dt class="col-4 text-secondary text-uppercase">Cupón</dt>
+                    <dd class="col-8 text-accent fw-semibold" id="resumenCupon">—</dd>
+                    {% endif %}
                 </dl>
             </div>
             <div
@@ -332,6 +372,7 @@
 {{ servicios_data|json_script:"servicios-data" }}
 {{ productos_data|json_script:"productos-data" }}
 {{ item_inicial|json_script:"item-inicial-data" }}
+{{ reglas_data|json_script:"reglas-cupon-data" }}
 <script>
     (function () {
         const tipoAdd = document.getElementById('id_add_tipo');
@@ -445,18 +486,66 @@
             });
         }
 
+        // ── Beneficio del cupón elegido: espejo en vivo del cálculo del backend ──
+        // El backend recalcula desde la regla al confirmar; esto solo previsualiza.
+        let _reglasCuponCache = null;
+        function datosReglasCupon() {
+            if (_reglasCuponCache === null) {
+                const nodo = document.getElementById('reglas-cupon-data');
+                try { _reglasCuponCache = JSON.parse((nodo && nodo.textContent) || '{}'); }
+                catch (e) { _reglasCuponCache = {}; }
+            }
+            return _reglasCuponCache;
+        }
+
+        function beneficioCupon(subtotal) {
+            const sel = document.getElementById('id_regla_beneficio');
+            const cli = document.getElementById('id_cliente');
+            if (!sel || !sel.value) return { monto: 0, aviso: '' };
+            const regla = datosReglasCupon()[String(sel.value)];
+            if (!regla) return { monto: 0, aviso: '' };
+            if (!cli || !cli.value) return { monto: 0, aviso: 'Elegí la clienta registrada para aplicar el cupón.' };
+            if (!MEDIOS_CON_DESCUENTO.includes(medio.value)) {
+                return { monto: 0, aviso: 'Este medio no admite descuento de cupón (solo efectivo y billeteras).' };
+            }
+            if (regla.recompensa === 'PORCENTAJE') {
+                return { monto: subtotal * Number(regla.valor || 0) / 100, aviso: '' };
+            }
+            if (regla.recompensa === 'MONTO_FIJO') {
+                return { monto: Math.min(Number(regla.valor || 0), subtotal), aviso: '' };
+            }
+            if (regla.recompensa === 'SERVICIO') {
+                const linea = carrito.find(function (it) {
+                    return it.tipo === 'SERVICIO' && String(it.servicio_id) === String(regla.servicio_id);
+                });
+                if (!linea) {
+                    return { monto: 0, aviso: 'Agregá "' + regla.servicio_nombre + '" al carrito para bonificarlo.' };
+                }
+                return { monto: subtotalLinea(linea), aviso: '' };
+            }
+            return { monto: 0, aviso: '' };
+        }
+
         function actualizarVistaPrevia() {
             const conDescuento = actualizarEstadoDescuento();
             const subtotal = carrito.reduce(function (acc, it) { return acc + subtotalLinea(it); }, 0);
             const pctIngresado = descuento ? (parseFloat(descuento.value || '0') || 0) : 0;
             const pct = conDescuento ? Math.min(Math.max(pctIngresado, 0), 100) : 0;
             const montoDesc = subtotal * pct / 100;
-            const total = subtotal - montoDesc;
+            const cupon = beneficioCupon(subtotal);
+            const montoCupon = Math.max(0, Math.min(cupon.monto || 0, subtotal - montoDesc));
+            const total = subtotal - montoDesc - montoCupon;
             const fmt = (n) => '$' + n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
             document.getElementById('prevSubtotal').textContent = fmt(subtotal);
             document.getElementById('prevDescuento').textContent = '-' + fmt(montoDesc) + ' (' + pct + '%)';
+            document.getElementById('prevCupon').textContent = '-' + fmt(montoCupon);
             document.getElementById('prevTotal').textContent = fmt(total);
             document.getElementById('prevCantidad').textContent = carrito.length;
+            const avisoCupon = document.getElementById('avisoCupon');
+            if (avisoCupon) {
+                avisoCupon.textContent = cupon.aviso || '';
+                avisoCupon.classList.toggle('d-none', !cupon.aviso);
+            }
             const texto = document.getElementById('textoDescuento');
             texto.textContent = conDescuento
                 ? 'Se aplicará -' + pct + '% de descuento por ' + medio.options[medio.selectedIndex].text + '.'
@@ -743,7 +832,80 @@
         cliente.addEventListener('change', function () {
             const nombre = this.options[this.selectedIndex].text;
             if (this.value && clienteNombre && !clienteNombre.value.trim()) clienteNombre.value = nombre;
+            actualizarVistaPrevia();
         });
+
+        // ── Buscador inteligente de cupón (solo administradora) ──
+        // El select real queda oculto y conserva el name para el POST; el buscador solo lo asiste.
+        const selectCupon = document.getElementById('id_regla_beneficio');
+        const buscadorCupon = document.getElementById('buscadorCupon');
+        if (selectCupon && buscadorCupon) {
+            const resultadosCupon = document.getElementById('resultadosCupon');
+            const cuponElegido = document.getElementById('cuponElegido');
+            const btnLimpiarCupon = document.getElementById('btnLimpiarCupon');
+            const opcionesCupon = Array.from(selectCupon.options)
+                .filter(o => o.value)
+                .map(o => ({ value: o.value, text: o.text.trim() }));
+
+            function mostrarCuponElegido() {
+                const opt = selectCupon.options[selectCupon.selectedIndex];
+                if (selectCupon.value && opt) {
+                    buscadorCupon.value = opt.text.trim();
+                    cuponElegido.innerHTML = 'Se otorgará: <strong class="text-accent">' + esc(opt.text.trim()) + '</strong>';
+                } else {
+                    cuponElegido.textContent = 'Sin cupón seleccionado: la venta se registra sin beneficio.';
+                }
+                actualizarVistaPrevia();
+            }
+
+            function filtrarCupones(q) {
+                const query = q.trim().toLowerCase();
+                const coincidencias = (query
+                    ? opcionesCupon.filter(o => o.text.toLowerCase().includes(query))
+                    : opcionesCupon
+                ).slice(0, 20);
+                resultadosCupon.innerHTML = '';
+                if (!coincidencias.length) {
+                    resultadosCupon.innerHTML = '<span class="list-group-item bg-dark text-secondary small">Sin coincidencias.</span>';
+                } else {
+                    coincidencias.forEach(function (m) {
+                        const b = document.createElement('button');
+                        b.type = 'button';
+                        b.className = 'list-group-item list-group-item-action bg-dark text-light small';
+                        b.textContent = m.text;
+                        b.addEventListener('click', function () {
+                            selectCupon.value = m.value;
+                            mostrarCuponElegido();
+                            resultadosCupon.classList.add('d-none');
+                        });
+                        resultadosCupon.appendChild(b);
+                    });
+                }
+                resultadosCupon.classList.remove('d-none');
+            }
+
+            buscadorCupon.addEventListener('focus', function () { filtrarCupones(buscadorCupon.value); });
+            buscadorCupon.addEventListener('input', function () { filtrarCupones(buscadorCupon.value); });
+            document.addEventListener('click', function (e) {
+                if (!e.target.closest || (!e.target.closest('#resultadosCupon') && e.target !== buscadorCupon)) {
+                    resultadosCupon.classList.add('d-none');
+                }
+            });
+            buscadorCupon.addEventListener('blur', function () {
+                setTimeout(function () {
+                    const opt = selectCupon.options[selectCupon.selectedIndex];
+                    if (!selectCupon.value) buscadorCupon.value = '';
+                    else if (opt) buscadorCupon.value = opt.text.trim();
+                }, 150);
+            });
+            btnLimpiarCupon.addEventListener('click', function () {
+                selectCupon.value = '';
+                buscadorCupon.value = '';
+                mostrarCuponElegido();
+                buscadorCupon.focus();
+            });
+            mostrarCuponElegido();
+        }
 
         if (formCobro) {
             formCobro.addEventListener('submit', function (e) {
@@ -773,6 +935,19 @@
                     document.getElementById('prevDescuento').textContent;
                 document.getElementById('resumenTotal').textContent =
                     document.getElementById('prevTotal').textContent;
+                const resumenCupon = document.getElementById('resumenCupon');
+                if (resumenCupon) {
+                    const sel = document.getElementById('id_regla_beneficio');
+                    if (sel && sel.value) {
+                        const sub = carrito.reduce(function (acc, it) { return acc + subtotalLinea(it); }, 0);
+                        const cup = beneficioCupon(sub);
+                        const mc = Math.max(0, Math.min(cup.monto || 0, sub));
+                        resumenCupon.textContent = sel.options[sel.selectedIndex].text.trim()
+                            + (mc > 0 ? ' — -' + fmtResumen(mc) : ' (sin descuento en esta venta)');
+                    } else {
+                        resumenCupon.textContent = '—';
+                    }
+                }
                 bootstrap.Modal.getOrCreateInstance(document.getElementById('modalConfirmarVenta')).show();
             });
         }
@@ -793,7 +968,7 @@
             if (carrito.length) return true;
             const campos = formCobro.querySelectorAll('input:not([type="hidden"]):not([type="submit"]):not([type="button"]), textarea, select');
             for (const campo of campos) {
-                if (campo.id === 'id_add_tipo' || campo.id === 'id_add_buscador' || campo.id === 'id_add_cantidad' || campo.id === 'id_add_precio') continue;
+                if (campo.id === 'id_add_tipo' || campo.id === 'id_add_buscador' || campo.id === 'id_add_cantidad' || campo.id === 'id_add_precio' || campo.id === 'buscadorCupon') continue;
                 if ((campo.value || '') !== '') return true;
             }
             return false;

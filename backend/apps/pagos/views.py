@@ -21,12 +21,85 @@ from rest_framework.permissions import IsAuthenticated
 from .facturacion import FacturaError, FacturaService
 from .forms import CierreCajaForm, CobroForm, ReporteMediosForm
 from .models import CierreCaja, Cobro
+from apps.fidelizacion.models import ReglaBeneficio
 from .serializers import CierreCajaSerializer, CobroSerializer
 from .services import CajaCerradaError, CajaError, CajaService, CobroInvalidoError
 
 
 def es_admin_check(user) -> bool:
     return user.is_authenticated and user.es_administradora
+
+
+def _otorgar_cupon_por_venta(request, cobro_pk: int, regla) -> None:
+    """
+    Otorga el cupón de la regla elegida por la administradora al registrar la venta.
+
+    El ciclo de referencia usa el PK del cobro: un cupón por compra, sin duplicados.
+    Informa el resultado vía messages sin revertir la venta ante fallos.
+    """
+    from apps.fidelizacion.services import FidelizacionService
+
+    try:
+        cobro = Cobro.objects.select_related("cliente").get(pk=cobro_pk)
+        if cobro.cliente_id is None:
+            messages.warning(
+                request,
+                "Venta registrada sin cupón: elegí una clienta registrada para otorgar el beneficio.",
+            )
+            return
+        beneficio, creado = FidelizacionService.otorgar_beneficio(
+            cliente=cobro.cliente,
+            regla=regla,
+            ciclo_referencia=f"MANUAL-{cobro.pk}",
+        )
+        if creado:
+            messages.success(
+                request,
+                f"Cupón {beneficio.codigo} otorgado a {cobro.cliente.nombre} ({regla.nombre}).",
+            )
+        else:
+            messages.info(
+                request,
+                f"La clienta ya tenía el cupón {beneficio.codigo} de esta regla; no se duplicó.",
+            )
+    except Exception as exc:  # noqa: BLE001 — la venta ya quedó registrada
+        messages.error(request, f"La venta se registró, pero no se pudo otorgar el cupón: {exc}")
+
+
+def _pct_cupon_por_regla(regla: ReglaBeneficio, lineas: list[dict], subtotal) -> tuple:
+    """
+    Convierte la recompensa de la regla en porcentaje equivalente sobre el subtotal.
+
+    lineas: [{tipo, servicio_id, cantidad, precio}] con precio en Decimal.
+    Retorna (porcentaje Decimal a 2 decimales, aviso|None).
+    """
+    from decimal import Decimal as _Decimal
+    from decimal import ROUND_HALF_UP as _HALF_UP
+
+    subtotal = _Decimal(str(subtotal or 0))
+    if subtotal <= _Decimal("0.00"):
+        return _Decimal("0.00"), None
+    tipo = regla.tipo_recompensa
+    if tipo == ReglaBeneficio.TipoRecompensa.PORCENTAJE:
+        return _Decimal(str(regla.valor or 0)), None
+    if tipo == ReglaBeneficio.TipoRecompensa.MONTO_FIJO:
+        monto = min(_Decimal(str(regla.valor or 0)), subtotal)
+        pct = (monto * _Decimal("100") / subtotal).quantize(_Decimal("0.01"), rounding=_HALF_UP)
+        return pct, None
+    if tipo == ReglaBeneficio.TipoRecompensa.SERVICIO:
+        for linea in lineas:
+            if linea.get("tipo") == Cobro.Tipo.SERVICIO and str(linea.get("servicio_id") or "") == str(
+                regla.servicio_bonificado_id or ""
+            ):
+                monto = _Decimal(str(linea["precio"])) * int(linea["cantidad"])
+                pct = (monto * _Decimal("100") / subtotal).quantize(
+                    _Decimal("0.01"), rounding=_HALF_UP
+                )
+                return pct, None
+        return _Decimal("0.00"), (
+            f"Agregá '{regla.servicio_bonificado}' al carrito para bonificarlo con este cupón."
+        )
+    return _Decimal("0.00"), None
 
 
 # ──────────────────────────────────────────────────────────────
@@ -79,6 +152,40 @@ def registrar_cobro_view(request):
                 if items:
                     from decimal import Decimal as _Decimal
 
+                    # Descuento del cupón (solo admin + clienta registrada + medio con descuento).
+                    # Se calcula en el backend desde la regla; el JS solo previsualiza.
+                    pct_manual = datos.get("porcentaje_descuento") or _Decimal("0.00")
+                    pct_final = pct_manual
+                    regla_desc = datos.get("regla_beneficio")
+                    if regla_desc and es_admin_check(request.user):
+                        if datos.get("cliente") is None:
+                            pass  # sin clienta registrada no hay descuento; avisa el otorgamiento
+                        elif datos["medio_pago"] not in CajaService.MEDIOS_CON_DESCUENTO:
+                            messages.warning(
+                                request,
+                                "Cupón otorgado sin descuento en esta venta: "
+                                "las tarjetas no admiten descuentos.",
+                            )
+                        else:
+                            lineas = [
+                                {
+                                    "tipo": it["tipo"],
+                                    "servicio_id": it["servicio"].pk if it.get("servicio") else None,
+                                    "cantidad": it["cantidad"],
+                                    "precio": it["precio_unitario"],
+                                }
+                                for it in items
+                            ]
+                            subtotal_est = sum(
+                                (l["precio"] * l["cantidad"] for l in lineas), _Decimal("0.00")
+                            )
+                            pct_cupon, aviso_cupon = _pct_cupon_por_regla(
+                                regla_desc, lineas, subtotal_est
+                            )
+                            pct_final = min(pct_manual + pct_cupon, _Decimal("100.00"))
+                            if aviso_cupon:
+                                messages.warning(request, aviso_cupon)
+
                     cobros = CajaService.registrar_cobros_carrito(
                         items=items,
                         cliente_nombre=datos["cliente_nombre"],
@@ -87,7 +194,7 @@ def registrar_cobro_view(request):
                         cliente=datos.get("cliente"),
                         fecha=fecha_cobro,
                         observaciones=datos.get("observaciones", ""),
-                        porcentaje_descuento=datos.get("porcentaje_descuento"),
+                        porcentaje_descuento=pct_final,
                     )
                     total_general = sum((c.total for c in cobros), _Decimal("0.00"))
                     desc_total = sum((c.monto_descuento for c in cobros), _Decimal("0.00"))
@@ -105,8 +212,55 @@ def registrar_cobro_view(request):
                             f"Venta registrada: {len(cobros)} ítems por ${total_general:,.2f} "
                             f"({primero.get_medio_pago_display()}).",
                         )
+                    regla_cupon = datos.get("regla_beneficio")
+                    if regla_cupon:
+                        if es_admin_check(request.user):
+                            _otorgar_cupon_por_venta(request, cobros[0].pk, regla_cupon)
+                        else:
+                            messages.error(
+                                request,
+                                "Solo la administradora puede otorgar cupones de fidelización.",
+                            )
                     return redirect(f"/pagos/?fecha={fecha_cobro.isoformat()}&factura={cobros[0].pk}")
                 # Compatibilidad con POST unitario (tests/API sin carrito).
+                from decimal import Decimal as _DecimalU
+
+                pct_manual_u = datos.get("porcentaje_descuento") or _DecimalU("0.00")
+                pct_final_u = pct_manual_u
+                regla_desc_u = datos.get("regla_beneficio")
+                if regla_desc_u and es_admin_check(request.user):
+                    if datos.get("cliente") is None:
+                        pass  # sin clienta registrada no hay descuento; avisa el otorgamiento
+                    elif datos["medio_pago"] not in CajaService.MEDIOS_CON_DESCUENTO:
+                        messages.warning(
+                            request,
+                            "Cupón otorgado sin descuento en esta venta: "
+                            "las tarjetas no admiten descuentos.",
+                        )
+                    else:
+                        tipo_u = datos.get("tipo") or Cobro.Tipo.SERVICIO
+                        precio_u = datos.get("precio_unitario")
+                        serv_u = datos.get("servicio")
+                        if precio_u is None and serv_u is not None:
+                            precio_u = serv_u.precio_base
+                        if precio_u is not None:
+                            precio_u = _DecimalU(str(precio_u))
+                            cant_u = datos.get("cantidad") or 1
+                            pct_cupon_u, aviso_u = _pct_cupon_por_regla(
+                                regla_desc_u,
+                                [
+                                    {
+                                        "tipo": tipo_u,
+                                        "servicio_id": serv_u.pk if serv_u else None,
+                                        "cantidad": cant_u,
+                                        "precio": precio_u,
+                                    }
+                                ],
+                                precio_u * cant_u,
+                            )
+                            pct_final_u = min(pct_manual_u + pct_cupon_u, _DecimalU("100.00"))
+                            if aviso_u:
+                                messages.warning(request, aviso_u)
                 cobro = CajaService.registrar_cobro(
                     cliente_nombre=datos["cliente_nombre"],
                     profesional=datos["profesional"],
@@ -120,7 +274,7 @@ def registrar_cobro_view(request):
                     cliente=datos.get("cliente"),
                     fecha=fecha_cobro,
                     observaciones=datos.get("observaciones", ""),
-                    porcentaje_descuento=datos.get("porcentaje_descuento"),
+                    porcentaje_descuento=pct_final_u,
                 )
                 if cobro.monto_descuento > 0:
                     messages.success(
@@ -135,6 +289,15 @@ def registrar_cobro_view(request):
                         f"Cobro #{cobro.pk} registrado: ${cobro.total:,.2f} "
                         f"({cobro.get_medio_pago_display()}).",
                     )
+                regla_cupon = datos.get("regla_beneficio")
+                if regla_cupon:
+                    if es_admin_check(request.user):
+                        _otorgar_cupon_por_venta(request, cobro.pk, regla_cupon)
+                    else:
+                        messages.error(
+                            request,
+                            "Solo la administradora puede otorgar cupones de fidelización.",
+                        )
                 return redirect(f"/pagos/?fecha={cobro.fecha.isoformat()}&factura={cobro.pk}")
             except (CobroInvalidoError, CajaCerradaError) as exc:
                 messages.error(request, str(exc))
@@ -187,11 +350,25 @@ def registrar_cobro_view(request):
             "precio_unitario": productos_data[str(producto_id)]["precio"],
         }
 
+    # Reglas activas para el buscador de cupón y la vista previa del descuento (solo admin).
+    reglas_data = {
+        str(r.pk): {
+            "nombre": r.nombre,
+            "recompensa": r.tipo_recompensa,
+            "valor": str(r.valor),
+            "servicio_id": str(r.servicio_bonificado_id) if r.servicio_bonificado_id else "",
+            "servicio_nombre": r.servicio_bonificado.nombre if r.servicio_bonificado_id else "",
+        }
+        for r in ReglaBeneficio.objects.filter(activo=True).select_related("servicio_bonificado")
+    }
+
     return render(
         request,
         "pagos/form_cobro.html",
         {
             "form": form,
+            "es_administradora": es_admin_check(request.user),
+            "reglas_data": reglas_data,
             "servicios_precios": servicios_precios,
             "productos_precios": productos_precios,
             "servicios_data": servicios_data,

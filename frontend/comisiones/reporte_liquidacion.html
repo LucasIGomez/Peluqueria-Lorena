@@ -1,0 +1,519 @@
+{% extends 'base.html' %}
+
+{% block title %}Liquidación de Comisiones - Peluquería Lorena{% endblock %}
+{% block page_title %}Reporte de Liquidación de Comisiones{% endblock %}
+{% block page_subtitle %}Liquidación consolidada de comisiones por profesional y período.{% endblock %}
+
+{% block extra_css %}
+<style>
+@media print {
+    .sidebar, .mobile-navbar, .btn-print-hide, .card-filtro, footer {
+        display: none !important;
+    }
+    .main-content {
+        margin-left: 0 !important;
+        padding: 0 !important;
+    }
+    body {
+        background-color: #fff !important;
+        color: #000 !important;
+    }
+    .card {
+        border: 1px solid #ddd !important;
+        background-color: #fff !important;
+        color: #000 !important;
+        box-shadow: none !important;
+    }
+    .table-dark {
+        --bs-table-bg: #fff !important;
+        --bs-table-color: #000 !important;
+    }
+    .text-light {
+        color: #000 !important;
+    }
+    .text-accent {
+        color: #b8860b !important;
+    }
+    .badge {
+        border: 1px solid #999 !important;
+        color: #000 !important;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Filtros de Período y Profesional (RF 8.4) -->
+<div class="card shadow-sm border-0 mb-4 card-filtro">
+    <div class="card-body p-3">
+        <form method="GET" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label text-secondary small fw-bold text-uppercase mb-1">Peluquera / Profesional:</label>
+                {{ filtro_form.profesional }}
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-secondary small fw-bold text-uppercase mb-1">Fecha Desde:</label>
+                {{ filtro_form.fecha_desde }}
+            </div>
+            <div class="col-md-3">
+                <label class="form-label text-secondary small fw-bold text-uppercase mb-1">Fecha Hasta:</label>
+                {{ filtro_form.fecha_hasta }}
+            </div>
+            <div class="col-md-2 d-flex gap-2">
+                <button type="submit" class="btn btn-accent text-dark fw-bold w-100">
+                    <i class="bi bi-funnel me-1"></i> Filtrar
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Barra de Acciones / Exportación -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 btn-print-hide">
+    <div class="d-flex align-items-center gap-2">
+        <span class="text-secondary small">
+            Período: <strong>{{ fecha_desde|date:"d/m/Y" }}</strong> al <strong>{{ fecha_hasta|date:"d/m/Y" }}</strong>
+            {% if profesional_seleccionada %}&bull; Profesional: <strong class="text-light">{{ profesional_seleccionada.nombre }}</strong>{% endif %}
+        </span>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="button" id="btnDescargarPDF" onclick="descargarLiquidacionPDF()" class="btn btn-sm btn-accent text-dark fw-bold">
+            <i class="bi bi-file-earmark-pdf me-1"></i> Descargar Liquidación (PDF)
+        </button>
+        <button type="button" onclick="imprimirEnPapel()" class="btn btn-sm btn-outline-light">
+            <i class="bi bi-printer me-1"></i> Imprimir
+        </button>
+        <a href="{% url 'comisiones:configuracion' %}" class="btn btn-sm btn-outline-warning">
+            <i class="bi bi-sliders me-1"></i> Configurar % Comisiones
+        </a>
+    </div>
+</div>
+
+<!-- Encabezado Visible en Impresión -->
+<div class="d-none d-print-block mb-4 text-center">
+    <h2 class="mb-0">Peluquería Lorena</h2>
+    <h4 class="text-muted">Reporte de Liquidación de Comisiones</h4>
+    <p>Período: {{ fecha_desde|date:"d/m/Y" }} al {{ fecha_hasta|date:"d/m/Y" }} &bull; Emisión: {{ hoy|date:"d/m/Y" }}</p>
+    {% if profesional_seleccionada %}<p><strong>Profesional:</strong> {{ profesional_seleccionada.nombre }}</p>{% endif %}
+    <hr>
+</div>
+
+<!-- KPIs Globales -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 bg-dark p-3 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-secondary small text-uppercase fw-bold">Total Comisiones a Liquidar</span>
+                    <h3 class="mb-0 text-accent fw-bold">${{ total_comisiones|floatformat:2 }}</h3>
+                    <small class="text-secondary">Retribución a profesionales</small>
+                </div>
+                <div class="p-3 bg-warning bg-opacity-25 rounded-circle text-accent">
+                    <i class="bi bi-cash-coin fs-2"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 bg-dark p-3 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-secondary small text-uppercase fw-bold">Facturación Bruta Generada</span>
+                    <h3 class="mb-0 text-light fw-bold">${{ total_bruto|floatformat:2 }}</h3>
+                    <small class="text-secondary">Total presupuesto cobrado</small>
+                </div>
+                <div class="p-3 bg-secondary bg-opacity-25 rounded-circle text-info">
+                    <i class="bi bi-graph-up-arrow fs-2"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 bg-dark p-3 shadow-sm">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <span class="text-secondary small text-uppercase fw-bold">Servicios Computados</span>
+                    <h3 class="mb-0 text-light fw-bold">{{ total_servicios }}</h3>
+                    <small class="text-secondary">Atenciones realizadas en el período</small>
+                </div>
+                <div class="p-3 bg-secondary bg-opacity-25 rounded-circle text-accent">
+                    <i class="bi bi-scissors fs-2"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Resumen Consolidado por Peluquera -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-light"><i class="bi bi-people-fill me-2 text-warning"></i> Resumen de Liquidación por Profesional</h5>
+        <span class="badge bg-secondary">{{ por_profesional|length }} profesional{{ por_profesional|pluralize:"es" }}</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0">
+                <thead class="table-secondary text-uppercase small">
+                    <tr>
+                        <th class="ps-4">Profesional</th>
+                        <th class="text-center">Trabajos Realizados</th>
+                        <th class="text-end">Recaudación Bruta ($)</th>
+                        <th class="text-end">Comisión a Liquidar ($)</th>
+                        <th class="text-center btn-print-hide" style="width: 170px;">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in por_profesional %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-bold text-light fs-6">{{ item.profesional.nombre }}</div>
+                            <small class="text-secondary">{{ item.profesional.email }}</small>
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-secondary fs-6 px-3 py-1">{{ item.cantidad }}</span>
+                        </td>
+                        <td class="text-end fw-bold text-light">
+                            ${{ item.bruto|floatformat:2 }}
+                        </td>
+                        <td class="text-end fw-bold text-accent fs-5">
+                            ${{ item.comision|floatformat:2 }}
+                        </td>
+                        <td class="text-center btn-print-hide">
+                            <button type="button" class="btn btn-sm btn-outline-warning" 
+                                    data-bs-toggle="modal" data-bs-target="#modalCierre{{ item.profesional.pk }}">
+                                <i class="bi bi-check-circle me-1"></i> Asentar Pago
+                            </button>
+
+                            <!-- Modal de Asiento Formal de Liquidación -->
+                            <div class="modal fade" id="modalCierre{{ item.profesional.pk }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog">
+                                    <div class="modal-content bg-dark border-secondary text-light">
+                                        <form method="POST" action="{% url 'comisiones:cerrar_liquidacion' %}">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="profesional_id" value="{{ item.profesional.pk }}">
+                                            <input type="hidden" name="fecha_desde" value="{{ fecha_desde|date:'Y-m-d' }}">
+                                            <input type="hidden" name="fecha_hasta" value="{{ fecha_hasta|date:'Y-m-d' }}">
+
+                                            <div class="modal-header border-secondary">
+                                                <h5 class="modal-title"><i class="bi bi-wallet-fill text-accent me-2"></i> Asentar Liquidación</h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body text-start">
+                                                <p>¿Desea registrar el pago formal de comisiones a <strong>{{ item.profesional.nombre }}</strong>?</p>
+                                                <ul class="list-unstyled bg-black p-3 rounded border border-secondary mb-3">
+                                                    <li>Período: <strong>{{ fecha_desde|date:"d/m/Y" }} al {{ fecha_hasta|date:"d/m/Y" }}</strong></li>
+                                                    <li>Servicios atendidos: <strong>{{ item.cantidad }}</strong></li>
+                                                    <li>Total Bruto: <strong>${{ item.bruto|floatformat:2 }}</strong></li>
+                                                    <li class="fs-5 mt-2 text-accent">Total Comisión: <strong>${{ item.comision|floatformat:2 }}</strong></li>
+                                                </ul>
+                                                <div class="mb-3">
+                                                    <label class="form-label small">Observaciones del Pago (Opcional):</label>
+                                                    <textarea name="observaciones" class="form-control bg-dark border-secondary text-light" rows="2" placeholder="Ej: Abonado en efectivo o transferencia"></textarea>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer border-secondary">
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="submit" class="btn btn-accent text-dark fw-bold">Confirmar Pago</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-secondary">
+                            No se registran atenciones para el filtro seleccionado.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Detalle Completo de Trabajos -->
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-light"><i class="bi bi-receipt me-2 text-accent"></i> Detalle Pormenorizado de Servicios</h5>
+        <span class="text-secondary small">{{ total_servicios }} atenciones</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0">
+                <thead class="table-secondary text-uppercase small">
+                    <tr>
+                        <th class="ps-4">Fecha & Hora</th>
+                        <th>Profesional</th>
+                        <th>Clienta</th>
+                        <th>Servicio</th>
+                        <th>Categoría</th>
+                        <th class="text-end">Presupuesto ($)</th>
+                        <th class="text-center">% Comisión</th>
+                        <th class="text-end pe-4">Monto Comisión ($)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in servicios %}
+                    <tr>
+                        <td class="ps-4">
+                            <span class="fw-bold text-light">{{ s.fecha|date:"d/m/Y" }}</span>
+                            <small class="text-secondary d-block">{{ s.hora|time:"H:i" }}</small>
+                        </td>
+                        <td>
+                            <strong class="text-light">{{ s.profesional.nombre }}</strong>
+                        </td>
+                        <td>
+                            <span class="text-light">{{ s.cliente_nombre }}</span>
+                        </td>
+                        <td>
+                            <span class="text-light">{{ s.servicio.nombre }}</span>
+                        </td>
+                        <td>
+                            {% if s.servicio.categoria == 'CORTES' %}
+                                <span class="badge bg-success bg-opacity-25 text-success border border-success">{{ s.servicio.get_categoria_display }}</span>
+                            {% else %}
+                                <span class="badge bg-info bg-opacity-25 text-info border border-info">{{ s.servicio.get_categoria_display }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end fw-bold text-light">
+                            ${{ s.precio_acordado|floatformat:2 }}
+                        </td>
+                        <td class="text-center">
+                            <span class="badge bg-secondary">{{ s.porcentaje_comision }}%</span>
+                        </td>
+                        <td class="text-end pe-4 fw-bold text-accent fs-6">
+                            ${{ s.monto_comision|floatformat:2 }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4 text-secondary">
+                            No se encontraron servicios registrados en este período.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                {% if servicios %}
+                <tfoot class="table-dark border-top border-secondary">
+                    <tr class="fw-bold">
+                        <td colspan="5" class="ps-4 text-uppercase text-secondary">Totales Generales:</td>
+                        <td class="text-end text-light">${{ total_bruto|floatformat:2 }}</td>
+                        <td></td>
+                        <td class="text-end pe-4 text-accent fs-5">${{ total_comisiones|floatformat:2 }}</td>
+                    </tr>
+                </tfoot>
+                {% endif %}
+            </table>
+        </div>
+    </div>
+</div>
+<!-- Plantilla oculta optimizada para Generación de PDF (Fondo blanco, diseño formal) -->
+<div id="plantillaPdfLiquidacion" style="display: none; background-color: #ffffff; color: #111827; padding: 25px 30px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 12px; line-height: 1.4;">
+    <!-- Encabezado Institucional -->
+    <div style="border-bottom: 2px solid #e5c158; padding-bottom: 12px; margin-bottom: 18px; display: flex; justify-content: space-between; align-items: flex-end;">
+        <div>
+            <h1 style="margin: 0; font-size: 22px; font-weight: 800; color: #111827; letter-spacing: 0.5px;">PELUQUERÍA LORENA</h1>
+            <div style="font-size: 14px; font-weight: 600; color: #4b5563; margin-top: 3px;">Reporte de Liquidación de Comisiones</div>
+        </div>
+        <div style="text-align: right; font-size: 11px; color: #6b7280;">
+            <div>Período: <strong style="color: #111827;">{{ fecha_desde|date:"d/m/Y" }}</strong> al <strong style="color: #111827;">{{ fecha_hasta|date:"d/m/Y" }}</strong></div>
+            <div>Fecha de Emisión: {{ hoy|date:"d/m/Y" }}</div>
+            {% if profesional_seleccionada %}
+            <div>Profesional: <strong style="color: #111827;">{{ profesional_seleccionada.nombre }}</strong></div>
+            {% else %}
+            <div>Alcance: <strong style="color: #111827;">General (Todas las Profesionales)</strong></div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Cajas Resumen / KPIs -->
+    <table style="width: 100%; border-collapse: separate; border-spacing: 10px 0; margin-bottom: 20px;">
+        <tr>
+            <td style="width: 33.33%; background: #fefce8; border: 1px solid #fef08a; border-radius: 6px; padding: 10px 14px; text-align: center;">
+                <div style="font-size: 10px; text-transform: uppercase; font-weight: bold; color: #854d0e;">Total Comisiones a Liquidar</div>
+                <div style="font-size: 18px; font-weight: bold; color: #a16207; margin-top: 3px;">${{ total_comisiones|floatformat:2 }}</div>
+            </td>
+            <td style="width: 33.33%; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px 14px; text-align: center;">
+                <div style="font-size: 10px; text-transform: uppercase; font-weight: bold; color: #4b5563;">Facturación Bruta Generada</div>
+                <div style="font-size: 18px; font-weight: bold; color: #111827; margin-top: 3px;">${{ total_bruto|floatformat:2 }}</div>
+            </td>
+            <td style="width: 33.33%; background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px 14px; text-align: center;">
+                <div style="font-size: 10px; text-transform: uppercase; font-weight: bold; color: #4b5563;">Trabajos Realizados</div>
+                <div style="font-size: 18px; font-weight: bold; color: #111827; margin-top: 3px;">{{ total_servicios }}</div>
+            </td>
+        </tr>
+    </table>
+
+    {% if not profesional_seleccionada and por_profesional %}
+    <!-- Resumen Consolidado por Profesional -->
+    <div style="font-size: 13px; font-weight: bold; color: #111827; margin-bottom: 6px; border-bottom: 1px solid #e5e7eb; padding-bottom: 3px;">
+        Consolidado por Profesional
+    </div>
+    <table style="width: 100%; border-collapse: collapse; font-size: 11px; margin-bottom: 18px;">
+        <thead style="background: #f3f4f6; border-bottom: 1px solid #d1d5db;">
+            <tr>
+                <th style="padding: 5px 8px; text-align: left;">Profesional</th>
+                <th style="padding: 5px 8px; text-align: center;">Trabajos</th>
+                <th style="padding: 5px 8px; text-align: right;">Facturación Bruta ($)</th>
+                <th style="padding: 5px 8px; text-align: right; color: #854d0e;">Comisión Total ($)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in por_profesional %}
+            <tr style="border-bottom: 1px solid #f3f4f6;">
+                <td style="padding: 5px 8px; font-weight: 600;">{{ item.profesional.nombre }}</td>
+                <td style="padding: 5px 8px; text-align: center;">{{ item.total_servicios }}</td>
+                <td style="padding: 5px 8px; text-align: right;">${{ item.total_bruto|floatformat:2 }}</td>
+                <td style="padding: 5px 8px; text-align: right; font-weight: bold; color: #a16207;">${{ item.total_comisiones|floatformat:2 }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+
+    <!-- Detalle de Servicios Realizados -->
+    <div style="font-size: 13px; font-weight: bold; color: #111827; margin-bottom: 6px; border-bottom: 1px solid #e5e7eb; padding-bottom: 3px;">
+        Detalle Cronológico de Servicios
+    </div>
+    <table style="width: 100%; border-collapse: collapse; font-size: 10.5px;">
+        <thead style="background: #f3f4f6; border-bottom: 1px solid #d1d5db;">
+            <tr>
+                <th style="padding: 5px 6px; text-align: left;">Fecha & Hora</th>
+                {% if not profesional_seleccionada %}<th style="padding: 5px 6px; text-align: left;">Profesional</th>{% endif %}
+                <th style="padding: 5px 6px; text-align: left;">Clienta</th>
+                <th style="padding: 5px 6px; text-align: left;">Servicio</th>
+                <th style="padding: 5px 6px; text-align: left;">Categoría</th>
+                <th style="padding: 5px 6px; text-align: right;">Precio ($)</th>
+                <th style="padding: 5px 6px; text-align: center;">% Com.</th>
+                <th style="padding: 5px 6px; text-align: right;">Comisión ($)</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for s in servicios %}
+            <tr style="border-bottom: 1px solid #f3f4f6; {% if forloop.counter|divisibleby:2 %}background: #fafafa;{% endif %}">
+                <td style="padding: 4px 6px;">{{ s.fecha|date:"d/m/Y" }} {{ s.hora|time:"H:i" }}</td>
+                {% if not profesional_seleccionada %}<td style="padding: 4px 6px; font-weight: 500;">{{ s.profesional.nombre }}</td>{% endif %}
+                <td style="padding: 4px 6px;">{{ s.cliente_nombre }}</td>
+                <td style="padding: 4px 6px;">{{ s.servicio.nombre }}</td>
+                <td style="padding: 4px 6px;">{{ s.servicio.get_categoria_display }}</td>
+                <td style="padding: 4px 6px; text-align: right;">${{ s.precio_acordado|floatformat:2 }}</td>
+                <td style="padding: 4px 6px; text-align: center;">{{ s.porcentaje_comision }}%</td>
+                <td style="padding: 4px 6px; text-align: right; font-weight: bold; color: #a16207;">${{ s.monto_comision|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" style="padding: 15px; text-align: center; color: #6b7280;">No se encontraron servicios registrados en este período.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        {% if servicios %}
+        <tfoot style="border-top: 2px solid #111827; font-weight: bold; background: #f9fafb;">
+            <tr>
+                <td colspan="{% if not profesional_seleccionada %}5{% else %}4{% endif %}" style="padding: 6px; text-transform: uppercase;">Totales Generales:</td>
+                <td style="padding: 6px; text-align: right;">${{ total_bruto|floatformat:2 }}</td>
+                <td></td>
+                <td style="padding: 6px; text-align: right; color: #a16207; font-size: 11.5px;">${{ total_comisiones|floatformat:2 }}</td>
+            </tr>
+        </tfoot>
+        {% endif %}
+    </table>
+
+    <!-- Firmas de Conformidad -->
+    <div style="margin-top: 35px; padding-top: 20px; display: flex; justify-content: space-between;">
+        <div style="width: 42%; text-align: center; border-top: 1px solid #9ca3af; padding-top: 5px; font-size: 10px; color: #4b5563;">
+            Conformidad Profesional
+        </div>
+        <div style="width: 42%; text-align: center; border-top: 1px solid #9ca3af; padding-top: 5px; font-size: 10px; color: #4b5563;">
+            Administración Peluquería Lorena
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- Librería html2pdf para generación y descarga fiel de PDF con nombre autocompletado -->
+<script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
+<script>
+async function descargarLiquidacionPDF() {
+    const btn = document.getElementById('btnDescargarPDF');
+    const originalHtml = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generando PDF...';
+    }
+
+    try {
+        const elemento = document.getElementById('plantillaPdfLiquidacion');
+        if (!elemento) {
+            throw new Error('No se encontró la plantilla de liquidación.');
+        }
+
+        const prof = "{{ profesional_seleccionada.nombre|default:'General'|slugify }}";
+        const desde = "{{ fecha_desde|date:'Ymd' }}";
+        const hasta = "{{ fecha_hasta|date:'Ymd' }}";
+        const nombreArchivo = `Liquidacion_Comisiones_${prof}_${desde}_${hasta}.pdf`;
+
+        // Crear contenedor temporal montado en DOM para renderizado de html2canvas
+        const contenedor = document.createElement('div');
+        contenedor.style.position = 'fixed';
+        contenedor.style.left = '-9999px';
+        contenedor.style.top = '0';
+        contenedor.style.width = '794px';
+        contenedor.style.backgroundColor = '#ffffff';
+        contenedor.style.zIndex = '-1000';
+        
+        const clon = elemento.cloneNode(true);
+        clon.style.display = 'block';
+        contenedor.appendChild(clon);
+        document.body.appendChild(contenedor);
+
+        const opt = {
+            margin: [8, 8, 8, 8],
+            filename: nombreArchivo,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+        };
+
+        if (typeof html2pdf === 'undefined') {
+            throw new Error('La librería generadora de PDF no está lista. Por favor intente nuevamente en unos segundos.');
+        }
+
+        await html2pdf().set(opt).from(clon).save();
+        document.body.removeChild(contenedor);
+    } catch (err) {
+        console.error('Error al generar PDF:', err);
+        alert('No se pudo generar la liquidación en PDF: ' + err.message);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }
+    }
+}
+
+function imprimirEnPapel() {
+    const originalTitle = document.title;
+    const prof = "{{ profesional_seleccionada.nombre|default:'General'|slugify }}";
+    const desde = "{{ fecha_desde|date:'Ymd' }}";
+    const hasta = "{{ fecha_hasta|date:'Ymd' }}";
+    
+    document.title = `Liquidacion_Comisiones_${prof}_${desde}_${hasta}`;
+    
+    window.addEventListener('afterprint', function restaurar() {
+        document.title = originalTitle;
+        window.removeEventListener('afterprint', restaurar);
+    });
+    
+    setTimeout(() => {
+        document.title = originalTitle;
+    }, 4000);
+    
+    window.print();
+}
+</script>
+{% endblock %}

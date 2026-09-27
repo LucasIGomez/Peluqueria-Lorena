@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Lorena System</title>
+    <title>{% block title %}Lorena System{% endblock %}</title>
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -432,6 +432,54 @@
                 </a>
             </li>
 
+            <li class="nav-item text-secondary text-uppercase px-3 mt-3 mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                <i class="bi bi-gift me-1 text-accent"></i> Fidelización
+            </li>
+            <li class="nav-item">
+                <a href="/fidelizacion/beneficios/"
+                    class="nav-link {% if '/fidelizacion/beneficios' in request.path %}active{% endif %}">
+                    <i class="bi bi-ticket-perforated"></i> Cupones y Auditoría
+                </a>
+            </li>
+            {% if request.user.is_authenticated and request.user.es_administradora %}
+            <li class="nav-item">
+                <a href="/fidelizacion/reglas/"
+                    class="nav-link {% if '/fidelizacion/reglas' in request.path %}active{% endif %}">
+                    <i class="bi bi-sliders"></i> Motor de Beneficios
+                </a>
+            </li>
+            {% endif %}
+
+            <li class="nav-item text-secondary text-uppercase px-3 mt-3 mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                <i class="bi bi-wallet2 me-1 text-accent"></i> Comisiones
+            </li>
+            <li class="nav-item">
+                <a href="/comisiones/registrar/"
+                    class="nav-link {% if '/comisiones/registrar' in request.path %}active{% endif %}">
+                    <i class="bi bi-plus-circle text-accent"></i> Registrar mi Trabajo
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/comisiones/mis-comisiones/"
+                    class="nav-link {% if '/comisiones/mis-comisiones' in request.path %}active{% endif %}">
+                    <i class="bi bi-wallet2"></i> Mis Comisiones
+                </a>
+            </li>
+            {% if request.user.is_authenticated and request.user.es_administradora %}
+            <li class="nav-item">
+                <a href="/comisiones/liquidacion/"
+                    class="nav-link {% if '/comisiones/liquidacion' in request.path %}active{% endif %}">
+                    <i class="bi bi-file-earmark-spreadsheet text-warning"></i> Liquidación Personal
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="/comisiones/configuracion/"
+                    class="nav-link {% if '/comisiones/configuracion' in request.path %}active{% endif %}">
+                    <i class="bi bi-sliders"></i> Configurar % Comisiones
+                </a>
+            </li>
+            {% endif %}
+
             {% if request.user.is_authenticated and request.user.es_administradora %}
                 <li class="nav-item text-secondary text-uppercase px-3 mt-3 mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">
                     <i class="bi bi-shield-lock me-1"></i> Administración
@@ -570,14 +618,43 @@
         if (btnCerrarSidebar) btnCerrarSidebar.addEventListener('click', cerrarMenuMovil);
         if (sidebarBackdrop) sidebarBackdrop.addEventListener('click', cerrarMenuMovil);
 
-        // Al hacer clic en un enlace de navegación en móvil, cerrar el menú automáticamente
-        document.querySelectorAll('.sidebar a').forEach(enlace => {
-            enlace.addEventListener('click', () => {
-                if (window.innerWidth < 992) {
-                    cerrarMenuMovil();
+        // ── Persistencia y auto-enfoque del scroll de la barra lateral ──
+        if (sidebar) {
+            // 1. Restaurar posición previa del scroll
+            const posGuardada = sessionStorage.getItem('sidebar_scroll_pos');
+            if (posGuardada !== null) {
+                sidebar.scrollTop = parseInt(posGuardada, 10);
+            }
+
+            // 2. Asegurar que el elemento activo esté siempre dentro del área visible
+            const enlaceActivo = sidebar.querySelector('.nav-link.active');
+            if (enlaceActivo) {
+                const rectEnlace = enlaceActivo.getBoundingClientRect();
+                const rectSidebar = sidebar.getBoundingClientRect();
+                if (rectEnlace.top < rectSidebar.top || rectEnlace.bottom > rectSidebar.bottom) {
+                    enlaceActivo.scrollIntoView({ block: 'nearest', behavior: 'instant' });
                 }
+            }
+
+            // 3. Guardar posición al hacer scroll
+            sidebar.addEventListener('scroll', function() {
+                sessionStorage.setItem('sidebar_scroll_pos', String(sidebar.scrollTop));
+            }, { passive: true });
+
+            // 4. Guardar posición al hacer clic o al navegar
+            document.querySelectorAll('.sidebar a').forEach(enlace => {
+                enlace.addEventListener('click', () => {
+                    sessionStorage.setItem('sidebar_scroll_pos', String(sidebar.scrollTop));
+                    if (window.innerWidth < 992) {
+                        cerrarMenuMovil();
+                    }
+                });
             });
-        });
+
+            window.addEventListener('beforeunload', function() {
+                sessionStorage.setItem('sidebar_scroll_pos', String(sidebar.scrollTop));
+            });
+        }
 
         // ── Sistema Global de Confirmación de Salida y Navegación ──
         (function() {

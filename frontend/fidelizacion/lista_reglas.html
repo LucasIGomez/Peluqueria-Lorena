@@ -1,0 +1,226 @@
+{% extends 'base.html' %}
+
+{% block page_title %}Motor de Beneficios{% endblock %}
+{% block page_subtitle %}Configure umbrales, recompensas y mensajes de fidelización (RF 10.1).{% endblock %}
+
+{% block content %}
+<div class="card shadow-sm border-0 mb-4">
+    <div class="card-body p-3 d-flex flex-wrap gap-3 align-items-center justify-content-between">
+        <div class="d-flex gap-3">
+            <div class="badge bg-dark border border-secondary text-light p-3">
+                <div class="small text-secondary">Reglas cargadas</div>
+                <div class="fs-4 fw-bold text-accent">{{ reglas|length }}</div>
+            </div>
+            <div class="badge bg-dark border border-secondary text-light p-3">
+                <div class="small text-secondary">Cupones otorgados</div>
+                <div class="fs-4 fw-bold text-light">{{ total_otorgados }}</div>
+            </div>
+            <div class="badge bg-dark border border-secondary text-light p-3">
+                <div class="small text-secondary">Cupones disponibles</div>
+                <div class="fs-4 fw-bold text-success">{{ disponibles }}</div>
+            </div>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'fidelizacion:panel_beneficios' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-ticket-perforated me-1"></i> Ver cupones
+            </a>
+            <a href="{% url 'fidelizacion:crear_regla' %}" class="btn btn-accent fw-bold text-dark">
+                <i class="bi bi-plus-circle me-1"></i> Nueva regla
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-header py-3 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-light"><i class="bi bi-sliders me-2 text-accent"></i> Reglas de beneficios</h5>
+        <span class="text-secondary small">La automatización del procesamiento de los beneficios se da diariamente a las 8:00 a. m.</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover align-middle mb-0">
+                <thead class="text-secondary small text-uppercase">
+                    <tr>
+                        <th class="ps-4">Regla</th>
+                        <th>Criterio</th>
+                        <th>Recompensa</th>
+                        <th>Vigencia</th>
+                        <th class="text-center">Estado</th>
+                        <th class="text-end pe-4">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for regla in reglas %}
+                    <tr>
+                        <td class="ps-4">
+                            <div class="fw-bold text-light">{{ regla.nombre }}</div>
+                            <div>
+                                {% if regla.tipo == 'CUMPLEANOS' %}
+                                <span class="badge bg-warning-subtle text-warning border border-warning"><i class="bi bi-cake2 me-1"></i>Cumpleaños</span>
+                                {% else %}
+                                <span class="badge bg-info-subtle text-info border border-info"><i class="bi bi-star me-1"></i>Regularidad</span>
+                                {% endif %}
+                            </div>
+                            {% if regla.descripcion %}<div class="text-secondary small">{{ regla.descripcion }}</div>{% endif %}
+                        </td>
+                        <td class="small">
+                            {% if regla.tipo == 'CUMPLEANOS' %}
+                            Aviso {{ regla.ventana_dias }} día(s) antes
+                            {% else %}
+                            {{ regla.min_visitas }} visita(s)
+                            {% if regla.min_monto %} o ${{ regla.min_monto }}{% endif %}
+                            <div class="text-secondary">en {% if regla.periodo_dias %}{{ regla.periodo_dias }} días{% else %}todo el historial{% endif %}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-success bg-opacity-25 text-success border border-success">{{ regla.descripcion_recompensa }}</span>
+                            {% if regla.tipo_recompensa == 'SERVICIO' and regla.servicio_bonificado %}
+                            <div class="text-secondary small">{{ regla.servicio_bonificado.nombre }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="small text-light">{{ regla.dias_validez }} día(s)</td>
+                        <td class="text-center">
+                            {% if regla.activo %}
+                            <span class="badge bg-success">Activa</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Pausada</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'fidelizacion:editar_regla' regla.pk %}" class="btn btn-outline-secondary" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="POST" action="{% url 'fidelizacion:alternar_regla' regla.pk %}" class="d-inline form-alternar" data-nombre="{{ regla.nombre }}" data-activa="{% if regla.activo %}1{% else %}0{% endif %}">
+                                    {% csrf_token %}
+                                    <button type="button" class="btn btn-alternar {% if regla.activo %}btn-outline-warning{% else %}btn-outline-success{% endif %}" title="{% if regla.activo %}Pausar{% else %}Activar{% endif %}">
+                                        {% if regla.activo %}<i class="bi bi-pause-circle"></i>{% else %}<i class="bi bi-play-circle"></i>{% endif %}
+                                    </button>
+                                </form>
+                                <form method="POST" action="{% url 'fidelizacion:eliminar_regla' regla.pk %}" class="d-inline form-eliminar" data-nombre="{{ regla.nombre }}">
+                                    {% csrf_token %}
+                                    <button type="button" class="btn btn-outline-danger btn-eliminar" title="Eliminar regla">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-secondary">
+                            <i class="bi bi-gift fs-1 d-block mb-2"></i>
+                            Aún no hay reglas. Cree la primera para activar la fidelización.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Confirmar pausar / activar regla -->
+<div class="modal fade" id="modalAlternarRegla" tabindex="-1" aria-labelledby="modalAlternarReglaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-secondary text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-warning" id="modalAlternarReglaLabel">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> <span id="tituloAlternar">Pausar regla</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0" id="mensajeAlternar">¿Desea pausar esta regla?</p>
+                <p class="text-secondary small mb-0 mt-2">Las reglas pausadas no generan nuevos cupones hasta reactivarse. Los cupones ya otorgados no se ven afectados.</p>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btnConfirmarAlternar" class="btn btn-accent text-dark fw-bold px-4">
+                    <i class="bi bi-check2-circle me-1"></i> Sí, confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Confirmar eliminación de regla -->
+<div class="modal fade" id="modalEliminarRegla" tabindex="-1" aria-labelledby="modalEliminarReglaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-secondary text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-danger" id="modalEliminarReglaLabel">
+                    <i class="bi bi-trash-fill me-2"></i> Eliminar regla
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0" id="mensajeEliminar">¿Desea eliminar esta regla?</p>
+                <p class="text-secondary small mb-0 mt-2">Esta acción no se puede deshacer. Los cupones ya otorgados se conservan como historial.</p>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btnConfirmarEliminar" class="btn btn-danger fw-bold px-4">
+                    <i class="bi bi-trash me-1"></i> Sí, eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modalEl = document.getElementById('modalAlternarRegla');
+    const modal = modalEl && typeof bootstrap !== 'undefined' ? bootstrap.Modal.getOrCreateInstance(modalEl) : null;
+    const titulo = document.getElementById('tituloAlternar');
+    const mensaje = document.getElementById('mensajeAlternar');
+    const btnConfirmar = document.getElementById('btnConfirmarAlternar');
+    let formPendiente = null;
+
+    document.querySelectorAll('.form-alternar .btn-alternar').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            formPendiente = btn.closest('form.form-alternar');
+            const nombre = formPendiente.dataset.nombre;
+            const activa = formPendiente.dataset.activa === '1';
+            titulo.textContent = activa ? 'Pausar regla' : 'Activar regla';
+            mensaje.innerHTML = activa
+                ? `¿Desea pausar la regla <strong>"${nombre}"</strong>? Dejará de generar nuevos cupones.`
+                : `¿Desea activar la regla <strong>"${nombre}"</strong>? Volverá a generar cupones en el próximo proceso.`;
+            modal.show();
+        });
+    });
+
+    btnConfirmar.addEventListener('click', function () {
+        if (formPendiente) {
+            window._enviandoFormulario = true;
+            formPendiente.submit();
+        }
+    });
+
+    // ── Confirmación de eliminación ──
+    const modalEliminarEl = document.getElementById('modalEliminarRegla');
+    const modalEliminar = modalEliminarEl && typeof bootstrap !== 'undefined' ? bootstrap.Modal.getOrCreateInstance(modalEliminarEl) : null;
+    const mensajeEliminar = document.getElementById('mensajeEliminar');
+    const btnConfirmarEliminar = document.getElementById('btnConfirmarEliminar');
+    let formEliminarPendiente = null;
+
+    document.querySelectorAll('.form-eliminar .btn-eliminar').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            formEliminarPendiente = btn.closest('form.form-eliminar');
+            const nombre = formEliminarPendiente.dataset.nombre;
+            mensajeEliminar.innerHTML = `¿Desea eliminar definitivamente la regla <strong>"${nombre}"</strong>?`;
+            modalEliminar.show();
+        });
+    });
+
+    btnConfirmarEliminar.addEventListener('click', function () {
+        if (formEliminarPendiente) {
+            window._enviandoFormulario = true;
+            formEliminarPendiente.submit();
+        }
+    });
+});
+</script>
+{% endblock %}

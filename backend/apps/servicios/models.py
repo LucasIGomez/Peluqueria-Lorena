@@ -242,6 +242,30 @@ class ServicioRealizado(models.Model):
         default=False,
         help_text="Indica si este servicio ya fue computado en el cierre del día.",
     )
+    porcentaje_comision = models.DecimalField(
+        "porcentaje de comisión aplicado",
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Porcentaje de comisión para la profesional (RF 8.1 / RF 8.2).",
+    )
+    monto_comision = models.DecimalField(
+        "monto de comisión",
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Monto calculado de comisión a favor de la profesional (RF 8.2).",
+    )
+    liquidacion = models.ForeignKey(
+        "comisiones.Liquidacion",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="servicios_asociados",
+        verbose_name="liquidación vinculada",
+    )
     fecha_creacion = models.DateTimeField("fecha de registro", auto_now_add=True)
 
     class Meta:
@@ -251,6 +275,38 @@ class ServicioRealizado(models.Model):
 
     def __str__(self) -> str:
         return f"{self.servicio.nombre} a {self.cliente_nombre} ({self.fecha} {self.hora.strftime('%H:%M')}) - ${self.precio_acordado:,.2f}"
+
+    def save(self, *args, **kwargs):
+        # Cálculo automático de comisión sobre presupuesto cargado (RF 8.2)
+        if self.precio_acordado is not None:
+            if self.porcentaje_comision is None:
+                try:
+                    from apps.comisiones.models import ConfiguracionComision
+
+                    config = ConfiguracionComision.objects.filter(
+                        categoria=self.servicio.categoria, activo=True
+                    ).first()
+                    if config:
+                        self.porcentaje_comision = config.porcentaje
+                    else:
+                        # Valores relevados por defecto: 50% cortes, 25% técnicos / otros
+                        if self.servicio.categoria == Servicio.Categoria.CORTES:
+                            self.porcentaje_comision = Decimal("50.00")
+                        else:
+                            self.porcentaje_comision = Decimal("25.00")
+                except Exception:
+                    if self.servicio and self.servicio.categoria == Servicio.Categoria.CORTES:
+                        self.porcentaje_comision = Decimal("50.00")
+                    else:
+                        self.porcentaje_comision = Decimal("25.00")
+
+            if self.monto_comision is None and self.porcentaje_comision is not None:
+                from decimal import ROUND_HALF_UP
+
+                monto = (self.precio_acordado * self.porcentaje_comision) / Decimal("100")
+                self.monto_comision = monto.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+        super().save(*args, **kwargs)
 
     # ── Aliases camelCase ──
 
@@ -269,6 +325,14 @@ class ServicioRealizado(models.Model):
     @property
     def insumosDescontados(self) -> bool:
         return self.insumos_descontados
+
+    @property
+    def porcentajeComision(self) -> Optional[Decimal]:
+        return self.porcentaje_comision
+
+    @property
+    def montoComision(self) -> Optional[Decimal]:
+        return self.monto_comision
 
 
 class ConsumoInsumoCierre(models.Model):

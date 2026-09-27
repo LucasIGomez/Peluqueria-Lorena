@@ -20,6 +20,11 @@
         opacity: 0.45;
         pointer-events: none;
     }
+    @media print {
+        .sidebar, .mobile-navbar, .btn-scroll-top, .modal, footer, #buscadorInventario, .card:has(#buscadorInventario), .btn, #proveedorSelectDropdown {
+            display: none !important;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -62,9 +67,12 @@
                 id="btnQuitarProveedor">Cambiar</button>
         </div>
     </div>
-    <div class="col-md-6 d-flex align-items-end justify-content-start justify-content-md-end mt-3 mt-md-0">
-        <button class="btn btn-success fw-bold px-4 w-100 w-md-auto" id="btnGenerarPDF">
+    <div class="col-md-6 d-flex gap-2 align-items-end justify-content-start justify-content-md-end mt-3 mt-md-0">
+        <button type="button" class="btn btn-success fw-bold px-4" id="btnGenerarPDF">
             <i class="bi bi-file-earmark-pdf me-1"></i> Generar Orden (PDF)
+        </button>
+        <button type="button" class="btn btn-outline-light px-3" id="btnImprimirOrden">
+            <i class="bi bi-printer me-1"></i> Imprimir
         </button>
     </div>
 </div>
@@ -696,47 +704,51 @@
             }
         });
 
-        // 4. Generar orden: validaciones + confirmación de descarga
+        // 4. Generar orden: validaciones + confirmación de descarga + impresión directa
+        function obtenerDatosOrden() {
+            const proveedorId = document.getElementById('proveedorSelect').value;
+            if (!proveedorId) {
+                mostrarAviso('Debes seleccionar un proveedor destino antes de procesar la orden de compra.', 'Falta el proveedor');
+                return null;
+            }
+            const filas = tablaPedidoBody.querySelectorAll('tr[data-pedido-id]');
+            if (filas.length === 0) {
+                mostrarAviso('La orden de compra está vacía. Añade al menos un insumo desde la tabla de inventario.', 'Carrito vacío');
+                return null;
+            }
+            const productos = [];
+            filas.forEach(fila => {
+                const id = fila.getAttribute('data-pedido-id');
+                const unidad = fila.getAttribute('data-unidad') || 'u.';
+                const celdaNombre = fila.querySelector('td:first-child');
+                let nombre = celdaNombre ? celdaNombre.textContent.trim() : '';
+                nombre = nombre.replace(/\s*\([^)]*\)\s*$/, '').trim();
+                const inputCant = fila.querySelector('input[type="number"]');
+                const cantidad = inputCant ? parseInt(inputCant.value, 10) || 1 : 1;
+                productos.push({ id, nombre, cantidad, unidad });
+            });
+            return { proveedorId, productos, cantidadInsumos: filas.length };
+        }
+
         const btnGenerarPDF = document.getElementById('btnGenerarPDF') || document.getElementById('btnGenerarDocx');
         const btnConfirmarDescarga = document.getElementById('btnConfirmarDescarga');
+        const btnImprimirOrden = document.getElementById('btnImprimirOrden');
+
         if (btnGenerarPDF) {
             // 4.1 Validación al pulsar Generar: muestra aviso o pide confirmación
             btnGenerarPDF.addEventListener('click', () => {
-                // Caso 1: sin proveedor seleccionado
-                const proveedorId = document.getElementById('proveedorSelect').value;
-                if (!proveedorId) {
-                    mostrarAviso('Debes seleccionar un proveedor destino antes de generar la orden de compra.', 'Falta el proveedor');
-                    return;
-                }
-                // Caso 2: proveedor OK pero carrito vacío
-                const filas = tablaPedidoBody.querySelectorAll('tr[data-pedido-id]');
-                if (filas.length === 0) {
-                    mostrarAviso('La orden de compra está vacía. Añade al menos un insumo desde la tabla de inventario.', 'Carrito vacío');
-                    return;
-                }
-                // Caso 4: todo correcto -> confirmar descarga
+                const datos = obtenerDatosOrden();
+                if (!datos) return;
                 const nombreProv = document.getElementById('proveedorNombreSeleccionado').textContent.trim() || 'Proveedor seleccionado';
                 document.getElementById('confirmDescargaProveedor').textContent = nombreProv;
-                document.getElementById('confirmDescargaCantidad').textContent = filas.length + (filas.length === 1 ? ' insumo' : ' insumos');
+                document.getElementById('confirmDescargaCantidad').textContent = datos.cantidadInsumos + (datos.cantidadInsumos === 1 ? ' insumo' : ' insumos');
                 mostrarModal('modalConfirmarDescarga');
             });
 
             // 4.2 Confirmación: ejecuta la descarga real del PDF
             btnConfirmarDescarga.addEventListener('click', async () => {
-                const proveedorId = document.getElementById('proveedorSelect').value;
-                const filas = tablaPedidoBody.querySelectorAll('tr[data-pedido-id]');
-                const productos = [];
-                filas.forEach(fila => {
-                    const id = fila.getAttribute('data-pedido-id');
-                    const unidad = fila.getAttribute('data-unidad') || 'u.';
-                    const celdaNombre = fila.querySelector('td:first-child');
-                    // Quitar el sufijo " (u.)" agregado visualmente
-                    let nombre = celdaNombre ? celdaNombre.textContent.trim() : '';
-                    nombre = nombre.replace(/\s*\([^)]*\)\s*$/, '').trim();
-                    const inputCant = fila.querySelector('input[type="number"]');
-                    const cantidad = inputCant ? parseInt(inputCant.value, 10) || 1 : 1;
-                    productos.push({ id, nombre, cantidad, unidad });
-                });
+                const datos = obtenerDatosOrden();
+                if (!datos) return;
 
                 const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')
                     ? document.querySelector('[name=csrfmiddlewaretoken]').value
@@ -755,8 +767,8 @@
                             'X-CSRFToken': csrfToken
                         },
                         body: JSON.stringify({
-                            proveedor_id: proveedorId,
-                            productos: productos
+                            proveedor_id: datos.proveedorId,
+                            productos: datos.productos
                         })
                     });
 
@@ -790,6 +802,74 @@
                 } finally {
                     btnGenerarPDF.disabled = false;
                     btnGenerarPDF.innerHTML = originalHtml;
+                }
+            });
+        }
+
+        // 4.3 Botón Imprimir: genera el documento PDF oficial y lanza el diálogo de impresión
+        if (btnImprimirOrden) {
+            btnImprimirOrden.addEventListener('click', async () => {
+                const datos = obtenerDatosOrden();
+                if (!datos) return;
+
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')
+                    ? document.querySelector('[name=csrfmiddlewaretoken]').value
+                    : '';
+
+                const originalHtml = btnImprimirOrden.innerHTML;
+                btnImprimirOrden.disabled = true;
+                btnImprimirOrden.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Preparando...';
+
+                try {
+                    const response = await fetch("{% url 'proveedores:descargar_orden_compra' %}", {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({
+                            proveedor_id: datos.proveedorId,
+                            productos: datos.productos
+                        })
+                    });
+
+                    if (!response.ok) {
+                        const errData = await response.json().catch(() => ({}));
+                        throw new Error(errData.error || ('Error del servidor (' + response.status + ')'));
+                    }
+
+                    const blob = await response.blob();
+                    const url = window.URL.createObjectURL(blob);
+
+                    const iframe = document.createElement('iframe');
+                    iframe.style.position = 'fixed';
+                    iframe.style.right = '0';
+                    iframe.style.bottom = '0';
+                    iframe.style.width = '0';
+                    iframe.style.height = '0';
+                    iframe.style.border = '0';
+                    iframe.src = url;
+                    document.body.appendChild(iframe);
+
+                    iframe.onload = function () {
+                        setTimeout(() => {
+                            try {
+                                iframe.contentWindow.focus();
+                                iframe.contentWindow.print();
+                            } catch (e) {
+                                window.open(url, '_blank');
+                            }
+                            setTimeout(() => {
+                                document.body.removeChild(iframe);
+                                window.URL.revokeObjectURL(url);
+                            }, 60000);
+                        }, 300);
+                    };
+                } catch (err) {
+                    mostrarAviso('No se pudo preparar la orden para impresión: ' + err.message, 'Error al imprimir');
+                } finally {
+                    btnImprimirOrden.disabled = false;
+                    btnImprimirOrden.innerHTML = originalHtml;
                 }
             });
         }

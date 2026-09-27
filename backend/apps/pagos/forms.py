@@ -10,6 +10,7 @@ from django import forms
 from django.utils import timezone
 
 from apps.clientes.models import Cliente
+from apps.fidelizacion.models import ReglaBeneficio
 from apps.inventario.models import Producto
 from apps.servicios.models import Servicio
 from apps.usuarios.models import Usuario
@@ -101,7 +102,7 @@ class CobroForm(forms.Form):
                 "step": "0.5",
                 "min": 0,
                 "max": 100,
-                "placeholder": "Ej: 10",
+                "placeholder": "Ingrese un valor numerico",
                 "id": "id_descuento",
             }
         ),
@@ -115,6 +116,12 @@ class CobroForm(forms.Form):
         label="Observaciones",
         required=False,
         widget=forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+    )
+    regla_beneficio = forms.ModelChoiceField(
+        label="Cupón de fidelización a otorgar (solo administradora)",
+        queryset=ReglaBeneficio.objects.filter(activo=True).order_by("tipo", "nombre"),
+        required=False,
+        widget=forms.Select(attrs={"class": "form-select", "id": "id_regla_beneficio"}),
     )
 
     def _parse_items(self, crudo: str | None) -> list[dict]:

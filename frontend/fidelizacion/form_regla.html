@@ -1,0 +1,322 @@
+{% extends 'base.html' %}
+
+{% block page_title %}{{ accion }}{% endblock %}
+{% block page_subtitle %}Defina umbrales, recompensa y mensaje personalizado de la regla.{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="alert alert-dark border-secondary d-flex gap-3 align-items-start mb-4">
+            <i class="bi bi-info-circle-fill fs-4 text-accent"></i>
+            <div class="small text-secondary">
+                <strong class="text-light">Variables de plantilla:</strong>
+                <code>{nombre_cliente}</code>, <code>{descuento}</code>, <code>{codigo}</code>, <code>{fecha_limite}</code>.
+                El sistema las reemplaza automáticamente al otorgar cada cupón.
+                En REGULARIDAD exija visitas mínimas <strong>o</strong> monto mínimo. Con <code>período 0</code> se evalúa todo el historial.
+            </div>
+        </div>
+
+        <form method="POST" id="formRegla" class="card shadow-sm border-0">
+            {% csrf_token %}
+            <div class="card-header py-3">
+                <h5 class="mb-0 text-light"><i class="bi bi-gift me-2 text-accent"></i> {{ accion }}</h5>
+            </div>
+            <div class="card-body p-4">
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                {% endif %}
+
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label text-secondary small">Nombre de la regla</label>
+                        {{ form.nombre }}
+                        <div class="text-danger small">{{ form.nombre.errors }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-secondary small">Tipo de beneficio</label>
+                        {{ form.tipo }}
+                        <div class="text-danger small">{{ form.tipo.errors }}</div>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label text-secondary small">Descripción interna</label>
+                        {{ form.descripcion }}
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-check form-switch mt-4">
+                            {{ form.activo }}
+                            <label class="form-check-label text-light">Regla activa</label>
+                        </div>
+                    </div>
+                </div>
+
+                <hr class="border-secondary my-4">
+
+                <h6 class="text-accent fw-bold mb-3"><i class="bi bi-bullseye me-1"></i> Criterios de disparo</h6>
+                <div class="row g-3" id="bloqueRegularidad">
+                    <div class="col-md-4">
+                        <label class="form-label text-secondary small">Mínimo de visitas</label>
+                        {{ form.min_visitas }}
+                        <div class="text-danger small">{{ form.min_visitas.errors }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-secondary small">Monto mínimo ($)</label>
+                        {{ form.min_monto }}
+                        <div class="text-danger small">{{ form.min_monto.errors }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-secondary small">Período (días, 0 = historial)</label>
+                        {{ form.periodo_dias }}
+                    </div>
+                </div>
+                <div class="row g-3 mt-1" id="bloqueCumpleanos">
+                    <div class="col-md-4">
+                        <label class="form-label text-secondary small">Ventana de aviso (días previos)</label>
+                        {{ form.ventana_dias }}
+                    </div>
+                </div>
+
+                <hr class="border-secondary my-4">
+
+                <h6 class="text-accent fw-bold mb-3"><i class="bi bi-ticket-perforated me-1"></i> Recompensa</h6>
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label text-secondary small">Tipo de recompensa</label>
+                        {{ form.tipo_recompensa }}
+                        <div class="text-danger small">{{ form.tipo_recompensa.errors }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-secondary small">Valor (% o $)</label>
+                        {{ form.valor }}
+                        <div class="text-danger small">{{ form.valor.errors }}</div>
+                    </div>
+                    <div class="col-md-4 position-relative">
+                        <label class="form-label text-secondary small" for="buscadorServicio">Servicio bonificado</label>
+                        <div class="d-none">{{ form.servicio_bonificado }}</div>
+                        <div class="input-group">
+                            <span class="input-group-text bg-dark border-secondary text-secondary"><i class="bi bi-search"></i></span>
+                            <input type="text" id="buscadorServicio" class="form-control" placeholder="Buscar servicio por nombre..." autocomplete="off">
+                            <button type="button" id="btnLimpiarServicio" class="btn btn-outline-secondary" title="Quitar selección">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </div>
+                        <div id="resultadosServicio" class="list-group position-absolute shadow d-none w-100" style="z-index: 1050; max-height: 220px; overflow-y: auto;"></div>
+                        <small class="text-secondary" id="servicioElegido">Sin servicio seleccionado.</small>
+                        <div class="text-danger small">{{ form.servicio_bonificado.errors }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label text-secondary small">Vigencia del cupón (días)</label>
+                        {{ form.dias_validez }}
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label text-secondary small">Plantilla de mensaje</label>
+                        {{ form.plantilla_mensaje }}
+                        <div class="text-danger small">{{ form.plantilla_mensaje.errors }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer py-3 d-flex justify-content-between bg-dark">
+                <a href="{% url 'fidelizacion:lista_reglas' %}" class="btn btn-outline-secondary" data-confirmar-salida="true">Cancelar</a>
+                <button type="button" id="btnGuardarRegla" class="btn btn-accent text-dark fw-bold px-4">
+                    <i class="bi bi-check-circle me-1"></i> Guardar regla
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Confirmar guardado de regla -->
+<div class="modal fade" id="modalGuardarRegla" tabindex="-1" aria-labelledby="modalGuardarReglaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-secondary text-light">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-warning" id="modalGuardarReglaLabel">
+                    <i class="bi bi-check-circle me-2"></i> Confirmar guardado
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-2">¿Desea guardar la regla con los siguientes datos?</p>
+                <ul class="list-group list-group-flush" id="resumenRegla"></ul>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Revisar</button>
+                <button type="button" id="btnConfirmarGuardarRegla" class="btn btn-accent text-dark fw-bold px-4">
+                    <i class="bi bi-check2-circle me-1"></i> Sí, guardar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Advertencia de vigencia inválida -->
+<div class="modal fade" id="modalVigenciaCero" tabindex="-1" aria-labelledby="modalVigenciaCeroLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content bg-dark border-secondary text-light">
+            <div class="modal-body text-center pt-4 pb-3 px-4">
+                <div class="d-inline-flex align-items-center justify-content-center bg-danger bg-opacity-10 text-danger rounded-circle mb-3"
+                    style="width: 60px; height: 60px;">
+                    <i class="bi bi-exclamation-triangle-fill fs-2"></i>
+                </div>
+                <h5 class="modal-title fw-bold mb-2 text-light" id="modalVigenciaCeroLabel">No se puede guardar la regla</h5>
+                <p class="text-secondary small mb-0">
+                    No se puede agregar una regla con vigencia de 0 días.
+                    La vigencia mínima del cupón es de 1 día (máximo 365).
+                </p>
+            </div>
+            <div class="modal-footer border-secondary justify-content-center">
+                <button type="button" class="btn btn-accent text-dark fw-bold px-4" data-bs-dismiss="modal">
+                    Entendido
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const tipo = document.getElementById('id_tipo');
+    const bloqueReg = document.getElementById('bloqueRegularidad');
+    const bloqueCum = document.getElementById('bloqueCumpleanos');
+    function alternar() {
+        const esReg = tipo.value === 'REGULARIDAD';
+        bloqueReg.style.opacity = esReg ? '1' : '0.45';
+        bloqueCum.style.opacity = esReg ? '0.45' : '1';
+    }
+    if (tipo) { tipo.addEventListener('change', alternar); alternar(); }
+
+    // ── Buscador inteligente de servicio bonificado ──
+    // El select real queda oculto y conserva el name para el POST; el buscador solo lo asiste.
+    const selectServicio = document.getElementById('id_servicio_bonificado');
+    const buscadorServicio = document.getElementById('buscadorServicio');
+    const resultadosServicio = document.getElementById('resultadosServicio');
+    const servicioElegido = document.getElementById('servicioElegido');
+    const btnLimpiarServicio = document.getElementById('btnLimpiarServicio');
+    const opcionesServicio = Array.from(selectServicio.options)
+        .filter(o => o.value)
+        .map(o => ({ value: o.value, text: o.text.trim() }));
+
+    function mostrarServicioElegido() {
+        const opt = selectServicio.options[selectServicio.selectedIndex];
+        if (selectServicio.value && opt) {
+            buscadorServicio.value = opt.text.trim();
+            servicioElegido.innerHTML = `Elegido: <strong class="text-accent">${opt.text.trim()}</strong>`;
+        } else {
+            servicioElegido.textContent = 'Sin servicio seleccionado.';
+        }
+    }
+
+    function filtrarServicios(q) {
+        const query = q.trim().toLowerCase();
+        const coincidencias = (query
+            ? opcionesServicio.filter(o => o.text.toLowerCase().includes(query))
+            : opcionesServicio
+        ).slice(0, 20);
+        resultadosServicio.innerHTML = '';
+        if (!coincidencias.length) {
+            resultadosServicio.innerHTML = '<span class="list-group-item bg-dark text-secondary small">Sin coincidencias.</span>';
+        } else {
+            coincidencias.forEach(function (m) {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'list-group-item list-group-item-action bg-dark text-light small';
+                b.textContent = m.text;
+                b.addEventListener('click', function () {
+                    selectServicio.value = m.value;
+    mostrarServicioElegido();
+    // Sincronizar snapshot del guard global de navegación (corre antes que este script):
+    // evita un falso aviso de "cambios sin guardar" al abrir una regla en edición.
+    buscadorServicio.dataset.initialValue = buscadorServicio.value.trim();
+                    resultadosServicio.classList.add('d-none');
+                });
+                resultadosServicio.appendChild(b);
+            });
+        }
+        resultadosServicio.classList.remove('d-none');
+    }
+
+    buscadorServicio.addEventListener('focus', function () { filtrarServicios(buscadorServicio.value); });
+    buscadorServicio.addEventListener('input', function () { filtrarServicios(buscadorServicio.value); });
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('#resultadosServicio') && e.target !== buscadorServicio) {
+            resultadosServicio.classList.add('d-none');
+        }
+    });
+    buscadorServicio.addEventListener('blur', function () {
+        setTimeout(function () {
+            const opt = selectServicio.options[selectServicio.selectedIndex];
+            if (!selectServicio.value) buscadorServicio.value = '';
+            else if (opt) buscadorServicio.value = opt.text.trim();
+        }, 150);
+    });
+    btnLimpiarServicio.addEventListener('click', function () {
+        selectServicio.value = '';
+        buscadorServicio.value = '';
+        mostrarServicioElegido();
+        buscadorServicio.focus();
+    });
+    mostrarServicioElegido();
+
+    // ── Confirmación de guardado con resumen ──
+    const form = document.getElementById('formRegla');
+    const btnGuardar = document.getElementById('btnGuardarRegla');
+    const btnConfirmar = document.getElementById('btnConfirmarGuardarRegla');
+    const resumen = document.getElementById('resumenRegla');
+    const modalEl = document.getElementById('modalGuardarRegla');
+    const modal = modalEl && typeof bootstrap !== 'undefined' ? bootstrap.Modal.getOrCreateInstance(modalEl) : null;
+
+    function textoSelect(id) {
+        const el = document.getElementById(id);
+        return el ? el.options[el.selectedIndex].text : '—';
+    }
+    function valor(id) {
+        const el = document.getElementById(id);
+        return el ? el.value.trim() || '—' : '—';
+    }
+
+    btnGuardar.addEventListener('click', function () {
+        // Advertencia explícita antes que la validación nativa: 0 días no es admitido.
+        const diasValidez = document.getElementById('id_dias_validez');
+        const vigencia = parseInt((diasValidez && diasValidez.value) || '0', 10);
+        if (!vigencia || vigencia < 1) {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalVigenciaCero')).show();
+            if (diasValidez) diasValidez.focus();
+            return;
+        }
+        // Validación nativa del navegador antes de mostrar el resumen
+        if (!form.reportValidity()) return;
+        const tipoRecompensa = document.getElementById('id_tipo_recompensa');
+        if (tipoRecompensa && tipoRecompensa.value === 'SERVICIO' && !selectServicio.value) {
+            alert('Debe buscar y elegir el servicio bonificado para recompensas de tipo SERVICIO.');
+            buscadorServicio.focus();
+            return;
+        }
+        let recompensa = textoSelect('id_tipo_recompensa') + ' — ' + valor('id_valor');
+        if (tipoRecompensa && tipoRecompensa.value === 'SERVICIO' && selectServicio.value) {
+            const opt = selectServicio.options[selectServicio.selectedIndex];
+            if (opt) recompensa += ` (${opt.text.trim()})`;
+        }
+        const filas = [
+            ['Nombre', valor('id_nombre')],
+            ['Tipo', textoSelect('id_tipo')],
+            ['Recompensa', recompensa],
+            ['Vigencia', valor('id_dias_validez') + ' día(s)'],
+        ];
+        resumen.innerHTML = '';
+        filas.forEach(function (f) {
+            const li = document.createElement('li');
+            li.className = 'list-group-item bg-transparent text-light border-secondary px-0 py-2 small';
+            li.innerHTML = `<span class="text-secondary">${f[0]}:</span> <strong>${f[1]}</strong>`;
+            resumen.appendChild(li);
+        });
+        modal.show();
+    });
+
+    btnConfirmar.addEventListener('click', function () {
+        window._enviandoFormulario = true;
+        form.submit();
+    });
+});
+</script>
+{% endblock %}
