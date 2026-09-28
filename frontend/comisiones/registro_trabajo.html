@@ -15,6 +15,18 @@
                 <form method="POST" id="formRegistroTrabajo">
                     {% csrf_token %}
 
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger d-flex flex-column gap-2 mb-3">
+                        <div><i class="bi bi-exclamation-octagon-fill me-1"></i> {{ form.non_field_errors }}</div>
+                        <div class="form-check mt-1">
+                            {{ form.confirmar_duplicado }}
+                            <label class="form-check-label small text-warning fw-bold" for="{{ form.confirmar_duplicado.id_for_label }}">
+                                Confirmar y registrar de todas formas si se trata de una atención adicional legítima.
+                            </label>
+                        </div>
+                    </div>
+                    {% endif %}
+
                     {% if request.user.es_administradora %}
                     <div class="mb-3">
                         <label class="form-label text-light fw-bold">Profesional que realizó el trabajo <span class="text-danger">*</span></label>
@@ -50,9 +62,21 @@
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label class="form-label text-light">Teléfono / WhatsApp (Opcional)</label>
-                        {{ form.cliente_telefono }}
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Teléfono / WhatsApp (Opcional)</label>
+                            {{ form.cliente_telefono }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label text-light">Consentimiento Informado (Si aplica)</label>
+                            {{ form.consentimiento }}
+                        </div>
+                    </div>
+
+                    <div id="avisoConsentimiento" class="alert alert-warning small d-none">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        Este servicio requiere ficha de consentimiento informado.
+                        <a id="linkCrearConsentimiento" href="{% url 'servicios:crear_consentimiento' %}" target="_blank" class="alert-link">Crear ficha ahora</a>
                     </div>
 
                     <hr class="border-secondary my-3">
@@ -209,6 +233,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     const selectServicio = document.getElementById('id_servicio_select');
     const selectCliente = document.getElementById('id_cliente_select');
+    const selectConsentimiento = document.getElementById('id_consentimiento');
+    const avisoConsentimiento = document.getElementById('avisoConsentimiento');
+    const linkCrearConsentimiento = document.getElementById('linkCrearConsentimiento');
     const inputClienteNombre = document.getElementById('id_cliente_nombre');
     const inputClienteTelefono = document.getElementById('id_cliente_telefono');
     const inputPrecioAcordado = document.getElementById('id_precio_acordado');
@@ -257,6 +284,23 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function actualizarAvisoConsentimiento() {
+        if (!selectServicio) return;
+        const srvId = selectServicio.value;
+        const srv = srvId && serviciosData ? serviciosData[srvId] : null;
+        const requiereConsentimiento = !!(srv && srv.requiere_consentimiento);
+        const yaVinculado = !!(selectConsentimiento && selectConsentimiento.value);
+
+        if (avisoConsentimiento) {
+            avisoConsentimiento.classList.toggle('d-none', !requiereConsentimiento || yaVinculado);
+        }
+        if (linkCrearConsentimiento) {
+            const base = "{% url 'servicios:crear_consentimiento' %}";
+            const cliVal = selectCliente ? selectCliente.value : '';
+            linkCrearConsentimiento.href = cliVal ? `${base}?cliente_id=${encodeURIComponent(cliVal)}` : base;
+        }
+    }
+
     // Al cambiar de servicio: precargar precio base sugerido y recalcular
     if (selectServicio) {
         selectServicio.addEventListener('change', function () {
@@ -269,6 +313,13 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             selectServicio.classList.remove('is-invalid');
             recalcularComision();
+            actualizarAvisoConsentimiento();
+        });
+    }
+
+    if (selectConsentimiento) {
+        selectConsentimiento.addEventListener('change', function () {
+            actualizarAvisoConsentimiento();
         });
     }
 
@@ -294,6 +345,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     inputClienteTelefono.value = cli.telefono || '';
                 }
             }
+            actualizarAvisoConsentimiento();
         });
     }
 
@@ -324,6 +376,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
     recalcularComision();
+    actualizarAvisoConsentimiento();
 
     // Función que verifica si el usuario cargó datos en cualquier campo
     function obtenerDatosCargados() {

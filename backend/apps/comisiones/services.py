@@ -175,6 +175,33 @@ class ComisionService:
             notas=notas.strip(),
             consentimiento=consentimiento,
         )
+
+        # Si existe un turno de agenda pendiente o confirmado para esta atención hoy, vincularlo y completarlo
+        try:
+            from apps.turnos.models import Turno
+            from apps.turnos.services import TurnoService
+
+            turno_match = None
+            if cliente:
+                turno_match = Turno.objects.filter(
+                    fecha=fecha_atencion,
+                    cliente=cliente,
+                    servicio=servicio,
+                    estado__in=[Turno.Estado.PENDIENTE, Turno.Estado.CONFIRMADO],
+                ).first()
+            if not turno_match and cliente_nombre:
+                turno_match = Turno.objects.filter(
+                    fecha=fecha_atencion,
+                    cliente_nombre__iexact=cliente_nombre.strip(),
+                    servicio=servicio,
+                    estado__in=[Turno.Estado.PENDIENTE, Turno.Estado.CONFIRMADO],
+                ).first()
+
+            if turno_match:
+                TurnoService.completar_turno(turno_match, trabajo)
+        except Exception:
+            pass
+
         return trabajo
 
     # ── Reporte de Liquidación (RF 8.4) ──

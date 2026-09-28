@@ -10,13 +10,13 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal
-from typing import Any
+from typing import Any, Optional
 
 from django import forms
 from django.utils import timezone
 
 from apps.clientes.models import Cliente
-from apps.servicios.models import Servicio, ServicioRealizado
+from apps.servicios.models import ConsentimientoInformado, Servicio, ServicioRealizado
 from apps.usuarios.models import Usuario
 from .models import ConfiguracionComision, Liquidacion
 
@@ -60,6 +60,10 @@ class RegistroTrabajoForm(forms.ModelForm):
         label="Horario",
         widget=forms.TimeInput(attrs={"class": "form-control", "type": "time"}),
     )
+    confirmar_duplicado = forms.BooleanField(
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input", "id": "id_confirmar_duplicado"}),
+    )
 
     class Meta:
         model = ServicioRealizado
@@ -69,6 +73,7 @@ class RegistroTrabajoForm(forms.ModelForm):
             "cliente",
             "cliente_nombre",
             "cliente_telefono",
+            "consentimiento",
             "precio_acordado",
             "fecha",
             "hora",
@@ -84,6 +89,7 @@ class RegistroTrabajoForm(forms.ModelForm):
             "cliente_telefono": forms.TextInput(
                 attrs={"class": "form-control", "id": "id_cliente_telefono", "placeholder": "Teléfono / WhatsApp (opcional)"}
             ),
+            "consentimiento": forms.Select(attrs={"class": "form-select", "id": "id_consentimiento"}),
             "precio_acordado": forms.NumberInput(
                 attrs={"class": "form-control", "step": "0.01", "id": "id_precio_acordado", "placeholder": "Presupuesto pactado ($)"}
             ),
@@ -97,11 +103,14 @@ class RegistroTrabajoForm(forms.ModelForm):
         self.user = user
         self.fields["cliente"].required = False
         self.fields["cliente_telefono"].required = False
+        self.fields["consentimiento"].required = False
+        self.fields["consentimiento"].empty_label = "— Sin ficha vinculada —"
         self.fields["notas"].required = False
 
         self.fields["servicio"].queryset = Servicio.objects.filter(activo=True).order_by("categoria", "nombre")
         self.fields["cliente"].queryset = Cliente.objects.filter(activo=True).order_by("nombre")
         self.fields["profesional"].queryset = Usuario.objects.filter(is_active=True).order_by("nombre")
+        self.fields["consentimiento"].queryset = ConsentimientoInformado.objects.all().order_by("-fecha_firma")
 
         # Horario actual por defecto
         if not self.initial.get("hora"):
@@ -126,6 +135,62 @@ class RegistroTrabajoForm(forms.ModelForm):
         if precio is None or precio < Decimal("0.00"):
             raise forms.ValidationError("El precio acordado debe ser mayor o igual a $0.")
         return precio
+
+    def clean(self) -> dict[str, Any]:
+        cleaned_data = super().clean()
+        fecha = cleaned_data.get("fecha")
+        servicio = cleaned_data.get("servicio")
+        profesional = cleaned_data.get("profesional")
+        cliente = cleaned_data.get("cliente")
+        cliente_nombre = (cleaned_data.get("cliente_nombre") or "").strip()
+        confirmar = cleaned_data.get("confirmar_duplicado")
+
+        if fecha and servicio:
+            from apps.turnos.models import Turno
+
+            # 1. Si existe un turno completado hoy para esta clienta y servicio, advertir/bloquear duplicado
+            turnos_completados = Turno.objects.filter(
+                fecha=fecha,
+                servicio=servicio,
+                estado=Turno.Estado.COMPLETADO,
+            )
+            if cliente:
+                turnos_completados = turnos_completados.filter(cliente=cliente)
+            elif cliente_nombre:
+                turnos_completados = turnos_completados.filter(cliente_nombre__iexact=cliente_nombre)
+            else:
+                turnos_completados = Turno.objects.none()
+
+            if turnos_completados.exists() and not confirmar:
+                raise forms.ValidationError(
+                    f"El turno de agenda para {cliente_nombre or 'la clienta'} con el servicio '{servicio.nombre}' "
+                    "ya fue completado hoy. Su atención y comisión ya quedaron registradas en el sistema. "
+                    "Si se trata de una atención adicional independiente, tilde la casilla de confirmación para continuar."
+                )
+
+            # 2. Si ya se registró una atención idéntica hoy (mismo servicio y profesional)
+            servicios_existentes = ServicioRealizado.objects.filter(
+                fecha=fecha,
+                servicio=servicio,
+                estado=ServicioRealizado.Estado.COMPLETADO,
+            )
+            if profesional:
+                servicios_existentes = servicios_existentes.filter(profesional=profesional)
+            if cliente:
+                servicios_existentes = servicios_existentes.filter(cliente=cliente)
+            elif cliente_nombre:
+                servicios_existentes = servicios_existentes.filter(cliente_nombre__iexact=cliente_nombre)
+            else:
+                servicios_existentes = ServicioRealizado.objects.none()
+
+            if servicios_existentes.exists() and not confirmar:
+                raise forms.ValidationError(
+                    f"Ya existe un registro de atención asentado hoy de '{servicio.nombre}' para {cliente_nombre or 'la clienta'}. "
+                    "Para evitar duplicar cobros en caja y comisiones, verifique si no fue cargado previamente. "
+                    "Si desea asentar una atención adicional idéntica, tilde la casilla de confirmación para continuar."
+                )
+
+        return cleaned_data
 
 
 class FiltroLiquidacionForm(forms.Form):

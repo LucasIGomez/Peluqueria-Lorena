@@ -21,8 +21,7 @@ from django.utils import timezone
 
 from apps.clientes.models import Cliente
 from apps.servicios.models import Servicio, ServicioRealizado
-from apps.usuarios.models import Usuario
-from .forms import ConfiguracionComisionForm, FiltroLiquidacionForm, RegistroTrabajoForm
+from .forms import FiltroLiquidacionForm, RegistroTrabajoForm
 from .models import ConfiguracionComision, Liquidacion
 from .services import ComisionService
 
@@ -142,6 +141,7 @@ def registrar_trabajo_view(request):
                 fecha=datos.get("fecha"),
                 hora=datos.get("hora"),
                 notas=datos.get("notas", ""),
+                consentimiento=datos.get("consentimiento"),
             )
             messages.success(
                 request,
@@ -174,6 +174,7 @@ def registrar_trabajo_view(request):
             "precio_base": str(s.precio_base),
             "porcentaje_comision": str(pct),
             "duracion": s.duracion_estimada_minutos,
+            "requiere_consentimiento": s.requiere_consentimiento,
         }
 
     clientes_data = {
@@ -264,39 +265,31 @@ def reporte_liquidacion_view(request):
     hoy = timezone.localdate()
     primer_dia_mes = hoy.replace(day=1)
 
-    profesional_id_str = request.GET.get("profesional")
-    fecha_desde_str = request.GET.get("fecha_desde")
-    fecha_hasta_str = request.GET.get("fecha_hasta")
-
-    profesional_id = int(profesional_id_str) if profesional_id_str and profesional_id_str.isdigit() else None
-
-    try:
-        fecha_desde = date.fromisoformat(fecha_desde_str) if fecha_desde_str else primer_dia_mes
-    except ValueError:
+    filtro_form = FiltroLiquidacionForm(request.GET if request.GET else None)
+    if filtro_form.is_valid():
+        profesional_seleccionada = filtro_form.cleaned_data.get("profesional")
+        profesional_id = profesional_seleccionada.pk if profesional_seleccionada else None
+        fecha_desde = filtro_form.cleaned_data.get("fecha_desde") or primer_dia_mes
+        fecha_hasta = filtro_form.cleaned_data.get("fecha_hasta") or hoy
+    else:
+        profesional_seleccionada = None
+        profesional_id = None
         fecha_desde = primer_dia_mes
-
-    try:
-        fecha_hasta = date.fromisoformat(fecha_hasta_str) if fecha_hasta_str else hoy
-    except ValueError:
         fecha_hasta = hoy
-
-    filtro_form = FiltroLiquidacionForm(
-        initial={
-            "profesional": profesional_id,
-            "fecha_desde": fecha_desde,
-            "fecha_hasta": fecha_hasta,
-        }
-    )
+        if not request.GET:
+            filtro_form = FiltroLiquidacionForm(
+                initial={
+                    "profesional": None,
+                    "fecha_desde": fecha_desde,
+                    "fecha_hasta": fecha_hasta,
+                }
+            )
 
     resumen = ComisionService.obtener_resumen_liquidacion(
         profesional_id=profesional_id,
         fecha_desde=fecha_desde,
         fecha_hasta=fecha_hasta,
     )
-
-    profesional_seleccionada = None
-    if profesional_id:
-        profesional_seleccionada = Usuario.objects.filter(pk=profesional_id).first()
 
     context = {
         "filtro_form": filtro_form,

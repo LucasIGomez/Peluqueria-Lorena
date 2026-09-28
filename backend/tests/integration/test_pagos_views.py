@@ -41,7 +41,7 @@ class TestPagosWebViews:
         assert "_sinAvisoNavegador" in contenido
         assert 'name="porcentaje_descuento"' in contenido
         assert 'id="id_descuento"' in contenido
-        assert 'placeholder="Ej: 10"' in contenido
+        assert 'placeholder="Ingrese un valor numerico"' in contenido
         assert "actualizarEstadoDescuento" in contenido
         assert "no admite descuento" in contenido
 
@@ -114,7 +114,7 @@ class TestPagosWebViews:
         assert "btnConfirmarCierreDefinitivo" in contenido
 
     def test_caja_cerrada_muestra_modal_reapertura(self, client) -> None:
-        """Con caja cerrada, /pagos/ ofrece reabrir con modal propio."""
+        """Con caja cerrada, /pagos/ ofrece reabrir y enlaza a la pantalla de confirmación."""
         admin = AdministradoraFactory(email="caja.admin.reapertura@test.com")
         client.force_login(admin)
         hoy = date.today()
@@ -129,9 +129,14 @@ class TestPagosWebViews:
 
         assert response.status_code == 200
         contenido = response.content.decode("utf-8")
-        assert "modalReabrirCaja" in contenido
-        assert "¿Reabrir la caja?" in contenido
-        assert "btnConfirmarReabrirCaja" in contenido
+        assert reverse("pagos:reabrir_caja") in contenido
+        assert "Reabrir" in contenido
+
+        response_reabrir = client.get(f"{reverse('pagos:reabrir_caja')}?fecha={hoy.isoformat()}")
+        assert response_reabrir.status_code == 200
+        contenido_reabrir = response_reabrir.content.decode("utf-8")
+        assert "Reabrir Caja" in contenido_reabrir
+        assert "Sí, reabrir" in contenido_reabrir
 
     def test_registrar_cobro_con_descuento_manual(self, client) -> None:
         """POST con 20% en efectivo registra el cobro con ese descuento."""
