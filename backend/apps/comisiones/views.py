@@ -9,9 +9,8 @@ Implementa:
 """
 from __future__ import annotations
 
-import json
 from datetime import date
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from typing import Any, Dict
 
 from django.contrib import messages
@@ -21,6 +20,7 @@ from django.utils import timezone
 
 from apps.clientes.models import Cliente
 from apps.servicios.models import Servicio, ServicioRealizado
+from apps.usuarios.models import Usuario
 from .forms import FiltroLiquidacionForm, RegistroTrabajoForm
 from .models import ConfiguracionComision, Liquidacion
 from .services import ComisionService
@@ -90,7 +90,7 @@ def configuracion_comisiones_view(request):
                         config.save()
                         cambios.append(f"{config.get_categoria_display()} ({', '.join(detalle_cat)})")
 
-                except (ValueError, TypeError, Decimal.InvalidOperation):
+                except (ValueError, TypeError, InvalidOperation):
                     errores.append(f"{config.get_categoria_display()}: porcentaje inválido.")
 
         if errores:
@@ -193,8 +193,8 @@ def registrar_trabajo_view(request):
 
     context = {
         "form": form,
-        "servicios_data_json": json.dumps(servicios_data),
-        "clientes_data_json": json.dumps(clientes_data),
+        "servicios_data": servicios_data,
+        "clientes_data": clientes_data,
         "trabajos_hoy": trabajos_hoy_qs.order_by("-hora")[:5],
         "total_trabajos_hoy": trabajos_hoy_qs.count(),
         "total_comision_hoy": comision_hoy,
@@ -327,13 +327,17 @@ def cerrar_liquidacion_view(request):
             messages.error(request, "Fechas de período inválidas.")
             return redirect("comisiones:reporte_liquidacion")
 
-        liquidacion = ComisionService.cerrar_liquidacion_periodo(
-            profesional=profesional,
-            fecha_desde=fecha_desde,
-            fecha_hasta=fecha_hasta,
-            liquidado_por=request.user,
-            observaciones=observaciones,
-        )
+        try:
+            liquidacion = ComisionService.cerrar_liquidacion_periodo(
+                profesional=profesional,
+                fecha_desde=fecha_desde,
+                fecha_hasta=fecha_hasta,
+                liquidado_por=request.user,
+                observaciones=observaciones,
+            )
+        except ValueError as exc:
+            messages.error(request, str(exc))
+            return redirect("comisiones:reporte_liquidacion")
         messages.success(
             request,
             f"Liquidación #{liquidacion.pk} asentada exitosamente para {profesional.nombre}. Total abonado: ${liquidacion.total_comision:,.2f}.",

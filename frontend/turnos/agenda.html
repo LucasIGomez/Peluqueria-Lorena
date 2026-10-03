@@ -96,7 +96,7 @@
                                 <a href="{% url 'turnos:completar_turno' turno.pk %}" class="btn btn-outline-success" title="Completar (registrar atención)">
                                     <i class="bi bi-check-lg"></i>
                                 </a>
-                                <form method="POST" action="{% url 'turnos:cambiar_estado' turno.pk %}" class="d-inline">
+                                <form method="POST" action="{% url 'turnos:cambiar_estado' turno.pk %}" class="d-inline" data-confirmar="¿Marcar el turno de {{ turno.cliente_nombre }} ({{ turno.hora|time:'H:i' }}) como ausente?">
                                     {% csrf_token %}
                                     <input type="hidden" name="vista" value="dia">
                                     <input type="hidden" name="fecha" value="{{ fecha_str }}">

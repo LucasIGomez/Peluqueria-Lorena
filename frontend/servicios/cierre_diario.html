@@ -63,7 +63,7 @@
                                         </div>
 
                                         <!-- Formulario para descontar insumos de este servicio -->
-                                        <form method="POST" class="mt-3">
+                                        <form method="POST" class="mt-3" data-confirmar="Se van a descontar del stock los insumos cargados para {{ r.servicio_nombre }}. Esta acción no se puede deshacer ni repetir para este servicio y fecha. ¿Continuar?">
                                             {% csrf_token %}
                                             <input type="hidden" name="servicio_id" value="{{ r.servicio_id }}">
 

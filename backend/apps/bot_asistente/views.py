@@ -51,8 +51,9 @@ class WhatsAppWebhookView(APIView):
         """
         app_secret = getattr(settings, "WHATSAPP_APP_SECRET", "")
         if not app_secret:
-            # Si no hay secreto configurado (entorno local sin integración configurada), permitir
-            return True
+            # Sin secreto no hay forma de comprobar que el mensaje viene de Meta.
+            logger.error("Webhook rechazado: WHATSAPP_APP_SECRET no está configurado.")
+            return False
 
         signature_header = (
             request.headers.get("X-Hub-Signature-256")

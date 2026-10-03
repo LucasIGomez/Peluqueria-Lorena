@@ -554,6 +554,9 @@ reporteMediosView = reporte_medios_view
 class CobroViewSet(viewsets.ModelViewSet):
     """API REST de cobros (el alta aplica descuento y stock vía servicio)."""
 
+    # Un cobro no se edita ni se borra: se anula con CajaService.anular_cobro,
+    # que repone stock y respeta el cierre de caja.
+    http_method_names = ["get", "post", "head", "options"]
     queryset = Cobro.objects.filter(anulado=False).order_by("-fecha", "-fecha_creacion")
     serializer_class = CobroSerializer
     permission_classes = [IsAuthenticated]

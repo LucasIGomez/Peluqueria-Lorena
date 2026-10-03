@@ -247,10 +247,18 @@ class ComisionService:
                     "cantidad": 0,
                     "bruto": Decimal("0.00"),
                     "comision": Decimal("0.00"),
+                    "pendiente_cantidad": 0,
+                    "pendiente_bruto": Decimal("0.00"),
+                    "pendiente_comision": Decimal("0.00"),
                 }
             profesionales_map[pid]["cantidad"] += 1
             profesionales_map[pid]["bruto"] += s.precio_acordado
             profesionales_map[pid]["comision"] += (s.monto_comision or Decimal("0.00"))
+            # Lo que todavía no entró en ninguna liquidación (lo que se asentaría ahora).
+            if s.liquidacion_id is None:
+                profesionales_map[pid]["pendiente_cantidad"] += 1
+                profesionales_map[pid]["pendiente_bruto"] += s.precio_acordado
+                profesionales_map[pid]["pendiente_comision"] += (s.monto_comision or Decimal("0.00"))
 
         por_profesional = sorted(
             profesionales_map.values(),
@@ -306,6 +314,12 @@ class ComisionService:
         """
         Asienta un comprobante de liquidación cerrada para una profesional
         y asocia los servicios efectuados en ese período.
+
+        Solo computa las atenciones que todavía no fueron liquidadas, para no
+        volver a pagar las incluidas en una liquidación anterior.
+
+        Raises:
+            ValueError: Si no hay atenciones pendientes de liquidar en el período.
         """
         resumen = cls.obtener_resumen_liquidacion(
             profesional_id=profesional.pk,
@@ -313,14 +327,24 @@ class ComisionService:
             fecha_hasta=fecha_hasta,
         )
         servicios_qs = resumen["servicios"].filter(liquidacion__isnull=True)
+        totales = servicios_qs.aggregate(
+            cantidad=Count("id"),
+            bruto=Sum("precio_acordado"),
+            comision=Sum("monto_comision"),
+        )
+        if not totales["cantidad"]:
+            raise ValueError(
+                f"No hay atenciones pendientes de liquidar para {profesional.nombre} "
+                f"entre el {fecha_desde.strftime('%d/%m/%Y')} y el {fecha_hasta.strftime('%d/%m/%Y')}."
+            )
 
         liquidacion = Liquidacion.objects.create(
             profesional=profesional,
             fecha_desde=fecha_desde,
             fecha_hasta=fecha_hasta,
-            total_servicios=servicios_qs.count(),
-            total_bruto=resumen["total_bruto"],
-            total_comision=resumen["total_comisiones"],
+            total_servicios=totales["cantidad"],
+            total_bruto=totales["bruto"] or Decimal("0.00"),
+            total_comision=totales["comision"] or Decimal("0.00"),
             estado=Liquidacion.Estado.PAGADA,
             liquidado_por=liquidado_por,
             observaciones=observaciones.strip(),

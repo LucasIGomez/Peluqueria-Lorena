@@ -21,6 +21,7 @@ from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
 from apps.inventario.models import Producto
+from apps.usuarios.permissions import EsAdministradora
 from .forms import ConsentimientoInformadoForm, ServicioForm, ServicioRealizadoForm
 from .models import ConsentimientoInformado, ConsumoInsumoCierre, Servicio, ServicioRealizado
 from .serializers import ServicioSerializer
@@ -371,3 +372,12 @@ class ServicioViewSet(viewsets.ModelViewSet):
     queryset = Servicio.objects.filter(activo=True).order_by("categoria", "nombre")
     serializer_class = ServicioSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        # Igual que en la web: todas consultan el catálogo, solo la Administradora lo modifica.
+        if self.action in ("list", "retrieve"):
+            return [IsAuthenticated()]
+        return [IsAuthenticated(), EsAdministradora()]
+
+    def perform_destroy(self, instance: Servicio) -> None:
+        ServicioService.eliminar_servicio(instance)

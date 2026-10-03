@@ -21,7 +21,9 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.decorators import method_decorator
+from django.utils.http import url_has_allowed_host_and_scheme
 from rest_framework import status, viewsets
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -46,6 +48,18 @@ from .services import UsuarioService
 # ──────────────────────────────────────────────────────────────
 
 
+def _destino_seguro(request) -> str:
+    """Devuelve el parámetro `next` solo si apunta a una página de este mismo sistema."""
+    destino = request.POST.get("next") or request.GET.get("next") or ""
+    if url_has_allowed_host_and_scheme(
+        destino,
+        allowed_hosts={request.get_host()},
+        require_https=request.is_secure(),
+    ):
+        return destino
+    return ""
+
+
 def login_view(request):
     """
     Vista Web de inicio de sesión.
@@ -53,6 +67,8 @@ def login_view(request):
     """
     if request.user.is_authenticated:
         return redirect("index")
+
+    next_url = _destino_seguro(request)
 
     if request.method == "POST":
         form = LoginForm(request.POST)
@@ -69,21 +85,20 @@ def login_view(request):
             # de la cuenta, para no revelar qué correos están registrados.
             if usuario is None or not usuario.check_password(password):
                 messages.error(request, "Correo electrónico o contraseña incorrectos.")
-                return render(request, "usuarios/login.html", {"form": form})
+                return render(request, "usuarios/login.html", {"form": form, "next": next_url})
 
             if not usuario.is_active:
                 messages.error(request, "Esta cuenta ha sido desactivada. Contactá a la administración.")
-                return render(request, "usuarios/login.html", {"form": form})
+                return render(request, "usuarios/login.html", {"form": form, "next": next_url})
 
             auth_login(request, usuario)
             usuario.iniciar_sesion()
             messages.success(request, f"¡Bienvenida, {usuario.nombre}! Has iniciado sesión como {usuario.get_rol_display()}.")
-            next_url = request.GET.get("next") or "index"
-            return redirect(next_url)
+            return redirect(next_url or "index")
     else:
         form = LoginForm()
 
-    return render(request, "usuarios/login.html", {"form": form})
+    return render(request, "usuarios/login.html", {"form": form, "next": next_url})
 
 
 def logout_view(request):
@@ -257,6 +272,10 @@ class UsuarioViewSet(viewsets.ModelViewSet):
         return UsuarioSerializer
 
     def perform_destroy(self, instance: Usuario) -> None:
+        # Quien llama es siempre una administradora activa (EsAdministradora + JWT),
+        # así que impedir la autobaja alcanza para no dejar el sistema sin administradora.
+        if instance.pk == self.request.user.pk:
+            raise ValidationError({"detail": "No podés desactivar tu propia cuenta administradora."})
         UsuarioService.eliminar_usuario(instance)
 
 

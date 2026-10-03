@@ -41,7 +41,18 @@ class Command(BaseCommand):
             return
 
         cantidad = options["cantidad"]
-        eliminar_todos = options["todos"] or (cantidad is None)
+        eliminar_todos = options["todos"]
+        if not eliminar_todos and cantidad is None:
+            self.stdout.write(
+                self.style.ERROR(
+                    "Indicá qué eliminar: --todos para borrar todo el inventario "
+                    "o --cantidad N para borrar los últimos N productos."
+                )
+            )
+            return
+        if not eliminar_todos and cantidad <= 0:
+            self.stdout.write(self.style.ERROR("La cantidad debe ser mayor a 0."))
+            return
 
         if eliminar_todos:
             mensaje = f"Se van a eliminar TODOS los productos ({total_existente} productos)."

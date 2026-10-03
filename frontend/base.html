@@ -662,6 +662,16 @@
             let navegacionConfirmada = false;
             window._enviandoFormulario = false;
 
+            // Formularios con data-confirmar="mensaje" piden confirmación antes de enviarse.
+            // Se escucha en captura para cortar el envío antes que el resto de los listeners.
+            document.addEventListener('submit', function(e) {
+                const mensaje = e.target.dataset ? e.target.dataset.confirmar : null;
+                if (mensaje && !confirm(mensaje)) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            }, true);
+
             // Función global para verificar si hay cambios sin guardar
             window.verificarCambiosSinGuardar = function() {
                 // 1. Si la vista actual definió su propia validación

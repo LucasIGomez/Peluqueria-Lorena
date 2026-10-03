@@ -177,9 +177,15 @@
                         </td>
                         <td class="text-end fw-bold text-accent fs-5">
                             ${{ item.comision|floatformat:2 }}
+                            {% if item.pendiente_cantidad and item.pendiente_cantidad != item.cantidad %}
+                                <div class="small fw-normal text-secondary">Pendiente: ${{ item.pendiente_comision|floatformat:2 }}</div>
+                            {% endif %}
                         </td>
                         <td class="text-center btn-print-hide">
-                            <button type="button" class="btn btn-sm btn-outline-warning" 
+                            {% if not item.pendiente_cantidad %}
+                            <span class="badge bg-success-subtle text-success"><i class="bi bi-check2-all me-1"></i> Liquidado</span>
+                            {% else %}
+                            <button type="button" class="btn btn-sm btn-outline-warning"
                                     data-bs-toggle="modal" data-bs-target="#modalCierre{{ item.profesional.pk }}">
                                 <i class="bi bi-check-circle me-1"></i> Asentar Pago
                             </button>
@@ -202,9 +208,12 @@
                                                 <p>¿Desea registrar el pago formal de comisiones a <strong>{{ item.profesional.nombre }}</strong>?</p>
                                                 <ul class="list-unstyled bg-black p-3 rounded border border-secondary mb-3">
                                                     <li>Período: <strong>{{ fecha_desde|date:"d/m/Y" }} al {{ fecha_hasta|date:"d/m/Y" }}</strong></li>
-                                                    <li>Servicios atendidos: <strong>{{ item.cantidad }}</strong></li>
-                                                    <li>Total Bruto: <strong>${{ item.bruto|floatformat:2 }}</strong></li>
-                                                    <li class="fs-5 mt-2 text-accent">Total Comisión: <strong>${{ item.comision|floatformat:2 }}</strong></li>
+                                                    <li>Servicios a liquidar: <strong>{{ item.pendiente_cantidad }}</strong></li>
+                                                    <li>Total Bruto: <strong>${{ item.pendiente_bruto|floatformat:2 }}</strong></li>
+                                                    <li class="fs-5 mt-2 text-accent">Total Comisión: <strong>${{ item.pendiente_comision|floatformat:2 }}</strong></li>
+                                                    {% if item.pendiente_cantidad != item.cantidad %}
+                                                    <li class="small text-secondary mt-2">Las atenciones de este período que ya fueron liquidadas no se vuelven a incluir.</li>
+                                                    {% endif %}
                                                 </ul>
                                                 <div class="mb-3">
                                                     <label class="form-label small">Observaciones del Pago (Opcional):</label>
@@ -219,6 +228,7 @@
                                     </div>
                                 </div>
                             </div>
+                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}

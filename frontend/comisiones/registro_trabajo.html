@@ -225,11 +225,20 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ servicios_data|json_script:"servicios-data" }}
+{{ clientes_data|json_script:"clientes-data" }}
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // Datos inyectados desde Django para reactividad instantánea
-    const serviciosData = {{ servicios_data_json|safe }};
-    const clientesData = {{ clientes_data_json|safe }};
+    // Datos inyectados desde Django con json_script (escapado seguro)
+    const serviciosData = JSON.parse(document.getElementById('servicios-data').textContent);
+    const clientesData = JSON.parse(document.getElementById('clientes-data').textContent);
+
+    // Escapa texto antes de insertarlo como HTML
+    function esc(texto) {
+        const div = document.createElement('div');
+        div.textContent = texto;
+        return div.innerHTML;
+    }
 
     const selectServicio = document.getElementById('id_servicio_select');
     const selectCliente = document.getElementById('id_cliente_select');
@@ -388,20 +397,20 @@ document.addEventListener('DOMContentLoaded', function () {
         const notas = inputNotas ? inputNotas.value.trim() : '';
 
         if (srvId && serviciosData[srvId]) {
-            datos.push(`Servicio: <strong>${serviciosData[srvId].nombre}</strong>`);
+            datos.push(`Servicio: <strong>${esc(serviciosData[srvId].nombre)}</strong>`);
         }
         if (nombre) {
-            datos.push(`Clienta: <strong>${nombre}</strong>`);
+            datos.push(`Clienta: <strong>${esc(nombre)}</strong>`);
         }
         if (telefono) {
-            datos.push(`Teléfono: <strong>${telefono}</strong>`);
+            datos.push(`Teléfono: <strong>${esc(telefono)}</strong>`);
         }
         if (precio > 0) {
             datos.push(`Presupuesto pactado: <strong>$${precio.toLocaleString('es-AR', { minimumFractionDigits: 2 })}</strong>`);
         }
         if (notas) {
             const preview = notas.length > 35 ? notas.substring(0, 35) + '...' : notas;
-            datos.push(`Notas: <em>"${preview}"</em>`);
+            datos.push(`Notas: <em>"${esc(preview)}"</em>`);
         }
         return datos;
     }

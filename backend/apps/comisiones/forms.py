@@ -110,7 +110,7 @@ class RegistroTrabajoForm(forms.ModelForm):
         self.fields["servicio"].queryset = Servicio.objects.filter(activo=True).order_by("categoria", "nombre")
         self.fields["cliente"].queryset = Cliente.objects.filter(activo=True).order_by("nombre")
         self.fields["profesional"].queryset = Usuario.objects.filter(is_active=True).order_by("nombre")
-        self.fields["consentimiento"].queryset = ConsentimientoInformado.objects.all().order_by("-fecha_firma")
+        self.fields["consentimiento"].queryset = ConsentimientoInformado.objects.all().order_by("-fecha_emision")
 
         # Horario actual por defecto
         if not self.initial.get("hora"):
