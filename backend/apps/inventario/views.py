@@ -430,7 +430,13 @@ class ProductoViewSet(viewsets.ModelViewSet):
         Endpoint API para reponer o agregar stock a un producto.
         """
         producto = self.get_object()
-        cantidad = int(request.data.get("cantidad", 1))
+        try:
+            cantidad = int(request.data.get("cantidad", 1))
+        except (TypeError, ValueError):
+            return Response(
+                {"error": "La cantidad debe ser un número entero."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         motivo = request.data.get("motivo", "Reposición vía API")
 
         try:

@@ -484,6 +484,13 @@
             buscadorProveedor.focus();
         });
 
+        // Escapa texto antes de insertarlo como HTML (los nombres de productos son datos cargados por usuarios)
+        function esc(texto) {
+            const div = document.createElement('div');
+            div.textContent = texto == null ? '' : String(texto);
+            return div.innerHTML;
+        }
+
         // 2. Función para mover de Inventario a Pedido
         const UNIDAD_LABELS = { 'UNIDAD': 'Unidades (u.)', 'LITRO': 'Litros (L)', 'ML': 'Mililitros (ml)', 'KG': 'Kilogramos (kg)', 'G': 'Gramos (g)' };
         const UNIDAD_ABREV = { 'UNIDAD': 'u.', 'LITRO': 'L', 'ML': 'ml', 'KG': 'kg', 'G': 'g' };
@@ -527,11 +534,11 @@
             tr.setAttribute('data-pedido-id', id);
             tr.setAttribute('data-unidad', abrev);
             tr.innerHTML = `
-                <td class="align-middle fw-bold text-primary">${nombre} <small class="text-secondary">(${abrev})</small></td>
+                <td class="align-middle fw-bold text-primary">${esc(nombre)} <small class="text-secondary">(${esc(abrev)})</small></td>
                 <td>
                     <div class="input-group input-group-sm">
                         <input type="number" class="form-control form-control-sm bg-dark text-light border-secondary" value="1" min="1">
-                        <span class="input-group-text bg-dark text-secondary border-secondary">${abrev}</span>
+                        <span class="input-group-text bg-dark text-secondary border-secondary">${esc(abrev)}</span>
                     </div>
                 </td>
                 <td class="text-end align-middle">
@@ -649,8 +656,8 @@
                     tr.setAttribute('data-unidad', abrev);
                     tr.setAttribute('data-unidad-codigo', data.unidad_medida || 'UNIDAD');
                     tr.innerHTML = `
-                        <td class="align-middle fw-bold">${data.nombre} <small class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-25 ms-1">${data.unidad_display || abrev}</small></td>
-                        <td class="align-middle"><span class="badge bg-danger">0 ${abrev}</span></td>
+                        <td class="align-middle fw-bold">${esc(data.nombre)} <small class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-25 ms-1">${esc(data.unidad_display || abrev)}</small></td>
+                        <td class="align-middle"><span class="badge bg-danger">0 ${esc(abrev)}</span></td>
                         <td class="text-end align-middle">
                             <button class="btn btn-sm btn-success btn-agregar">
                                 <i class="bi bi-plus-lg"></i>

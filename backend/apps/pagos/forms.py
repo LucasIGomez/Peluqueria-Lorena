@@ -124,6 +124,12 @@ class CobroForm(forms.Form):
         widget=forms.Select(attrs={"class": "form-select", "id": "id_regla_beneficio"}),
     )
 
+    def clean_fecha(self):
+        fecha = self.cleaned_data["fecha"]
+        if fecha > timezone.localdate():
+            raise forms.ValidationError("No se puede registrar un cobro con fecha futura.")
+        return fecha
+
     def _parse_items(self, crudo: str | None) -> list[dict]:
         """Parsea el carrito JSON enviado por el frontend."""
         if not crudo or not str(crudo).strip():

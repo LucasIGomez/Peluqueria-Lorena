@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import io
 from datetime import date
+from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -16,12 +17,14 @@ from django.http import FileResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from rest_framework import viewsets
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 
 from .facturacion import FacturaError, FacturaService
 from .forms import CierreCajaForm, CobroForm, ReporteMediosForm
 from .models import CierreCaja, Cobro
 from apps.fidelizacion.models import ReglaBeneficio
+from apps.utilidades import entero_o_none
 from .serializers import CierreCajaSerializer, CobroSerializer
 from .services import CajaCerradaError, CajaError, CajaService, CobroInvalidoError
 
@@ -307,7 +310,7 @@ def registrar_cobro_view(request):
             "medio_pago": Cobro.MedioPago.EFECTIVO,
         }
         # Precompletar clienta o producto inicial si vienen por querystring.
-        cliente_id = request.GET.get("cliente")
+        cliente_id = entero_o_none(request.GET.get("cliente"))
         if cliente_id:
             from apps.clientes.models import Cliente
 
@@ -563,16 +566,21 @@ class CobroViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         datos = serializer.validated_data
-        cobro = CajaService.registrar_cobro(
-            cliente_nombre=datos.get("cliente_nombre", ""),
-            profesional=self.request.user,
-            tipo=datos.get("tipo", Cobro.Tipo.SERVICIO),
-            medio_pago=datos.get("medio_pago", Cobro.MedioPago.EFECTIVO),
-            cantidad=datos.get("cantidad", 1),
-            precio_unitario=datos.get("precio_unitario"),
-            fecha=datos.get("fecha") or timezone.localdate(),
-            observaciones=datos.get("observaciones", ""),
-        )
+        try:
+            cobro = CajaService.registrar_cobro(
+                cliente_nombre=datos.get("cliente_nombre", ""),
+                profesional=self.request.user,
+                tipo=datos.get("tipo", Cobro.Tipo.SERVICIO),
+                medio_pago=datos.get("medio_pago", Cobro.MedioPago.EFECTIVO),
+                cantidad=datos.get("cantidad", 1),
+                precio_unitario=datos.get("precio_unitario"),
+                fecha=datos.get("fecha") or timezone.localdate(),
+                observaciones=datos.get("observaciones", ""),
+                # Igual que en la web: sin descuento salvo que se indique uno.
+                porcentaje_descuento=datos.get("porcentaje_descuento", Decimal("0.00")),
+            )
+        except (CobroInvalidoError, CajaCerradaError) as exc:
+            raise ValidationError({"detail": str(exc)})
         serializer.instance = cobro
 
 

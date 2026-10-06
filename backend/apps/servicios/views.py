@@ -16,12 +16,14 @@ from typing import Any
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils import timezone
 from rest_framework import viewsets
 from rest_framework.permissions import IsAuthenticated
 
 from apps.inventario.models import Producto
 from apps.usuarios.permissions import EsAdministradora
+from apps.utilidades import entero_o_none
 from .forms import ConsentimientoInformadoForm, ServicioForm, ServicioRealizadoForm
 from .models import ConsentimientoInformado, ConsumoInsumoCierre, Servicio, ServicioRealizado
 from .serializers import ServicioSerializer
@@ -45,8 +47,12 @@ def catalogo_servicios_view(request):
     """
     categoria_filtro = request.GET.get("categoria", "").strip()
 
-    # Si se solicita sincronización inicial de precios oficiales
-    if request.GET.get("cargar_inicial") == "1" and request.user.is_authenticated and request.user.es_administradora:
+    # La sincronización pisa precios y duraciones con la lista oficial: solo por POST
+    # (con confirmación en pantalla), nunca por un enlace que alguien pueda abrir sin querer.
+    if request.method == "POST" and request.POST.get("cargar_inicial") == "1":
+        if not request.user.es_administradora:
+            messages.error(request, "Solo la administradora puede sincronizar el tarifario.")
+            return redirect("servicios:catalogo")
         cantidad = ServicioService.cargar_catalogo_inicial()
         messages.success(request, f"Se sincronizaron {cantidad} servicios de la lista oficial de Lorena.")
         return redirect("servicios:catalogo")
@@ -155,8 +161,16 @@ def registrar_servicio_realizado_view(request):
     from apps.turnos.models import Turno
     from apps.turnos.services import TurnoError, TurnoService
 
-    turno_id = request.POST.get("turno_id") or request.GET.get("turno")
+    turno_id = entero_o_none(request.POST.get("turno_id") or request.GET.get("turno"))
     turno = Turno.objects.filter(pk=turno_id).first() if turno_id else None
+
+    # Un turno ya completado tiene su atención: otra duplicaría la atención y su comisión.
+    if turno is not None and turno.estado == Turno.Estado.COMPLETADO:
+        messages.warning(
+            request,
+            f"El turno de {turno.cliente_nombre} ya fue completado: su atención ya está registrada.",
+        )
+        return redirect(f"{reverse('turnos:agenda')}?vista=dia&fecha={turno.fecha.isoformat()}")
 
     if request.method == "POST":
         form = ServicioRealizadoForm(request.POST)
@@ -174,8 +188,8 @@ def registrar_servicio_realizado_view(request):
             return redirect("servicios:control_diario")
     else:
         # Valores iniciales
-        servicio_id = request.GET.get("servicio")
-        cliente_id = request.GET.get("cliente")
+        servicio_id = entero_o_none(request.GET.get("servicio"))
+        cliente_id = entero_o_none(request.GET.get("cliente"))
         initial_data: dict[str, Any] = {
             "fecha": timezone.localdate(),
             "hora": timezone.localtime().strftime("%H:%M"),
@@ -203,7 +217,7 @@ def registrar_servicio_realizado_view(request):
                 initial_data["cliente_telefono"] = cli.telefono
 
         if servicio_id and turno is None:
-            srv = ServicioService.obtener_servicio_por_id(int(servicio_id))
+            srv = ServicioService.obtener_servicio_por_id(servicio_id)
             if srv:
                 initial_data["servicio"] = srv
                 initial_data["precio_acordado"] = srv.precio_base
@@ -265,7 +279,7 @@ def crear_consentimiento_view(request):
             return redirect("servicios:ver_consentimiento", pk=consentimiento.pk)
     else:
         initial_data = {}
-        cliente_id = request.GET.get("cliente")
+        cliente_id = entero_o_none(request.GET.get("cliente"))
         if cliente_id:
             from apps.clientes.models import Cliente
             cliente_obj = Cliente.objects.filter(pk=cliente_id).first()
@@ -309,7 +323,10 @@ def cierre_diario_view(request):
         dia = timezone.localdate()
 
     if request.method == "POST":
-        servicio_id = int(request.POST.get("servicio_id", 0))
+        servicio_id = entero_o_none(request.POST.get("servicio_id"))
+        if servicio_id is None:
+            messages.error(request, "Servicio inválido. Elegí un servicio de la lista.")
+            return redirect(f"{request.path}?fecha={dia.isoformat()}")
         productos_ids = request.POST.getlist("producto_id[]")
         cantidades = request.POST.getlist("cantidad[]")
 

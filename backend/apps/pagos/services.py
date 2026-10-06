@@ -39,6 +39,12 @@ class CajaService:
     Servicio de dominio para cobros, descuentos, cierres y reportes.
     """
 
+    @staticmethod
+    def _validar_fecha_no_futura(dia: date) -> None:
+        """Un cobro registra algo ya ocurrido: no admite fechas posteriores a hoy."""
+        if dia > timezone.localdate():
+            raise CobroInvalidoError("No se puede registrar un cobro con fecha futura.")
+
     #: Descuento sugerido por defecto (10%) para efectivo, Mercado Pago y Ualá.
     #: El usuario puede modificarlo en cada cobro entre 0 y 100%.
     PORCENTAJE_DESCUENTO_AUTOMATICO = Decimal("10.00")
@@ -147,6 +153,7 @@ class CajaService:
             raise CobroInvalidoError("La cantidad debe ser mayor a cero.")
 
         dia = fecha or timezone.localdate()
+        cls._validar_fecha_no_futura(dia)
 
         # No operar sobre una caja ya cerrada.
         if CierreCaja.objects.filter(fecha=dia).exists():
@@ -260,6 +267,7 @@ class CajaService:
         if not items:
             raise CobroInvalidoError("Agregá al menos un servicio o producto al carrito.")
         dia = fecha or timezone.localdate()
+        cls._validar_fecha_no_futura(dia)
         if CierreCaja.objects.filter(fecha=dia).exists():
             raise CajaCerradaError(
                 f"La caja del {dia.strftime('%d/%m/%Y')} ya fue cerrada. "

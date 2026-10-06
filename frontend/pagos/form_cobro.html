@@ -103,6 +103,7 @@
                 <div class="col-md-3">
                     <label class="form-label text-secondary small fw-bold text-uppercase">Fecha</label>
                     {{ form.fecha }}
+                    {% if form.fecha.errors %}<div class="text-danger small">{{ form.fecha.errors }}</div>{% endif %}
                 </div>
                 <div class="col-md-3">
                     <label class="form-label text-secondary small fw-bold text-uppercase">Profesional que cobra</label>

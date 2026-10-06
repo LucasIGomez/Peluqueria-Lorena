@@ -22,7 +22,7 @@ from apps.clientes.models import Cliente
 from apps.clientes.services import ClienteService
 from apps.servicios.models import Servicio
 from apps.turnos.models import Turno
-from apps.turnos.services import TurnoService
+from apps.turnos.services import HORA_CIERRE, TurnoInvalidoError, TurnoService
 
 from .ai.interpreter import BotResponseSchema, InterpreteIA, IntencionEnum
 from .handlers.business_hours import BusinessHoursValidator
@@ -364,6 +364,17 @@ class TurnoBotService:
 
         # Calcular duración estimada
         duracion = servicio_obj.duracion_estimada_minutos
+
+        # El servicio tiene que terminar antes del cierre (se avisa antes de crear nada).
+        try:
+            TurnoService.validar_fin_dentro_del_horario(hora_turno, duracion)
+        except TurnoInvalidoError:
+            return (
+                f"El servicio *{servicio_obj.nombre}* dura {duracion} minutos y si lo agendamos a las "
+                f"{hora_turno.strftime('%H:%M')} hs no llegaría a terminar antes del cierre "
+                f"({HORA_CIERRE.strftime('%H:%M')} hs).\n"
+                "¿Te gustaría elegir un horario más temprano?"
+            )
 
         # 4. Obtener o crear Clienta a través de ClienteService
         tel_normalizado = normalizar_telefono(telefono)

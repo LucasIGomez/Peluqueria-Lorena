@@ -224,10 +224,10 @@ class FidelizacionService:
         candidatas = Cliente.objects.filter(activo=True, fecha_nacimiento__isnull=False)
         resultado: list[Cliente] = []
         for clienta in candidatas:
-            dias = clienta.dias_para_cumpleanos
-            if dias is not None and 0 <= dias <= ventana_dias:
+            dias = (clienta.proximo_cumpleanos(hoy) - hoy).days
+            if 0 <= dias <= ventana_dias:
                 resultado.append(clienta)
-        resultado.sort(key=lambda c: c.dias_para_cumpleanos or 999)
+        resultado.sort(key=lambda c: c.proximo_cumpleanos(hoy))
         return resultado
 
     # ── Creación de beneficios (idempotente) ──
@@ -311,7 +311,10 @@ class FidelizacionService:
         omitidos = 0
         for regla in reglas:
             for clienta in cls.clientas_cumpleanos_en_ventana(regla.ventana_dias, hoy=hoy):
-                ciclo = str(hoy.year)  # un solo envío anual por clienta y regla
+                # Un solo cupón por cumpleaños: el ciclo es el año del cumpleaños que se festeja
+                # (no el de hoy), así un cumple de principios de enero no genera cupón en
+                # diciembre y otro en enero.
+                ciclo = str(clienta.proximo_cumpleanos(hoy).year)
                 _, creado = cls.otorgar_beneficio(
                     cliente=clienta, regla=regla, ciclo_referencia=ciclo, hoy=hoy, canal=canal
                 )

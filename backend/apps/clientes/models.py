@@ -59,22 +59,30 @@ class Cliente(models.Model):
         hoy = timezone.localdate()
         return (self.fecha_nacimiento.month == hoy.month) and (self.fecha_nacimiento.day == hoy.day)
 
+    def proximo_cumpleanos(self, hoy: Optional[date] = None) -> Optional[date]:
+        """
+        Fecha del próximo cumpleaños desde `hoy` (si cumple hoy, es hoy).
+        Quienes nacieron un 29 de febrero lo festejan el 28 en los años no bisiestos.
+        """
+        if not self.fecha_nacimiento:
+            return None
+        hoy = hoy or timezone.localdate()
+
+        def en_anio(anio: int) -> date:
+            try:
+                return date(anio, self.fecha_nacimiento.month, self.fecha_nacimiento.day)
+            except ValueError:
+                return date(anio, 2, 28)
+
+        proximo = en_anio(hoy.year)
+        return proximo if proximo >= hoy else en_anio(hoy.year + 1)
+
     @property
     def dias_para_cumpleanos(self) -> Optional[int]:
         """Calcula cuántos días faltan para el próximo cumpleaños de la clienta."""
-        if not self.fecha_nacimiento:
-            return None
         hoy = timezone.localdate()
-        try:
-            proximo_cumple = date(hoy.year, self.fecha_nacimiento.month, self.fecha_nacimiento.day)
-        except ValueError:
-            proximo_cumple = date(hoy.year, 2, 28)
-        if proximo_cumple < hoy:
-            try:
-                proximo_cumple = date(hoy.year + 1, self.fecha_nacimiento.month, self.fecha_nacimiento.day)
-            except ValueError:
-                proximo_cumple = date(hoy.year + 1, 2, 28)
-        return (proximo_cumple - hoy).days
+        proximo = self.proximo_cumpleanos(hoy)
+        return None if proximo is None else (proximo - hoy).days
 
     @property
     def cumple_proximo(self) -> bool:

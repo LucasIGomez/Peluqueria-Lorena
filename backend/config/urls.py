@@ -32,7 +32,7 @@ urlpatterns = [
     path("inventario/", include("apps.inventario.urls")),
     path("proveedores/", include("apps.proveedores.urls")),
     path("usuarios/", include("apps.usuarios.urls")),
-    path("api/v1/usuarios/", include(("apps.usuarios.urls", "usuarios"), namespace="usuarios-api")),
+    path("api/v1/usuarios/", include("apps.usuarios.api_urls")),
     path("servicios/", include("apps.servicios.urls")),
     path("comisiones/", include("apps.comisiones.urls")),
     path("pagos/", include("apps.pagos.urls")),

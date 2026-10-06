@@ -15,6 +15,11 @@ from django.db.models import QuerySet
 
 from .models import Turno
 
+# Horario de atención del salón.
+HORA_APERTURA = time(9, 0)
+HORA_CIERRE = time(19, 0)
+DIAS_HABILITADOS = {1, 2, 3, 4, 5}  # Martes (1) a Sábado (5). 0=Lunes, 6=Domingo
+
 
 class TurnoError(Exception):
     """Excepción base del módulo de turnos."""
@@ -30,6 +35,18 @@ class SolapamientoError(TurnoError):
 
 class TurnoService:
     """Servicio de dominio para la agenda de turnos."""
+
+    # ── Horario de atención ──
+
+    @staticmethod
+    def validar_fin_dentro_del_horario(hora: time, duracion_minutos: int) -> None:
+        """El turno debe terminar, como máximo, a la hora de cierre del salón."""
+        fin = datetime.combine(date.min, hora) + timedelta(minutes=duracion_minutos)
+        if fin > datetime.combine(date.min, HORA_CIERRE):
+            raise TurnoInvalidoError(
+                f"El turno terminaría a las {fin.strftime('%H:%M')}, después del horario de cierre "
+                f"({HORA_CIERRE.strftime('%H:%M')}). Elegí un horario más temprano o reducí la duración."
+            )
 
     # ── Solapamiento de horarios ──
 
@@ -93,6 +110,7 @@ class TurnoService:
         duracion = duracion_minutos or servicio.duracion_estimada_minutos
         if duracion <= 0:
             raise TurnoInvalidoError("La duración del turno debe ser mayor a cero.")
+        cls.validar_fin_dentro_del_horario(hora, duracion)
 
         if cls.hay_solapamiento(profesional, fecha, hora, duracion):
             raise SolapamientoError(
@@ -137,6 +155,10 @@ class TurnoService:
         nueva_hora = hora or turno.hora
         nueva_duracion = duracion_minutos or turno.duracion_minutos
         nuevo_profesional = turno.profesional if profesional == "__sin_cambios__" else profesional
+
+        # Solo se exige si cambia el horario: un turno viejo se puede seguir editando (notas, etc.).
+        if nueva_hora != turno.hora or nueva_duracion != turno.duracion_minutos:
+            cls.validar_fin_dentro_del_horario(nueva_hora, nueva_duracion)
 
         if cls.hay_solapamiento(nuevo_profesional, nueva_fecha, nueva_hora, nueva_duracion, excluir_pk=turno.pk):
             raise SolapamientoError(
@@ -230,6 +252,8 @@ class TurnoService:
         """
         if turno.estado == Turno.Estado.CANCELADO:
             raise TurnoInvalidoError("No se puede completar un turno cancelado.")
+        if turno.estado == Turno.Estado.COMPLETADO:
+            raise TurnoInvalidoError("El turno ya fue completado; su atención ya está registrada.")
         turno.servicio_realizado = servicio_realizado
         turno.estado = Turno.Estado.COMPLETADO
         turno.save(update_fields=["servicio_realizado", "estado"])

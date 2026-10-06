@@ -17,6 +17,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.usuarios.models import Usuario
+from apps.utilidades import entero_o_none
 from .forms import TurnoForm
 from .models import Turno
 from .services import TurnoError, TurnoService
@@ -103,7 +104,7 @@ def crear_turno_view(request):
                 form.add_error(None, str(exc))
     else:
         initial: dict[str, Any] = {"fecha": _parsear_fecha(request.GET.get("fecha")), "hora": "09:00"}
-        cliente_id = request.GET.get("cliente")
+        cliente_id = entero_o_none(request.GET.get("cliente"))
         if cliente_id:
             from apps.clientes.models import Cliente
 
@@ -207,12 +208,19 @@ def asignar_profesional_view(request, pk: int):
     turno = get_object_or_404(Turno, pk=pk)
     if request.method == "POST":
         profesional_id = request.POST.get("profesional")
-        profesional = Usuario.objects.filter(pk=profesional_id, is_active=True).first() if profesional_id else None
-        try:
-            TurnoService.asignar_profesional(turno, profesional)
-            messages.success(request, "Turno reasignado correctamente.")
-        except TurnoError as exc:
-            messages.error(request, str(exc))
+        profesional = None
+        if profesional_id:  # vacío = dejar el turno sin peluquera
+            profesional = Usuario.objects.filter(
+                pk=entero_o_none(profesional_id), is_active=True
+            ).first()
+        if profesional_id and profesional is None:
+            messages.error(request, "La peluquera elegida no es válida. El turno no se modificó.")
+        else:
+            try:
+                TurnoService.asignar_profesional(turno, profesional)
+                messages.success(request, "Turno reasignado correctamente.")
+            except TurnoError as exc:
+                messages.error(request, str(exc))
     return redirect(f"{reverse('turnos:agenda')}?vista={request.POST.get('vista', 'dia')}&fecha={request.POST.get('fecha', turno.fecha.isoformat())}")
 
 

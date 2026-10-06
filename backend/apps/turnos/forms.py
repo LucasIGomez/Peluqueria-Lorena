@@ -3,8 +3,6 @@ Peluquería Lorena — Formularios del módulo de Turnos (Agenda).
 """
 from __future__ import annotations
 
-from datetime import time
-
 from django import forms
 from django.utils import timezone
 
@@ -12,11 +10,7 @@ from apps.clientes.models import Cliente
 from apps.servicios.models import Servicio
 from apps.usuarios.models import Usuario
 from .models import Turno
-from .services import TurnoService
-
-HORA_APERTURA = time(9, 0)
-HORA_CIERRE = time(19, 0)
-DIAS_HABILITADOS = {1, 2, 3, 4, 5}  # Martes (1) a Sábado (5). 0=Lunes, 6=Domingo
+from .services import DIAS_HABILITADOS, HORA_APERTURA, HORA_CIERRE, TurnoService
 
 
 class TurnoForm(forms.ModelForm):

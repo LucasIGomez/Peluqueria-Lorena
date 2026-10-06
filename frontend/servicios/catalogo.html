@@ -22,9 +22,14 @@
 
         <div class="d-flex gap-2">
             {% if request.user.is_authenticated and request.user.es_administradora %}
-                <a href="{% url 'servicios:catalogo' %}?cargar_inicial=1" class="btn btn-sm btn-outline-warning" title="Recargar lista de precios oficial">
-                    <i class="bi bi-arrow-repeat me-1"></i> Sincronizar Tarifario
-                </a>
+                <form method="POST" action="{% url 'servicios:catalogo' %}" class="d-inline"
+                      data-confirmar="Esto restablece el precio, la duración y el estado de los servicios de la lista oficial a sus valores iniciales: los cambios que hayas hecho en ellos se pierden y los dados de baja vuelven a activarse. ¿Continuar?">
+                    {% csrf_token %}
+                    <input type="hidden" name="cargar_inicial" value="1">
+                    <button type="submit" class="btn btn-sm btn-outline-warning" title="Recargar lista de precios oficial">
+                        <i class="bi bi-arrow-repeat me-1"></i> Sincronizar Tarifario
+                    </button>
+                </form>
                 <a href="{% url 'servicios:crear_servicio' %}" class="btn btn-sm btn-accent text-dark fw-bold">
                     <i class="bi bi-plus-lg me-1"></i> Nuevo Servicio
                 </a>
