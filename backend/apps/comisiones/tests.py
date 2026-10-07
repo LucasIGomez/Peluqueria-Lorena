@@ -28,7 +28,7 @@ class ComisionesTestCase(TestCase):
             password="adminpassword123",
             nombre="Lorena Administradora",
             dni="11111111",
-            rol=Usuario.Rol.ADMIN,
+            rol=Usuario.Rol.ADMINISTRADORA,
         )
         self.peluquera = Usuario.objects.create_user(
             email="peluquera@pelulorena.com",

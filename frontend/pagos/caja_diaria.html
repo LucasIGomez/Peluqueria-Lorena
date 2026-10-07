@@ -82,7 +82,7 @@
         <div class="card border-0 bg-dark p-3">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
-                    <span class="text-secondary small text-uppercase fw-bold">Descuentos (10%)</span>
+                    <span class="text-secondary small text-uppercase fw-bold">Descuentos</span>
                     <h3 class="mb-0 text-success fw-bold">-${{ resumen.total_descuentos|floatformat:2 }}</h3>
                 </div>
                 <div class="p-3 bg-success bg-opacity-25 rounded-circle text-success">
@@ -117,8 +117,8 @@
                         <td><span class="badge bg-dark border border-secondary">{{ item.cantidad }}</span></td>
                         <td class="fw-bold text-accent">${{ item.total|floatformat:2 }}</td>
                         <td>
-                            {% if item.con_descuento %}
-                            <span class="badge bg-success-subtle text-success">-10% auto</span>
+                            {% if item.descuento and item.descuento > 0 %}
+                            <span class="badge bg-success-subtle text-success">-${{ item.descuento|floatformat:2 }}{% if item.porcentaje %} ({{ item.porcentaje|floatformat:0 }}%){% endif %}</span>
                             {% else %}
                             <span class="text-secondary small">—</span>
                             {% endif %}

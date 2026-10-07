@@ -11,7 +11,7 @@ from decimal import Decimal, ROUND_HALF_UP
 from typing import Any, Dict, List, Optional, Union
 
 from django.db import transaction
-from django.db.models import Count, QuerySet, Sum
+from django.db.models import Avg, Count, QuerySet, Sum
 from django.utils import timezone
 
 from .models import CierreCaja, Cobro
@@ -410,13 +410,10 @@ class CajaService:
         dia = fecha or timezone.localdate()
         cobros = Cobro.objects.filter(fecha=dia, anulado=False)
 
-        totales: Dict[str, Decimal] = {}
-        cantidades: Dict[str, int] = {}
-        descuentos: Dict[str, Decimal] = {}
-        for codigo, _etiqueta in Cobro.MedioPago.choices:
-            totales[codigo] = Decimal("0.00")
-            cantidades[codigo] = 0
-            descuentos[codigo] = Decimal("0.00")
+        totales = {codigo: Decimal("0.00") for codigo, _ in Cobro.MedioPago.choices}
+        cantidades = {codigo: 0 for codigo, _ in Cobro.MedioPago.choices}
+        descuentos = {codigo: Decimal("0.00") for codigo, _ in Cobro.MedioPago.choices}
+        porcentajes = {codigo: Decimal("0.00") for codigo, _ in Cobro.MedioPago.choices}
 
         agregados = (
             cobros.values("medio_pago")
@@ -424,6 +421,7 @@ class CajaService:
                 cantidad_cobros=Count("id"),
                 suma_total=Sum("total"),
                 suma_descuento=Sum("monto_descuento"),
+                avg_porcentaje=Avg("porcentaje_descuento"),
             )
             .order_by("medio_pago")
         )
@@ -433,9 +431,16 @@ class CajaService:
             descuentos[fila["medio_pago"]] = _a_dos_decimales(
                 fila["suma_descuento"] or Decimal("0.00")
             )
+            if fila.get("avg_porcentaje"):
+                porcentajes[fila["medio_pago"]] = _a_dos_decimales(fila["avg_porcentaje"])
+            elif descuentos[fila["medio_pago"]] > 0 and (totales[fila["medio_pago"]] + descuentos[fila["medio_pago"]]) > 0:
+                calc = (descuentos[fila["medio_pago"]] / (totales[fila["medio_pago"]] + descuentos[fila["medio_pago"]])) * Decimal("100")
+                porcentajes[fila["medio_pago"]] = _a_dos_decimales(calc)
+            else:
+                porcentajes[fila["medio_pago"]] = Decimal("0.00")
 
         total_descuentos = cobros.aggregate(s=Sum("monto_descuento"))["s"] or Decimal("0.00")
-        total_general = cobros.aggregate(s=_Sum("total"))["s"] or Decimal("0.00")
+        total_general = cobros.aggregate(s=Sum("total"))["s"] or Decimal("0.00")
 
         detalle = [
             {
@@ -444,6 +449,7 @@ class CajaService:
                 "cantidad": cantidades[codigo],
                 "total": totales[codigo],
                 "descuento": descuentos[codigo],
+                "porcentaje": porcentajes[codigo],
                 "con_descuento": codigo in cls.MEDIOS_CON_DESCUENTO,
             }
             for codigo, etiqueta in Cobro.MedioPago.choices

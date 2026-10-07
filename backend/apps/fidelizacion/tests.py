@@ -35,7 +35,7 @@ class FidelizacionTestCase(TestCase):
             password="pass",
             nombre="Lorena Admin",
             dni="33333333",
-            rol=Usuario.Rol.ADMIN,
+            rol=Usuario.Rol.ADMINISTRADORA,
         )
         self.peluquera = Usuario.objects.create_user(
             email="peluquera.fiel@pelulorena.com",
