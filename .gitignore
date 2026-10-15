@@ -9,6 +9,7 @@ local_settings.py
 db.sqlite3
 db.sqlite3-journal
 media/
+staticfiles/
 
 # Entornos Virtuales
 venv/
@@ -42,3 +43,6 @@ plantilla_factura.docx
 AGENTS.md
 AGENTS.md
 skills-lock.json
+AGENTS.md
+AGENTS.md
+AGENTS.md

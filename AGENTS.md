@@ -11,15 +11,34 @@
 - **Archivos ignorados:** Respetar estrictamente `.gitignore` (`.venv*/`, `__pycache__/`, `db.sqlite3`, `*.pyc`, temporales).
 
 ## Ordenador de Hosteo y Seguridad de Infraestructura
-- **Ubicación del Host:** El proyecto reside físicamente en una computadora marca Lenovo YOGA con sistema operativo **Linux Mint**.
-- **Acceso Remoto:** Es accedida desde esta computadora cliente (**Windows 11**) a través de una unidad de red montada (`Z:`) conectada mediante una IP privada de **Tailscale (`100.82.23.52`)**.
-- **Servicio Systemd de Backend:** `backend.pelulorena.service` en Linux Mint (ejecuta `/home/fabrizio/ProyectosWeb/PeluLorena/peluqueria_lorena/backend/venv/bin/python manage.py runserver`).
-  - Reinicio tras cambios estructurales o migraciones: `sudo systemctl restart backend.pelulorena.service`
-  - Estado del servicio: `systemctl status backend.pelulorena.service`
+- **Entorno Local (Desarrollo / Hosteo Actual):** Computadora Lenovo YOGA con **Linux Mint**.
+  - Acceso Remoto: Conectada a Windows 11 vía Tailscale IP `100.82.23.52` (unidad `Z:` SMB).
+  - Servicio Backend: `systemctl restart backend.pelulorena.service`.
+  - Ruta local: `/home/fabrizio/ProyectosWeb/PeluLorena/peluqueria_lorena/backend`.
+- **Servidor de Producción / VPS (Hostinger KVM 1):**
+  - Proveedor: Hostinger (cuenta de Ludmila, vencimiento 2028-10-09).
+  - Ubicación: Brazil - Campinas.
+  - SO: Ubuntu 24.04 LTS.
+  - Specs: 1 vCPU, 4 GB RAM, 50 GB NVMe, 4 TB ancho de banda.
+  - Hostname: `srv2049787.hstgr.cloud`
+  - IPv4 Pública: `179.199.155.141`
+  - Tailscale IP: `100.116.140.71`
+  - Dominio Público: `peluquerialorena.cloud` y `www.peluquerialorena.cloud` (HTTPS / Certbot SSL).
+  - Usuario SSH: `root` (acceso directo restringido vía UFW a `tailscale0`).
+  - Red Tailscale: Administrada por Fabrizio. Miembros del equipo acceden vía `100.116.140.71`.
+  - Rutas clave en VPS:
+    - Raíz del código: `/var/www/peluqueria_lorena`
+    - Entorno virtual: `/var/www/peluqueria_lorena/backend/venv`
+    - Archivos estáticos: `/var/www/peluqueria_lorena/backend/staticfiles`
+    - Base de datos: `/var/www/peluqueria_lorena/backend/db.sqlite3`
+  - Servicios y comandos de producción:
+    - Backend (Gunicorn): `systemctl restart peluqueria.service` (logs: `journalctl -u peluqueria -f`).
+    - Web Server (Nginx): `systemctl reload nginx` (conf: `/etc/nginx/sites-available/peluquerialorena`).
+    - Permisos del proyecto: `chown -R :devteampelulorena /var/www/peluqueria_lorena && chmod -R 775 /var/www/peluqueria_lorena`.
+    - Samba: Recurso compartido `[PeluLorena]` en `/var/www` montado como unidad `Z:` (restringido a `tailscale0`).
 - **Restricciones de Comandos:**
-  - Está **estrictamente prohibido** ejecutar cualquier comando que pueda apagar, suspender, reiniciar, hibernar o alterar la conectividad de red de la computadora de hosteo (`shutdown`, `reboot`, `systemctl stop tailscaled`, etc.).
-  - No se debe ejecutar ningún comando que impacte a nivel del sistema operativo en la computadora cliente que emite los prompts (Windows 11).
-  - Cualquier comando de consola debe limitarse pura y exclusivamente al entorno del proyecto (`backend/` o scripts de desarrollo locales).
+  - Prohibido apagar, suspender o reiniciar la Lenovo YOGA (`shutdown`, `reboot`, etc.).
+  - No ejecutar comandos que impacten al OS cliente de Windows 11.
 
 ## Stack Técnico y Arquitectura
 - **Backend:** Python (3.11/3.12+) con **Django 5.1** y **Django REST Framework (DRF 3.15+)**.

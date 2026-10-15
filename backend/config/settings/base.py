@@ -184,6 +184,7 @@ LOCALE_PATHS: List[Path] = [
 # ARCHIVOS ESTÁTICOS
 # ──────────────────────────────────────────────
 STATIC_URL: str = "static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # ──────────────────────────────────────────────
 # CAMPO AUTOINCREMENTAL POR DEFECTO
