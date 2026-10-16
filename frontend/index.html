@@ -1,239 +1,449 @@
 {% extends 'base.html' %}
 
+{% block title %}Dashboard — Peluquería Lorena{% endblock %}
+
 {% block content %}
-<div class="row g-4 mb-4">
-    <!-- Servicios -->
+<!-- Encabezado de Bienvenida y Fecha -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
+    <div>
+        <h2 class="fw-bold mb-1 text-light">
+            ¡Hola, {{ request.user.nombre }}! 👋
+        </h2>
+        <p class="text-secondary mb-0">
+            <i class="bi bi-calendar3 me-1 text-accent"></i>
+            {{ hoy|date:"l, d \d\e F \d\e Y"|capfirst }} &bull; Panel de Control del Salón
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="{% url 'turnos:crear_turno' %}" class="btn btn-accent text-dark fw-bold">
+            <i class="bi bi-calendar-plus me-1"></i> + Agendar Turno
+        </a>
+        <a href="{% url 'servicios:registrar_servicio_realizado' %}" class="btn btn-outline-light">
+            <i class="bi bi-scissors me-1"></i> + Atender
+        </a>
+        <a href="{% url 'pagos:caja_diaria' %}" class="btn btn-outline-warning">
+            <i class="bi bi-cash-stack me-1"></i> Caja Diaria
+        </a>
+    </div>
+</div>
+
+<!-- RF 2.2: Resumen de Ingresos (Día, Semana y Mes) -->
+<div class="row g-3 mb-4">
+    <!-- Ingresos del Día -->
     <div class="col-md-4">
-        <div class="card h-100 py-3">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="bg-dark rounded p-3 d-flex align-items-center justify-content-center"
-                    style="width: 50px; height: 50px;">
-                    <i class="bi bi-card-checklist fs-4 text-accent"></i>
-                </div>
+        <div class="card h-100 border-0 shadow-sm" style="background: linear-gradient(135deg, #1e222b 0%, #171a21 100%);">
+            <div class="card-body p-4 d-flex justify-content-between align-items-start">
                 <div>
-                    <h6 class="text-secondary mb-1">Servicios</h6>
-                    <h4 class="mb-0 fw-bold">Catálogo y control diario</h4>
+                    <span class="text-secondary small text-uppercase fw-semibold tracking-wide">
+                        <i class="bi bi-sun text-warning me-1"></i> Ingresos de Hoy
+                    </span>
+                    <h3 class="fw-bold text-light mt-2 mb-1">${{ ingresos_dia|floatformat:2 }}</h3>
+                    <div class="small text-secondary">
+                        <span class="badge bg-dark border border-secondary text-light me-1">{{ cobros_count_dia }}</span> cobro(s) registrado(s) hoy
+                    </div>
+                </div>
+                <div class="bg-dark rounded-circle p-3 d-flex align-items-center justify-content-center border border-warning-subtle" style="width: 52px; height: 52px;">
+                    <i class="bi bi-cash text-warning fs-4"></i>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Inventario -->
+    <!-- Ingresos de la Semana -->
     <div class="col-md-4">
-        <div class="card h-100 py-3">
-            <div class="card-body d-flex align-items-center gap-3">
-                <div class="bg-dark rounded p-3 d-flex align-items-center justify-content-center"
-                    style="width: 50px; height: 50px;">
-                    <i class="bi bi-box-seam fs-4 text-accent"></i>
-                </div>
+        <div class="card h-100 border-0 shadow-sm" style="background: linear-gradient(135deg, #1e222b 0%, #171a21 100%);">
+            <div class="card-body p-4 d-flex justify-content-between align-items-start">
                 <div>
-                    <h6 class="text-secondary mb-1">Inventario</h6>
-                    <h4 class="mb-0 fw-bold">Stock e insumos</h4>
+                    <span class="text-secondary small text-uppercase fw-semibold tracking-wide">
+                        <i class="bi bi-calendar-week text-accent me-1"></i> Ingresos Esta Semana
+                    </span>
+                    <h3 class="fw-bold text-light mt-2 mb-1">${{ ingresos_semana|floatformat:2 }}</h3>
+                    <div class="small text-secondary">
+                        Desde el lunes {{ inicio_semana|date:"d/m" }}
+                    </div>
+                </div>
+                <div class="bg-dark rounded-circle p-3 d-flex align-items-center justify-content-center border border-secondary" style="width: 52px; height: 52px;">
+                    <i class="bi bi-graph-up-arrow text-accent fs-4"></i>
                 </div>
             </div>
         </div>
     </div>
 
-    {% if request.user.is_authenticated and request.user.es_administradora %}
-        <!-- Gestión (Solo Admin) -->
-        <div class="col-md-4">
-            <div class="card h-100 py-3 border-warning-subtle">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <div class="bg-dark rounded p-3 d-flex align-items-center justify-content-center"
-                        style="width: 50px; height: 50px;">
-                        <i class="bi bi-people fs-4 text-warning"></i>
+    <!-- Ingresos del Mes -->
+    <div class="col-md-4">
+        <div class="card h-100 border-0 shadow-sm" style="background: linear-gradient(135deg, #1e222b 0%, #171a21 100%);">
+            <div class="card-body p-4 d-flex justify-content-between align-items-start">
+                <div>
+                    <span class="text-secondary small text-uppercase fw-semibold tracking-wide">
+                        <i class="bi bi-calendar-month text-info me-1"></i> Ingresos en {{ hoy|date:"F"|capfirst }}
+                    </span>
+                    <h3 class="fw-bold text-light mt-2 mb-1">${{ ingresos_mes|floatformat:2 }}</h3>
+                    <div class="small text-secondary">
+                        Acumulado mensual
                     </div>
-                    <div>
-                        <h6 class="text-secondary mb-1">Gestión</h6>
-                        <h4 class="mb-0 fw-bold text-warning">Usuarios y proveedores</h4>
-                    </div>
+                </div>
+                <div class="bg-dark rounded-circle p-3 d-flex align-items-center justify-content-center border border-info-subtle" style="width: 52px; height: 52px;">
+                    <i class="bi bi-pie-chart text-info fs-4"></i>
                 </div>
             </div>
         </div>
-    {% else %}
-        <!-- Estado (Empleada) -->
-        <div class="col-md-4">
-            <div class="card h-100 py-3">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <div class="bg-dark rounded p-3 d-flex align-items-center justify-content-center"
-                        style="width: 50px; height: 50px;">
-                        <i class="bi bi-check2-circle fs-4 text-success"></i>
-                    </div>
-                    <div>
-                        <h6 class="text-secondary mb-1">Estado</h6>
-                        <h4 class="mb-0 fw-bold text-success">En línea</h4>
-                    </div>
-                </div>
-            </div>
-        </div>
-    {% endif %}
+    </div>
 </div>
 
 <div class="row g-4">
-    <!-- Control Diario y Clientas -->
-    <div class="col-md-8">
-        <div class="card h-100">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0"><i class="bi bi-scissors me-2 text-accent"></i> Operaciones del Salón</h5>
-                <span class="badge bg-success-subtle text-success">Módulos Activos</span>
+    <!-- Columna Principal Izquierda (8 columnas) -->
+    <div class="col-lg-8">
+        <!-- RF 2.1: Turnos del Día -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center py-3 bg-dark border-secondary">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-calendar-check fs-5 text-accent"></i>
+                    <h5 class="mb-0 text-light fw-bold">Turnos del Día</h5>
+                    <span class="badge bg-secondary ms-1">{{ turnos_hoy_total }}</span>
+                </div>
+                <div class="d-flex gap-2 align-items-center">
+                    <span class="badge bg-success-subtle text-success border border-success-subtle d-none d-sm-inline">
+                        {{ turnos_hoy_completados_count }} completado(s)
+                    </span>
+                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle d-none d-sm-inline">
+                        {{ turnos_hoy_pendientes_count }} pendiente(s)
+                    </span>
+                    <a href="{% url 'turnos:agenda' %}" class="btn btn-sm btn-outline-secondary">
+                        Ver Agenda <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
             </div>
-            <div class="card-body p-4">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="p-3 bg-dark rounded border border-secondary h-100 d-flex flex-column justify-content-between">
-                            <div>
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="badge bg-accent text-dark fw-bold">Reservas</span>
-                                    <i class="bi bi-calendar-event text-accent fs-4"></i>
-                                </div>
-                                <h5 class="text-light fw-bold mb-1">Agenda y Turnos</h5>
-                                <p class="text-secondary small mb-3">Reservá horarios, asigná peluquera y hacé seguimiento de los turnos del día.</p>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <a href="{% url 'turnos:agenda' %}" class="btn btn-sm btn-accent text-dark fw-bold">Ver Agenda</a>
-                                <a href="{% url 'turnos:crear_turno' %}" class="btn btn-sm btn-outline-secondary">+ Turno</a>
-                            </div>
-                        </div>
+            <div class="card-body p-0">
+                {% if turnos_hoy %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover mb-0 align-middle">
+                            <thead class="table-secondary text-secondary small">
+                                <tr>
+                                    <th class="ps-4">Hora</th>
+                                    <th>Clienta</th>
+                                    <th>Servicio Solicitado</th>
+                                    <th>Peluquera</th>
+                                    <th>Estado</th>
+                                    <th class="text-end pe-4">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for turno in turnos_hoy %}
+                                    <tr>
+                                        <td class="ps-4">
+                                            <span class="badge bg-dark border border-secondary text-accent font-monospace fs-6">
+                                                {{ turno.hora|time:"H:i" }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold text-light">{{ turno.cliente_nombre }}</div>
+                                            {% if turno.cliente_telefono %}
+                                                <small class="text-secondary">{{ turno.cliente_telefono }}</small>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="text-light">{{ turno.servicio.nombre }}</span>
+                                            <div class="small text-secondary">{{ turno.duracion_minutos }} min</div>
+                                        </td>
+                                        <td>
+                                            {% if turno.profesional %}
+                                                <span class="badge bg-dark border border-secondary text-light">
+                                                    <i class="bi bi-person me-1"></i>{{ turno.profesional.nombre }}
+                                                </span>
+                                            {% else %}
+                                                <span class="text-secondary small fst-italic">Sin asignar</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if turno.estado == "COMPLETADO" %}
+                                                <span class="badge bg-success">Completado</span>
+                                            {% elif turno.estado == "CONFIRMADO" %}
+                                                <span class="badge bg-info text-dark">Confirmado</span>
+                                            {% elif turno.estado == "PENDIENTE" %}
+                                                <span class="badge bg-warning text-dark">Pendiente</span>
+                                            {% elif turno.estado == "AUSENTE" %}
+                                                <span class="badge bg-secondary">Ausente</span>
+                                            {% elif turno.estado == "CANCELADO" %}
+                                                <span class="badge bg-danger">Cancelado</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ turno.get_estado_display }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            <a href="{% url 'turnos:agenda' %}?fecha={{ hoy|date:'Y-m-d' }}" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Ver en agenda">
+                                                <i class="bi bi-box-arrow-up-right"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="col-md-6">
-                        <div class="p-3 bg-dark rounded border border-secondary h-100 d-flex flex-column justify-content-between">
-                            <div>
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="badge bg-warning text-dark fw-bold">Bitácora en Vivo</span>
-                                    <i class="bi bi-calendar-check text-accent fs-4"></i>
-                                </div>
-                                <h5 class="text-light fw-bold mb-1">Control Diario</h5>
-                                <p class="text-secondary small mb-3">Lleve el registro horario de atenciones con precios y plazos adaptados a cada clienta.</p>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <a href="{% url 'servicios:control_diario' %}" class="btn btn-sm btn-accent text-dark fw-bold">Ver Control Diario</a>
-                                <a href="{% url 'servicios:registrar_servicio_realizado' %}" class="btn btn-sm btn-outline-secondary">+ Atender</a>
-                            </div>
-                        </div>
+                {% else %}
+                    <div class="text-center py-5 text-secondary">
+                        <i class="bi bi-calendar-x fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                        <p class="mb-2">No hay turnos agendados para el día de hoy.</p>
+                        <a href="{% url 'turnos:crear_turno' %}" class="btn btn-sm btn-accent text-dark fw-bold">
+                            <i class="bi bi-plus-circle me-1"></i> Agendar Primer Turno
+                        </a>
                     </div>
-                    <div class="col-md-6">
-                        <div class="p-3 bg-dark rounded border border-secondary h-100 d-flex flex-column justify-content-between">
-                            <div>
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="badge bg-info text-dark fw-bold">Fidelización</span>
-                                    <i class="bi bi-people-fill text-info fs-4"></i>
-                                </div>
-                                <h5 class="text-light fw-bold mb-1">Fichas de Clientas</h5>
-                                <p class="text-secondary small mb-3">Historial técnico de procesos multisesión, consentimientos y alertas de cumpleaños.</p>
-                            </div>
-                            <div class="d-flex gap-2">
-                                <a href="{% url 'clientes:lista_clientes' %}" class="btn btn-sm btn-info text-dark fw-bold">Ver Clientas</a>
-                                <a href="{% url 'clientes:crear_cliente' %}" class="btn btn-sm btn-outline-secondary">+ Nueva</a>
-                            </div>
-                        </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- RF 2.4: Próximos Turnos (Más allá del día en curso) -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center py-3 bg-dark border-secondary">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-calendar-range fs-5 text-info"></i>
+                    <h5 class="mb-0 text-light fw-bold">Próximos Turnos Agendados</h5>
+                    <span class="badge bg-secondary ms-1">{{ proximos_turnos_total }}</span>
+                </div>
+                <a href="{% url 'turnos:agenda' %}" class="btn btn-sm btn-outline-secondary">
+                    Ver Todos <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+            <div class="card-body p-0">
+                {% if proximos_turnos %}
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover mb-0 align-middle">
+                            <thead class="table-secondary text-secondary small">
+                                <tr>
+                                    <th class="ps-4">Fecha y Hora</th>
+                                    <th>Clienta</th>
+                                    <th>Servicio</th>
+                                    <th>Peluquera</th>
+                                    <th class="text-end pe-4">Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for turno in proximos_turnos %}
+                                    <tr>
+                                        <td class="ps-4">
+                                            <div class="text-light fw-bold">{{ turno.fecha|date:"D d \d\e M"|capfirst }}</div>
+                                            <span class="small text-accent font-monospace">{{ turno.hora|time:"H:i" }} hs</span>
+                                        </td>
+                                        <td>
+                                            <span class="text-light fw-semibold">{{ turno.cliente_nombre }}</span>
+                                        </td>
+                                        <td>
+                                            <span class="text-secondary">{{ turno.servicio.nombre }}</span>
+                                        </td>
+                                        <td>
+                                            {% if turno.profesional %}
+                                                <small class="text-secondary">{{ turno.profesional.nombre }}</small>
+                                            {% else %}
+                                                <small class="text-secondary fst-italic">Por asignar</small>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end pe-4">
+                                            {% if turno.estado == "CONFIRMADO" %}
+                                                <span class="badge bg-info text-dark">Confirmado</span>
+                                            {% elif turno.estado == "PENDIENTE" %}
+                                                <span class="badge bg-warning text-dark">Pendiente</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ turno.get_estado_display }}</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
                     </div>
-                    <div class="col-md-6">
-                        <div class="p-3 bg-dark rounded border border-secondary h-100 d-flex flex-column justify-content-between">
-                            <div>
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="badge bg-danger text-light fw-bold">Legal y Técnico</span>
-                                    <i class="bi bi-shield-check text-warning fs-4"></i>
-                                </div>
-                                <h5 class="text-light fw-bold mb-1">Consentimiento Informado</h5>
-                                <p class="text-secondary small mb-3">Fichas de resguardo legal para decoloraciones y alisados con prueba de mecha.</p>
-                            </div>
-                            <div>
-                                <a href="{% url 'servicios:crear_consentimiento' %}" class="btn btn-sm btn-warning text-dark fw-bold">Emitir Consentimiento</a>
-                            </div>
-                        </div>
+                {% else %}
+                    <div class="text-center py-4 text-secondary">
+                        <i class="bi bi-calendar2-check fs-2 d-block mb-1 text-secondary opacity-50"></i>
+                        <small>No hay turnos agendados para los próximos días.</small>
                     </div>
-                    <div class="col-md-6">
-                        <div class="p-3 bg-dark rounded border border-secondary h-100 d-flex flex-column justify-content-between">
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Accesos Rápidos Operativos del Salón -->
+        <div class="card shadow-sm border-0">
+            <div class="card-header py-3 bg-dark border-secondary">
+                <h6 class="mb-0 text-light fw-bold"><i class="bi bi-grid-fill me-2 text-accent"></i> Accesos Directos a Módulos</h6>
+            </div>
+            <div class="card-body p-3">
+                <div class="row g-2">
+                    <div class="col-sm-6 col-md-4">
+                        <a href="{% url 'servicios:control_diario' %}" class="btn btn-dark w-100 text-start p-2 border border-secondary d-flex align-items-center gap-2">
+                            <i class="bi bi-calendar-check text-warning fs-5"></i>
                             <div>
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <span class="badge bg-warning text-dark fw-bold">Cierre Diario</span>
-                                    <i class="bi bi-box-arrow-down text-warning fs-4"></i>
-                                </div>
-                                <h5 class="text-light fw-bold mb-1">Cierre de Insumos</h5>
-                                <p class="text-secondary small mb-3">Computa las clientas por servicio y descuenta automáticamente los insumos de inventario.</p>
+                                <div class="text-light small fw-bold">Control Diario</div>
+                                <div class="text-secondary" style="font-size: 0.75rem;">Atenciones en vivo</div>
                             </div>
-                            <div>
-                                <a href="{% url 'servicios:cierre_diario' %}" class="btn btn-sm btn-outline-warning">Ir al Cierre de Caja</a>
-                            </div>
-                        </div>
+                        </a>
                     </div>
+                    <div class="col-sm-6 col-md-4">
+                        <a href="{% url 'clientes:lista_clientes' %}" class="btn btn-dark w-100 text-start p-2 border border-secondary d-flex align-items-center gap-2">
+                            <i class="bi bi-people-fill text-info fs-5"></i>
+                            <div>
+                                <div class="text-light small fw-bold">Fichas de Clientas</div>
+                                <div class="text-secondary" style="font-size: 0.75rem;">Historial capilar</div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-sm-6 col-md-4">
+                        <a href="/inventario/productos/" class="btn btn-dark w-100 text-start p-2 border border-secondary d-flex align-items-center gap-2">
+                            <i class="bi bi-box-seam text-accent fs-5"></i>
+                            <div>
+                                <div class="text-light small fw-bold">Catálogo Insumos</div>
+                                <div class="text-secondary" style="font-size: 0.75rem;">Stock y precios</div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-sm-6 col-md-4">
+                        <a href="{% url 'servicios:cierre_diario' %}" class="btn btn-dark w-100 text-start p-2 border border-secondary d-flex align-items-center gap-2">
+                            <i class="bi bi-box-arrow-down text-warning fs-5"></i>
+                            <div>
+                                <div class="text-light small fw-bold">Cierre de Insumos</div>
+                                <div class="text-secondary" style="font-size: 0.75rem;">Descuento automático</div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-sm-6 col-md-4">
+                        <a href="{% url 'servicios:crear_consentimiento' %}" class="btn btn-dark w-100 text-start p-2 border border-secondary d-flex align-items-center gap-2">
+                            <i class="bi bi-shield-check text-success fs-5"></i>
+                            <div>
+                                <div class="text-light small fw-bold">Consentimiento</div>
+                                <div class="text-secondary" style="font-size: 0.75rem;">Resguardo legal</div>
+                            </div>
+                        </a>
+                    </div>
+                    {% if request.user.is_authenticated and request.user.es_administradora %}
+                        <div class="col-sm-6 col-md-4">
+                            <a href="/usuarios/gestion/" class="btn btn-dark w-100 text-start p-2 border border-warning-subtle d-flex align-items-center gap-2">
+                                <i class="bi bi-person-gear text-warning fs-5"></i>
+                                <div>
+                                    <div class="text-warning small fw-bold">Gestión Usuarios</div>
+                                    <div class="text-secondary" style="font-size: 0.75rem;">Roles y accesos</div>
+                                </div>
+                            </a>
+                        </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Accesos Rápidos según Rol -->
-    <div class="col-md-4">
-        <div class="card h-100">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="bi bi-lightning-charge me-1 text-accent"></i> Accesos Rápidos</h5>
+    <!-- Columna Lateral Derecha (4 columnas) -->
+    <div class="col-lg-4">
+        <!-- RF 2.3: Alertas de Stock Mínimo -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center py-3 bg-dark border-secondary">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
+                    <h6 class="mb-0 text-light fw-bold">Alertas de Stock</h6>
+                </div>
+                {% if total_alertas_stock > 0 %}
+                    <span class="badge bg-danger">{{ total_alertas_stock }} crítico(s)</span>
+                {% else %}
+                    <span class="badge bg-success-subtle text-success border border-success-subtle">Óptimo</span>
+                {% endif %}
             </div>
-            <div class="card-body d-flex flex-column gap-3">
-                <a href="{% url 'clientes:lista_clientes' %}"
-                    class="btn btn-dark text-start p-3 d-flex align-items-center gap-3 border border-info-subtle"
-                    style="border-color: #3c4149 !important;">
-                    <i class="bi bi-people-fill fs-4 text-info"></i>
-                    <div>
-                        <h6 class="mb-0 text-info">Fichas de Clientas</h6>
-                        <small class="text-secondary">Fichas técnicas, WhatsApp y cumpleaños</small>
+            <div class="card-body p-3">
+                {% if productos_bajo_stock %}
+                    <div class="d-flex flex-column gap-2 mb-3">
+                        {% for producto in productos_bajo_stock %}
+                            <div class="p-2 rounded bg-dark border {% if producto.stock_actual <= 0 %}border-danger{% else %}border-warning-subtle{% endif %} d-flex justify-content-between align-items-center">
+                                <div class="me-2">
+                                    <div class="text-light fw-semibold small text-truncate" style="max-width: 170px;" title="{{ producto.nombre }}">
+                                        {{ producto.nombre }}
+                                    </div>
+                                    <small class="text-secondary">
+                                        Mínimo: {{ producto.stock_minimo }} {{ producto.unidad_abreviatura }}
+                                    </small>
+                                </div>
+                                <div class="text-end">
+                                    {% if producto.stock_actual <= 0 %}
+                                        <span class="badge bg-danger">Sin stock</span>
+                                    {% else %}
+                                        <span class="badge bg-warning text-dark">{{ producto.stock_actual }} {{ producto.unidad_abreviatura }}</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
                     </div>
-                </a>
-
-                <a href="/inventario/productos/"
-                    class="btn btn-dark text-start p-3 d-flex align-items-center gap-3 border"
-                    style="border-color: #3c4149 !important;">
-                    <i class="bi bi-box-seam fs-4 text-accent"></i>
-                    <div>
-                        <h6 class="mb-0">Catálogo de Insumos</h6>
-                        <small class="text-secondary">Consultar stock y precios</small>
+                    <div class="d-flex gap-2">
+                        <a href="/inventario/reponer-stock/" class="btn btn-sm btn-warning text-dark fw-bold w-100">
+                            <i class="bi bi-plus-circle me-1"></i> Reponer Stock
+                        </a>
+                        <a href="/inventario/productos/?bajo_stock=1" class="btn btn-sm btn-outline-secondary">
+                            Ver Todos
+                        </a>
                     </div>
-                </a>
-
-                <a href="/inventario/descontar-stock/"
-                    class="btn btn-dark text-start p-3 d-flex align-items-center gap-3 border"
-                    style="border-color: #3c4149 !important;">
-                    <i class="bi bi-scissors fs-4 text-warning"></i>
-                    <div>
-                        <h6 class="mb-0">Descontar Insumos</h6>
-                        <small class="text-secondary">Registrar consumo por servicio</small>
+                {% else %}
+                    <div class="text-center py-3 text-secondary">
+                        <i class="bi bi-check2-circle text-success fs-1 d-block mb-1"></i>
+                        <div class="text-light fw-semibold small">Stock en niveles óptimos</div>
+                        <small class="text-secondary">Ningún producto está por debajo del mínimo.</small>
                     </div>
-                </a>
+                {% endif %}
+            </div>
+        </div>
 
-                <a href="/inventario/reponer-stock/"
-                    class="btn btn-dark text-start p-3 d-flex align-items-center gap-3 border"
-                    style="border-color: #3c4149 !important;">
-                    <i class="bi bi-plus-circle fs-4 text-success"></i>
-                    <div>
-                        <h6 class="mb-0">Agregar / Reponer Stock</h6>
-                        <small class="text-secondary">Ingreso de mercadería al salón</small>
-                    </div>
-                </a>
-
-                {% if request.user.is_authenticated and request.user.es_administradora %}
-                    <a href="/usuarios/gestion/" class="btn btn-dark text-start p-3 d-flex align-items-center gap-3 border border-warning-subtle">
-                        <i class="bi bi-people-fill fs-4 text-warning"></i>
-                        <div>
-                            <h6 class="mb-0 text-warning">Gestión de Usuarios</h6>
-                            <small class="text-secondary">Personal, roles y permisos</small>
+        <!-- RF 2.5: Cumpleaños del Mes -->
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center py-3 bg-dark border-secondary">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-gift-fill text-accent fs-5"></i>
+                    <h6 class="mb-0 text-light fw-bold">Cumpleaños de {{ hoy|date:"F"|capfirst }}</h6>
+                </div>
+                <span class="badge bg-secondary">{{ total_cumpleaneras_mes }}</span>
+            </div>
+            <div class="card-body p-3">
+                {% if cumpleaneras_hoy %}
+                    <!-- Destacado Cumpleaños de Hoy -->
+                    <div class="p-3 mb-3 rounded border border-warning" style="background: rgba(229, 193, 88, 0.1);">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="fs-4">🎂</span>
+                            <div>
+                                <span class="badge bg-warning text-dark fw-bold">¡CUMPLEAÑOS HOY!</span>
+                            </div>
                         </div>
-                    </a>
+                        {% for c in cumpleaneras_hoy %}
+                            <div class="d-flex justify-content-between align-items-center mt-2">
+                                <div>
+                                    <div class="text-light fw-bold">{{ c.nombre }}</div>
+                                    <small class="text-secondary">{{ c.telefono }}</small>
+                                </div>
+                                <a href="{{ c.link_whatsapp }}?text=¡Hola%20{{ c.nombre|urlencode }}!%20Desde%20Peluquer%C3%ADa%20Lorena%20te%20deseamos%20un%20muy%20feliz%20cumplea%C3%B1os%20%F0%9F%8E%89%E2%9C%A8" 
+                                   target="_blank" class="btn btn-sm btn-success" title="Enviar felicitación por WhatsApp">
+                                    <i class="bi bi-whatsapp me-1"></i> Saludar
+                                </a>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
 
-                    <a href="/proveedores/" class="btn btn-dark text-start p-3 d-flex align-items-center gap-3 border"
-                        style="border-color: #3c4149 !important;">
-                        <i class="bi bi-truck fs-4 text-accent"></i>
-                        <div>
-                            <h6 class="mb-0">Proveedores</h6>
-                            <small class="text-secondary">Contacto y pedidos a distribuidoras</small>
-                        </div>
-                    </a>
-
-                    <a href="{% url 'proveedores:generar_orden' %}" class="btn btn-dark text-start p-3 d-flex align-items-center gap-3 border border-primary-subtle">
-                        <i class="bi bi-file-earmark-plus fs-4 text-primary"></i>
-                        <div>
-                            <h6 class="mb-0 text-primary">Generar Orden de Compra</h6>
-                            <small class="text-secondary">Armar pedido a distribuidoras</small>
-                        </div>
-                    </a>
+                {% if cumpleaneras_mes %}
+                    <div class="small text-secondary mb-2 fw-semibold">Clientas que cumplen este mes:</div>
+                    <div class="d-flex flex-column gap-2" style="max-height: 240px; overflow-y: auto;">
+                        {% for c in cumpleaneras_mes %}
+                            <div class="p-2 rounded bg-dark border border-secondary d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="text-light small fw-semibold">{{ c.nombre }}</span>
+                                    {% if c.es_cumpleanos_hoy %}
+                                        <span class="badge bg-warning text-dark ms-1" style="font-size: 0.65rem;">Hoy</span>
+                                    {% endif %}
+                                </div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="badge bg-dark border border-secondary text-accent small">
+                                        {{ c.fecha_nacimiento|date:"d \d\e M" }}
+                                    </span>
+                                    <a href="{{ c.link_whatsapp }}" target="_blank" class="text-success small" title="WhatsApp">
+                                        <i class="bi bi-whatsapp"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-3 text-secondary">
+                        <i class="bi bi-balloon fs-2 d-block mb-1 text-secondary opacity-50"></i>
+                        <small>No hay cumpleaños registrados en {{ hoy|date:"F" }}.</small>
+                    </div>
                 {% endif %}
             </div>
         </div>

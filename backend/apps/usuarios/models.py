@@ -177,6 +177,25 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
         """Retorna True si el usuario es Empleada o Administradora."""
         return self.rol in (self.Rol.EMPLEADA, self.Rol.ADMINISTRADORA)
 
+    @property
+    def username(self) -> str:
+        """Compatibilidad con componentes que esperan el atributo username."""
+        return self.email
+
+    @property
+    def first_name(self) -> str:
+        """Primer nombre del usuario extraído de su campo nombre."""
+        return self.nombre.split()[0] if self.nombre else self.email
+
+    def get_full_name(self) -> str:
+        """Retorna el nombre completo del usuario."""
+        return self.nombre
+
+    def get_short_name(self) -> str:
+        """Retorna el nombre corto del usuario."""
+        return self.first_name
+
+
     # ── Métodos de autenticación ──
 
     def iniciar_sesion(self) -> dict[str, str]:
