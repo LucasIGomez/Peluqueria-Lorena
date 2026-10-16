@@ -1,12 +1,13 @@
 """
 Peluquería Lorena — Vistas del módulo de Turnos (Agenda).
 
-Vista de agenda (día / semana), alta, edición, cancelación, asignación de
+Vista de agenda (día / semana / mes), alta, edición, cancelación, asignación de
 peluquera y cambio de estado. Completar un turno redirige a Servicios para
 registrar la atención real (RF4.6), que es lo que queda vinculado al turno.
 """
 from __future__ import annotations
 
+from calendar import monthrange
 from datetime import date, timedelta
 from typing import Any
 
@@ -39,7 +40,7 @@ def _parsear_fecha(valor: str | None) -> date:
 
 @login_required
 def agenda_view(request):
-    """Tablero de agenda: vista por día o por semana."""
+    """Tablero de agenda: vista por día, por semana o por mes."""
     vista = request.GET.get("vista", "semana")
     fecha = _parsear_fecha(request.GET.get("fecha"))
 
@@ -56,6 +57,26 @@ def agenda_view(request):
         context["turnos"] = TurnoService.listar_turnos_dia(fecha)
         context["dia_anterior"] = (fecha - timedelta(days=1)).isoformat()
         context["dia_siguiente"] = (fecha + timedelta(days=1)).isoformat()
+    elif vista == "mes":
+        primero = fecha.replace(day=1)
+        ultimo = fecha.replace(day=monthrange(fecha.year, fecha.month)[1])
+        # La grilla va de lunes a domingo: incluye días de los meses vecinos para completar las semanas.
+        inicio_grilla = primero - timedelta(days=primero.weekday())
+        fin_grilla = ultimo + timedelta(days=6 - ultimo.weekday())
+        turnos_por_dia = {inicio_grilla + timedelta(days=i): [] for i in range((fin_grilla - inicio_grilla).days + 1)}
+        for turno in TurnoService.listar_turnos_rango(inicio_grilla, fin_grilla):
+            if turno.estado != Turno.Estado.CANCELADO:
+                turnos_por_dia[turno.fecha].append(turno)
+        dias = sorted(turnos_por_dia)
+        context["semanas_mes"] = [
+            [
+                {"fecha": d, "turnos": turnos_por_dia[d], "del_mes": d.month == fecha.month}
+                for d in dias[inicio : inicio + 7]
+            ]
+            for inicio in range(0, len(dias), 7)
+        ]
+        context["mes_anterior"] = (primero - timedelta(days=1)).replace(day=1).isoformat()
+        context["mes_siguiente"] = (ultimo + timedelta(days=1)).isoformat()
     else:
         inicio_semana = fecha - timedelta(days=fecha.weekday())
         dias = [inicio_semana + timedelta(days=i) for i in range(7)]

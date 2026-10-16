@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
 
+{% block page_back %}
+<a href="{% url 'turnos:agenda' %}" class="volver" data-confirmar-salida="true"><i class="bi bi-arrow-left"></i> Volver a la agenda</a>
+{% endblock %}
 {% block page_title %}{{ accion }}{% endblock %}
 {% block page_subtitle %}Reservá el horario, el servicio y (si ya se sabe) la peluquera que atiende.{% endblock %}
 
@@ -8,23 +11,23 @@
     <div class="col-lg-8">
         <div class="card shadow-sm border-0">
             <div class="card-header py-3">
-                <h5 class="mb-0 text-light"><i class="bi bi-calendar-plus me-2 text-accent"></i> Datos del Turno</h5>
+                <h2 class="h6 mb-0 fw-semibold">Datos del Turno</h2>
             </div>
             <div class="card-body p-4">
                 {% if form.non_field_errors %}
                     <div class="alert alert-danger small">{{ form.non_field_errors }}</div>
                 {% endif %}
-                <form method="POST" id="formTurno">
+                <form method="POST" id="formTurno" data-validar novalidate>
                     {% csrf_token %}
 
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label text-light">Clienta Registrada (Opcional)</label>
+                            <label for="{{ form.cliente.id_for_label }}" class="form-label text-light">Clienta Registrada (Opcional)</label>
                             {{ form.cliente }}
                             <small class="text-secondary">Seleccionar para vincular a su historial técnico.</small>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label text-light">Nombre de la Clienta <span class="text-danger">*</span></label>
+                            <label for="{{ form.cliente_nombre.id_for_label }}" class="form-label text-light">Nombre de la Clienta <span class="text-danger">*</span></label>
                             {{ form.cliente_nombre }}
                             <small id="ayudaDatosClienta" class="text-secondary d-none">Datos de la clienta registrada, no editables.</small>
                             {% if form.cliente_nombre.errors %}<div class="text-danger small mt-1">{{ form.cliente_nombre.errors }}</div>{% endif %}
@@ -33,11 +36,11 @@
 
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label text-light">Teléfono / WhatsApp</label>
+                            <label for="{{ form.cliente_telefono.id_for_label }}" class="form-label text-light">Teléfono / WhatsApp</label>
                             {{ form.cliente_telefono }}
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label text-light">Servicio <span class="text-danger">*</span></label>
+                            <label for="{{ form.servicio.id_for_label }}" class="form-label text-light">Servicio <span class="text-danger">*</span></label>
                             {{ form.servicio }}
                             {% if form.servicio.errors %}<div class="text-danger small mt-1">{{ form.servicio.errors }}</div>{% endif %}
                         </div>
@@ -45,17 +48,17 @@
 
                     <div class="row g-3 mb-3">
                         <div class="col-md-4">
-                            <label class="form-label text-light">Fecha <span class="text-danger">*</span></label>
+                            <label for="{{ form.fecha.id_for_label }}" class="form-label text-light">Fecha <span class="text-danger">*</span></label>
                             {{ form.fecha }}
                             {% if form.fecha.errors %}<div class="text-danger small mt-1">{{ form.fecha.errors }}</div>{% endif %}
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label text-light">Hora <span class="text-danger">*</span></label>
+                            <label for="{{ form.hora.id_for_label }}" class="form-label text-light">Hora <span class="text-danger">*</span></label>
                             {{ form.hora }}
                             {% if form.hora.errors %}<div class="text-danger small mt-1">{{ form.hora.errors }}</div>{% endif %}
                         </div>
                         <div class="col-md-4">
-                            <label class="form-label text-light">Duración (min)</label>
+                            <label for="{{ form.duracion_minutos.id_for_label }}" class="form-label text-light">Duración (min)</label>
                             {{ form.duracion_minutos }}
                             <small class="text-secondary">Se completa sola según el servicio.</small>
                         </div>
@@ -63,7 +66,7 @@
 
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label text-light">Peluquera Asignada (Opcional)</label>
+                            <label for="{{ form.profesional.id_for_label }}" class="form-label text-light">Peluquera Asignada (Opcional)</label>
                             {{ form.profesional }}
                             {% if form.profesional.errors %}<div class="text-danger small mt-1">{{ form.profesional.errors }}</div>{% endif %}
                             <small class="text-secondary">Puede quedar sin asignar hasta el día del turno.</small>
@@ -71,7 +74,7 @@
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label text-light">Notas</label>
+                        <label for="{{ form.notas.id_for_label }}" class="form-label text-light">Notas</label>
                         {{ form.notas }}
                     </div>
 

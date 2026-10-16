@@ -1,7 +1,7 @@
 """
 Peluquería Lorena — Tests de integración de las vistas del módulo de Turnos.
 """
-from datetime import time, timedelta
+from datetime import date, time, timedelta
 from decimal import Decimal
 
 import pytest
@@ -92,6 +92,56 @@ class TestAgendaView:
         assert "Lucia Completa" in contenido
         # El turno completado no debe ofrecerse como editable, y debe distinguirse visualmente.
         assert reverse("turnos:editar_turno", kwargs={"pk": turno.pk}) not in contenido
+
+    def test_agenda_vista_mes_muestra_turnos_y_navegacion(self, client, servicio_corte) -> None:
+        empleada = EmpleadaFactory()
+        client.force_login(empleada)
+        dia = date(2026, 10, 15)
+        TurnoService.crear_turno(cliente_nombre="Mara Mensual", servicio=servicio_corte, fecha=dia, hora=time(10, 0))
+
+        response = client.get(f"{reverse('turnos:agenda')}?vista=mes&fecha={dia.isoformat()}")
+
+        assert response.status_code == 200
+        assert "Mara Mensual" in response.content.decode("utf-8")
+        assert response.context["mes_anterior"] == "2026-09-01"
+        assert response.context["mes_siguiente"] == "2026-11-01"
+        # La grilla va de lunes a domingo, con semanas completas.
+        assert all(len(semana) == 7 for semana in response.context["semanas_mes"])
+        assert response.context["semanas_mes"][0][0]["fecha"].weekday() == 0
+
+    def test_agenda_vista_mes_cambia_de_anio_al_navegar(self, client) -> None:
+        client.force_login(EmpleadaFactory())
+
+        diciembre = client.get(f"{reverse('turnos:agenda')}?vista=mes&fecha=2026-12-10")
+        enero = client.get(f"{reverse('turnos:agenda')}?vista=mes&fecha=2027-01-10")
+
+        assert diciembre.context["mes_siguiente"] == "2027-01-01"
+        assert enero.context["mes_anterior"] == "2026-12-01"
+
+    def test_agenda_vista_mes_no_muestra_turnos_cancelados(self, client, servicio_corte) -> None:
+        client.force_login(EmpleadaFactory())
+        dia = date(2026, 10, 15)
+        turno = TurnoService.crear_turno(cliente_nombre="Ines Cancelada", servicio=servicio_corte, fecha=dia, hora=time(11, 0))
+        TurnoService.cancelar_turno(turno)
+
+        response = client.get(f"{reverse('turnos:agenda')}?vista=mes&fecha={dia.isoformat()}")
+
+        assert response.status_code == 200
+        assert "Ines Cancelada" not in response.content.decode("utf-8")
+
+    def test_agenda_vista_mes_agrupa_mas_de_tres_turnos_del_dia(self, client, servicio_corte) -> None:
+        client.force_login(EmpleadaFactory())
+        dia = date(2026, 10, 15)
+        for hora in (9, 10, 11, 12, 15):
+            TurnoService.crear_turno(
+                cliente_nombre=f"Clienta {hora}", servicio=servicio_corte, fecha=dia, hora=time(hora, 0)
+            )
+
+        response = client.get(f"{reverse('turnos:agenda')}?vista=mes&fecha={dia.isoformat()}")
+        contenido = response.content.decode("utf-8")
+
+        assert "+2 más" in contenido
+        assert "Clienta 9" in contenido and "Clienta 15" not in contenido
 
 
 @pytest.mark.django_db

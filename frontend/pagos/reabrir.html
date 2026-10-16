@@ -1,12 +1,15 @@
 {% extends 'base.html' %}
 
+{% block page_back %}
+<a href="{% url 'pagos:caja_diaria' %}" class="volver" data-confirmar-salida="true"><i class="bi bi-arrow-left"></i> Volver a la caja</a>
+{% endblock %}
 {% block page_title %}Reabrir Caja{% endblock %}
 {% block page_subtitle %}Confirmación de reapertura de la caja del día.{% endblock %}
 
 {% block content %}
 <div class="card shadow-sm border-warning mx-auto" style="max-width: 560px;">
     <div class="card-header py-3 bg-warning bg-opacity-10">
-        <h5 class="mb-0 text-warning"><i class="bi bi-unlock me-2"></i> Reabrir Caja del {{ fecha|date:"d/m/Y" }}</h5>
+        <h2 class="h6 mb-0 fw-semibold">Reabrir Caja del {{ fecha|date:"d/m/Y" }}</h2>
     </div>
     <div class="card-body p-4">
         {% if cierre %}

@@ -30,7 +30,7 @@
 
 {% block content %}
 <div class="mb-3">
-    <a href="{% url 'proveedores:lista_proveedores' %}" class="btn btn-outline-light btn-sm" id="btnVolver" data-confirmar-salida="true">
+    <a href="{% url 'proveedores:lista_proveedores' %}" class="btn btn-outline-secondary btn-sm" id="btnVolver" data-confirmar-salida="true">
         <i class="bi bi-arrow-left"></i> Volver a Proveedores
     </a>
 </div>
@@ -42,7 +42,7 @@
                 <span class="input-group-text bg-dark text-secondary border-secondary"><i
                         class="bi bi-search"></i></span>
                 <input type="text" id="buscadorProveedor" class="form-control bg-dark text-light border-secondary"
-                    placeholder="Escribe para buscar un proveedor..." autocomplete="off">
+                    placeholder="Escribe para buscar un proveedor..." aria-label="Buscar proveedor de destino" autocomplete="off">
             </div>
             <input type="hidden" id="proveedorSelect">
 
@@ -68,10 +68,10 @@
         </div>
     </div>
     <div class="col-md-6 d-flex gap-2 align-items-end justify-content-start justify-content-md-end mt-3 mt-md-0">
-        <button type="button" class="btn btn-success fw-bold px-4" id="btnGenerarPDF">
+        <button type="button" class="btn btn-accent px-4" id="btnGenerarPDF">
             <i class="bi bi-file-earmark-pdf me-1"></i> Generar Orden (PDF)
         </button>
-        <button type="button" class="btn btn-outline-light px-3" id="btnImprimirOrden">
+        <button type="button" class="btn btn-outline-secondary px-3" id="btnImprimirOrden">
             <i class="bi bi-printer me-1"></i> Imprimir
         </button>
     </div>
@@ -82,7 +82,7 @@
     <div class="col-md-6">
         <div class="card h-100 border-secondary">
             <div class="card-header d-flex justify-content-between align-items-center border-secondary">
-                <h5 class="mb-0"><i class="bi bi-box-seam text-accent me-2"></i> Inventario del Sistema</h5>
+                <h2 class="h6 mb-0 fw-semibold">Inventario del Sistema</h2>
                 <button type="button" class="btn btn-sm btn-outline-accent" data-bs-toggle="modal"
                     data-bs-target="#modalNuevoProducto">
                     <i class="bi bi-plus-lg"></i> Nuevo Insumo
@@ -91,15 +91,15 @@
             <div class="card-body p-0">
                 <div class="p-3 border-bottom border-secondary bg-dark">
                     <input type="text" id="buscadorInventario" class="form-control bg-dark text-light border-secondary"
-                        placeholder="Buscar insumo por nombre...">
+                        placeholder="Buscar insumo por nombre..." aria-label="Buscar insumo del inventario">
                 </div>
                 <div class="table-responsive" style="max-height: 65vh; overflow-y: scroll;">
                     <table class="table table-dark table-hover mb-0" id="tablaInventario">
                         <thead class="sticky-top bg-dark border-secondary" style="z-index: 10;">
                             <tr>
-                                <th>Insumo</th>
-                                <th>Stock Actual</th>
-                                <th class="text-end">Agregar al carrito</th>
+                                <th scope="col">Insumo</th>
+                                <th scope="col">Stock Actual</th>
+                                <th scope="col" class="text-end">Agregar al carrito</th>
                             </tr>
                         </thead>
                         <tbody id="tablaInventarioBody">
@@ -114,7 +114,7 @@
                                         {% endif %}
                                 </td>
                                 <td class="text-end align-middle">
-                                    <button class="btn btn-sm btn-success btn-agregar">
+                                    <button class="btn btn-sm btn-outline-secondary btn-agregar">
                                         <i class="bi bi-plus-lg"></i>
                                     </button>
                                 </td>
@@ -135,16 +135,16 @@
     <div class="col-md-6">
         <div class="card h-100 border-primary">
             <div class="card-header border-primary">
-                <h5 class="mb-0 text-primary"><i class="bi bi-cart me-2"></i> Insumos a Pedir</h5>
+                <h2 class="h6 mb-0 fw-semibold">Insumos a Pedir</h2>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive" style="max-height: 65vh; overflow-y: scroll;">
                     <table class="table table-dark mb-0" id="tablaPedido">
                         <thead class="sticky-top bg-dark border-primary" style="z-index: 10;">
                             <tr>
-                                <th>Insumo</th>
-                                <th style="width: 120px;">Cantidad</th>
-                                <th class="text-end">Eliminar</th>
+                                <th scope="col">Insumo</th>
+                                <th scope="col" style="width: 120px;">Cantidad</th>
+                                <th scope="col" class="text-end">Eliminar</th>
                             </tr>
                         </thead>
                         <tbody id="tablaPedidoBody">
@@ -172,18 +172,18 @@
                 <form id="formNuevoProducto">
                     {% csrf_token %}
                     <div class="mb-3">
-                        <label class="form-label text-light fw-semibold">Nombre del Insumo <span
+                        <label for="nuevoNombre" class="form-label text-light fw-semibold">Nombre del Insumo <span
                                 class="text-danger">*</span></label>
                         <input type="text" class="form-control bg-dark text-light border-secondary" id="nuevoNombre"
                             required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-light">Descripción (Opcional)</label>
+                        <label for="nuevaDescripcion" class="form-label text-light">Descripción (Opcional)</label>
                         <textarea class="form-control bg-dark text-light border-secondary" id="nuevaDescripcion"
                             rows="2"></textarea>
                     </div>
                     <div class="mb-3 p-3 rounded-2 border border-secondary border-opacity-25 bg-dark bg-opacity-25">
-                        <label class="form-label text-light fw-semibold mb-1">
+                        <label for="unidadUNIDAD" class="form-label text-light fw-semibold mb-1">
                             <i class="bi bi-rulers me-1 text-accent"></i>
                             ¿Cómo se mide este insumo? <span class="text-danger">*</span>
                         </label>
@@ -213,13 +213,13 @@
                     </div>
                     <div class="row">
                         <div class="col-6 mb-3">
-                            <label class="form-label text-light fw-semibold">Precio Ref. ($) <span
+                            <label for="nuevoPrecio" class="form-label text-light fw-semibold">Precio Ref. ($) <span
                                     class="text-danger">*</span></label>
                             <input type="number" step="0.01" class="form-control bg-dark text-light border-secondary"
                                 id="nuevoPrecio" required placeholder="0.00" min="0">
                         </div>
                         <div class="col-6 mb-3">
-                            <label class="form-label text-light fw-semibold">Stock Mínimo <span
+                            <label for="nuevoStockMin" class="form-label text-light fw-semibold">Stock Mínimo <span
                                     class="text-danger">*</span></label>
                             <input type="number" class="form-control bg-dark text-light border-secondary"
                                 id="nuevoStockMin" required placeholder="5" min="0">
@@ -241,7 +241,7 @@
 <!-- Modal Aviso genérico (proveedor faltante / carrito vacío / duplicados / errores) -->
 <div class="modal fade" id="modalAvisoOrden" tabindex="-1" aria-labelledby="modalAvisoOrdenLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+        <div class="modal-content shadow-lg" style="background-color: var(--superficie); border: 1px solid var(--linea-fuerte);">
             <div class="modal-header border-0 pb-0">
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                     aria-label="Cerrar"></button>
@@ -257,7 +257,7 @@
                 </p>
             </div>
             <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center pt-3 pb-3">
-                <button type="button" class="btn btn-accent px-4 fw-semibold" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-accent px-4" data-bs-dismiss="modal">
                     Entendido
                 </button>
             </div>
@@ -269,14 +269,14 @@
 <div class="modal fade" id="modalConfirmarDescarga" tabindex="-1" aria-labelledby="modalConfirmarDescargaLabel"
     aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+        <div class="modal-content shadow-lg" style="background-color: var(--superficie); border: 1px solid var(--linea-fuerte);">
             <div class="modal-header border-0 pb-0">
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                     aria-label="Cerrar"></button>
             </div>
             <div class="modal-body text-center pt-1 pb-3 px-4">
                 <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
-                    style="width: 60px; height: 60px; background-color: rgba(229, 193, 88, 0.15); color: var(--accent-color);">
+                    style="width: 60px; height: 60px; background-color: rgba(207, 169, 90, 0.15); color: var(--accent-color);">
                     <i class="bi bi-file-earmark-pdf fs-2"></i>
                 </div>
                 <h5 class="modal-title fw-bold mb-2 text-light" id="modalConfirmarDescargaLabel">¿Descargar la orden de
@@ -293,8 +293,8 @@
             </div>
             <div
                 class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
-                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-success px-4 fw-semibold" id="btnConfirmarDescarga">
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-accent px-4" id="btnConfirmarDescarga">
                     <i class="bi bi-download me-1"></i> Sí, descargar
                 </button>
             </div>
@@ -306,14 +306,14 @@
 <div class="modal fade" id="modalConfirmarInsumo" tabindex="-1" aria-labelledby="modalConfirmarInsumoLabel"
     aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+        <div class="modal-content shadow-lg" style="background-color: var(--superficie); border: 1px solid var(--linea-fuerte);">
             <div class="modal-header border-0 pb-0">
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                     aria-label="Cerrar"></button>
             </div>
             <div class="modal-body text-center pt-1 pb-3 px-4">
                 <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
-                    style="width: 60px; height: 60px; background-color: rgba(229, 193, 88, 0.15); color: var(--accent-color);">
+                    style="width: 60px; height: 60px; background-color: rgba(207, 169, 90, 0.15); color: var(--accent-color);">
                     <i class="bi bi-check2-circle fs-1"></i>
                 </div>
                 <h5 class="modal-title fw-bold mb-2 text-light" id="modalConfirmarInsumoLabel">¿Agregar este insumo a la
@@ -332,8 +332,8 @@
             </div>
             <div
                 class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
-                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">Revisar</button>
-                <button type="button" class="btn btn-accent px-4 fw-semibold" id="btnConfirmarGuardarInsumo">
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">Revisar</button>
+                <button type="button" class="btn btn-accent px-4" id="btnConfirmarGuardarInsumo">
                     <i class="bi bi-check-lg me-1"></i> Sí, guardar
                 </button>
             </div>
@@ -345,7 +345,7 @@
 <div class="modal fade" id="modalCancelarInsumo" tabindex="-1" aria-labelledby="modalCancelarInsumoLabel"
     aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+        <div class="modal-content shadow-lg" style="background-color: var(--superficie); border: 1px solid var(--linea-fuerte);">
             <div class="modal-header border-0 pb-0">
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                     aria-label="Cerrar"></button>
@@ -364,7 +364,7 @@
             </div>
             <div
                 class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
-                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
                     Continuar cargando
                 </button>
                 <button type="button" class="btn btn-danger px-4 fw-semibold" id="btnConfirmarCancelarInsumo">
@@ -659,7 +659,7 @@
                         <td class="align-middle fw-bold">${esc(data.nombre)} <small class="badge bg-secondary bg-opacity-25 text-light border border-secondary border-opacity-25 ms-1">${esc(data.unidad_display || abrev)}</small></td>
                         <td class="align-middle"><span class="badge bg-danger">0 ${esc(abrev)}</span></td>
                         <td class="text-end align-middle">
-                            <button class="btn btn-sm btn-success btn-agregar">
+                            <button class="btn btn-sm btn-outline-secondary btn-agregar">
                                 <i class="bi bi-plus-lg"></i>
                             </button>
                         </td>

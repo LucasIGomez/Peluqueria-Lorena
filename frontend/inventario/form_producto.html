@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
 
+{% block page_back %}
+<a href="{% url 'inventario:lista_productos' %}" class="volver" data-confirmar-salida="true"><i class="bi bi-arrow-left"></i> Volver al inventario</a>
+{% endblock %}
 {% block page_title %}{{ accion }} Producto{% endblock %}
 {% block page_subtitle %}Configura la información y umbrales de stock del producto.{% endblock %}
 
@@ -8,10 +11,7 @@
     <div class="col-lg-7 col-md-9">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="bi bi-box-seam me-2 text-accent"></i>
-                    {{ accion }} Producto
-                </h5>
+                <h2 class="h6 mb-0 fw-semibold">{{ accion }} Producto</h2>
             </div>
             <div class="card-body p-4">
                 {% if producto %}
@@ -117,7 +117,7 @@
 
                     <!-- Botones de Acción -->
                     <div class="d-flex justify-content-end gap-2 pt-3 border-top border-secondary border-opacity-25">
-                        <a href="{% url 'inventario:lista_productos' %}" id="btn-cancelar" class="btn btn-outline-light px-4">
+                        <a href="{% url 'inventario:lista_productos' %}" id="btn-cancelar" class="btn btn-outline-secondary px-4">
                             Cancelar
                         </a>
                         <button type="submit" id="btn-guardar-trigger" class="btn btn-accent px-4">
@@ -133,7 +133,7 @@
 <!-- Modal Emergente de Confirmación de Cancelación -->
 <div class="modal fade" id="modalCancelar" tabindex="-1" aria-labelledby="modalCancelarLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+        <div class="modal-content shadow-lg" style="background-color: var(--superficie); border: 1px solid var(--linea-fuerte);">
             <div class="modal-header border-0 pb-0">
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
@@ -147,7 +147,7 @@
                 </p>
             </div>
             <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
-                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
                     Continuar editando
                 </button>
                 <a href="{% url 'inventario:lista_productos' %}" id="btn-confirmar-cancelar" class="btn btn-danger px-4 fw-semibold">
@@ -161,12 +161,12 @@
 <!-- Modal Emergente de Confirmación de Guardar Cambios -->
 <div class="modal fade" id="modalConfirmarGuardar" tabindex="-1" aria-labelledby="modalConfirmarGuardarLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+        <div class="modal-content shadow-lg" style="background-color: var(--superficie); border: 1px solid var(--linea-fuerte);">
             <div class="modal-header border-0 pb-0">
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body text-center pt-1 pb-3 px-4">
-                <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3" style="width: 60px; height: 60px; background-color: rgba(229, 193, 88, 0.15); color: var(--accent-color);">
+                <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3" style="width: 60px; height: 60px; background-color: rgba(207, 169, 90, 0.15); color: var(--accent-color);">
                     <i class="bi bi-check2-circle fs-1"></i>
                 </div>
                 <h5 class="modal-title fw-bold mb-2 text-light" id="modalConfirmarGuardarLabel">¿Guardar los cambios del producto?</h5>
@@ -175,10 +175,10 @@
                 </p>
             </div>
             <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
-                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
                     Revisar
                 </button>
-                <button type="button" id="btn-confirmar-guardar-submit" class="btn btn-accent px-4 fw-semibold">
+                <button type="button" id="btn-confirmar-guardar-submit" class="btn btn-accent px-4">
                     <i class="bi bi-check-lg me-1"></i> Sí, guardar
                 </button>
             </div>

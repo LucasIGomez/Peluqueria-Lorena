@@ -1,100 +1,92 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Catálogo Oficial de Servicios{% endblock %}
-{% block page_subtitle %}Tarifario de referencia de Peluquería Lorena, duraciones estimadas y protocolos requeridos.{% endblock %}
+{% block title %}Catálogo de servicios — Peluquería Lorena{% endblock %}
+{% block page_title %}Catálogo de servicios{% endblock %}
+{% block page_subtitle %}Precios de referencia, duración estimada y servicios que requieren consentimiento.{% endblock %}
+
+{% block extra_css %}
+<style>
+    .filtros { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .filtro { padding: 0.4rem 0.95rem; border: 1px solid var(--linea-fuerte); border-radius: 2rem; color: var(--bruma); font-size: 0.9rem; text-decoration: none; transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease; }
+    .filtro:hover { border-color: var(--bruma); color: var(--marfil); }
+    .filtro.activo { background: rgba(var(--oro-rgb), 0.16); border-color: rgba(var(--oro-rgb), 0.5); color: var(--oro-claro); font-weight: 500; }
+    .filtro:focus-visible { outline: 2px solid var(--oro); outline-offset: 2px; }
+    .filtro small { opacity: 0.7; }
+
+    .servicio { display: flex; flex-direction: column; height: 100%; padding: 1.35rem; background: var(--superficie); border: 1px solid var(--linea); border-radius: 0.9rem; transition: border-color 0.15s ease; }
+    .servicio:hover { border-color: var(--linea-fuerte); }
+    .servicio-categoria { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; min-height: 1.4rem; color: var(--apagado); font-size: 0.85rem; }
+    .servicio-legal { color: #f0b88a; font-size: 0.8rem; white-space: nowrap; }
+    .servicio-nombre { margin: 0.35rem 0 0.25rem; font-size: 1.1rem; font-weight: 600; font-family: var(--sans); }
+    .servicio-texto { color: var(--bruma); font-size: 0.875rem; }
+    .servicio-precio { margin-top: auto; padding-top: 1rem; font-family: var(--serif); font-size: 2.1rem; line-height: 1; color: var(--oro-claro); }
+    .servicio-duracion { margin-top: 0.3rem; color: var(--bruma); font-size: 0.85rem; }
+    .servicio-pie { display: flex; align-items: center; justify-content: space-between; margin-top: 1.1rem; padding-top: 1rem; border-top: 1px solid var(--linea); }
+</style>
+{% endblock %}
 
 {% block content %}
-<!-- Barra de Acciones y Filtros -->
-<div class="card shadow-sm border-0 mb-4">
-    <div class="card-body py-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
-        <!-- Pestañas de Categoría -->
-        <div class="d-flex flex-wrap gap-2">
-            <a href="{% url 'servicios:catalogo' %}" class="btn btn-sm {% if not categoria_seleccionada %}btn-accent text-dark fw-bold{% else %}btn-outline-secondary{% endif %}">
-                Todos ({{ total_servicios }})
+<div class="barra-acciones">
+    <nav class="filtros" aria-label="Filtrar por categoría">
+        <a href="{% url 'servicios:catalogo' %}" class="filtro {% if not categoria_seleccionada %}activo{% endif %}" {% if not categoria_seleccionada %}aria-current="page"{% endif %}>
+            Todos <small>({{ total_servicios }})</small>
+        </a>
+        {% for cod, nombre in categorias %}
+            <a href="{% url 'servicios:catalogo' %}?categoria={{ cod }}" class="filtro {% if categoria_seleccionada == cod %}activo{% endif %}" {% if categoria_seleccionada == cod %}aria-current="page"{% endif %}>
+                {{ nombre }}
             </a>
-            {% for cod, nombre in categorias %}
-                <a href="{% url 'servicios:catalogo' %}?categoria={{ cod }}" 
-                   class="btn btn-sm {% if categoria_seleccionada == cod %}btn-accent text-dark fw-bold{% else %}btn-outline-secondary{% endif %}">
-                    {{ nombre }}
-                </a>
-            {% endfor %}
-        </div>
+        {% endfor %}
+    </nav>
 
-        <div class="d-flex gap-2">
-            {% if request.user.is_authenticated and request.user.es_administradora %}
-                <form method="POST" action="{% url 'servicios:catalogo' %}" class="d-inline"
-                      data-confirmar="Esto restablece el precio, la duración y el estado de los servicios de la lista oficial a sus valores iniciales: los cambios que hayas hecho en ellos se pierden y los dados de baja vuelven a activarse. ¿Continuar?">
-                    {% csrf_token %}
-                    <input type="hidden" name="cargar_inicial" value="1">
-                    <button type="submit" class="btn btn-sm btn-outline-warning" title="Recargar lista de precios oficial">
-                        <i class="bi bi-arrow-repeat me-1"></i> Sincronizar Tarifario
-                    </button>
-                </form>
-                <a href="{% url 'servicios:crear_servicio' %}" class="btn btn-sm btn-accent text-dark fw-bold">
-                    <i class="bi bi-plus-lg me-1"></i> Nuevo Servicio
-                </a>
-            {% endif %}
-            <a href="{% url 'servicios:control_diario' %}" class="btn btn-sm btn-outline-info">
-                <i class="bi bi-calendar-check me-1"></i> Ver Control Diario
-            </a>
-        </div>
+    {% if request.user.is_authenticated and request.user.es_administradora %}
+    <div class="barra-grupo">
+        <form method="POST" action="{% url 'servicios:catalogo' %}" data-confirmar="Esto restablece el precio, la duración y el estado de los servicios de la lista oficial a sus valores iniciales: los cambios que hayas hecho en ellos se pierden y los dados de baja vuelven a activarse. ¿Continuar?">
+            {% csrf_token %}
+            <input type="hidden" name="cargar_inicial" value="1">
+            <button type="submit" class="btn btn-outline-secondary" title="Restablecer la lista de precios oficial">
+                <i class="bi bi-arrow-repeat me-1"></i> Restablecer tarifario
+            </button>
+        </form>
+        <a href="{% url 'servicios:crear_servicio' %}" class="btn btn-accent">
+            <i class="bi bi-plus-lg me-1"></i> Nuevo servicio
+        </a>
     </div>
+    {% endif %}
 </div>
 
-<!-- Grid de Servicios -->
-<div class="row g-4">
+<div class="row g-3">
     {% for s in servicios %}
-        <div class="col-md-6 col-lg-4">
-            <div class="card h-100 shadow-sm border-secondary hover-lift" style="background-color: #1a1c23;">
-                <div class="card-body p-4 d-flex flex-column justify-content-between">
-                    <div>
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <span class="badge bg-dark border border-secondary text-secondary small">
-                                {{ s.get_categoria_display }}
-                            </span>
-                            {% if s.requiere_consentimiento %}
-                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle small" title="Requiere ficha de consentimiento informado obligatoria">
-                                    <i class="bi bi-shield-exclamation me-1"></i> Consentimiento Legal
-                                </span>
-                            {% endif %}
-                        </div>
-
-                        <h5 class="fw-bold text-light mb-1">{{ s.nombre }}</h5>
-                        {% if s.descripcion %}
-                            <p class="text-secondary small mb-3">{{ s.descripcion }}</p>
-                        {% endif %}
-
-                        <div class="my-3 p-3 rounded bg-dark border border-secondary">
-                            <div class="d-flex justify-content-between align-items-baseline mb-1">
-                                <span class="text-secondary small">Precio Base:</span>
-                                <span class="fs-4 fw-bold text-accent">${{ s.precio_base|floatformat:2 }}</span>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="text-secondary small">Duración Estimada:</span>
-                                <span class="badge bg-secondary-subtle text-light">
-                                    <i class="bi bi-clock me-1"></i> {{ s.duracion_estimada_minutos }} min
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="pt-3 border-top border-secondary d-flex justify-content-between align-items-center">
-                        <a href="{% url 'servicios:registrar_servicio_realizado' %}?servicio={{ s.pk }}" class="btn btn-accent text-dark fw-bold btn-sm">
-                            <i class="bi bi-calendar-plus me-1"></i> Atender Hoy
-                        </a>
-                        {% if request.user.is_authenticated and request.user.es_administradora %}
-                            <a href="{% url 'servicios:editar_servicio' s.pk %}" class="btn btn-outline-secondary btn-sm" title="Editar precio base o duración">
-                                <i class="bi bi-pencil"></i>
-                            </a>
-                        {% endif %}
-                    </div>
+        <div class="col-md-6 col-xl-4">
+            <article class="servicio">
+                <div class="servicio-categoria">
+                    <span>{{ s.get_categoria_display }}</span>
+                    {% if s.requiere_consentimiento %}
+                        <span class="servicio-legal" title="Requiere ficha de consentimiento informado"><i class="bi bi-shield-exclamation me-1"></i>Requiere consentimiento</span>
+                    {% endif %}
                 </div>
-            </div>
+
+                <h2 class="servicio-nombre">{{ s.nombre }}</h2>
+                {% if s.descripcion %}<p class="servicio-texto mb-0">{{ s.descripcion }}</p>{% endif %}
+
+                <div class="servicio-precio">${{ s.precio_base|floatformat:2 }}</div>
+                <div class="servicio-duracion"><i class="bi bi-clock me-1"></i>{{ s.duracion_estimada_minutos }} min estimados</div>
+
+                <div class="servicio-pie">
+                    <a href="{% url 'servicios:registrar_servicio_realizado' %}?servicio={{ s.pk }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-plus-lg me-1"></i> Atender hoy
+                    </a>
+                    {% if request.user.is_authenticated and request.user.es_administradora %}
+                        <a href="{% url 'servicios:editar_servicio' s.pk %}" class="btn-icono" title="Editar precio o duración" aria-label="Editar {{ s.nombre }}">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                    {% endif %}
+                </div>
+            </article>
         </div>
     {% empty %}
         <div class="col-12 text-center py-5 text-secondary">
             <i class="bi bi-scissors fs-1 d-block mb-2"></i>
-            <p>No se encontraron servicios en esta categoría.</p>
+            <p class="mb-0">No hay servicios en esta categoría.</p>
         </div>
     {% endfor %}
 </div>

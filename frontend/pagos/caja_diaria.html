@@ -1,45 +1,40 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Caja y Ventas{% endblock %}
+{% block title %}Caja y ventas — Peluquería Lorena{% endblock %}
+{% block page_title %}Caja y ventas{% endblock %}
 {% block page_subtitle %}Cobros del día, medios de pago y cierre diario.{% endblock %}
 
 {% block content %}
-<!-- Selector de fecha y acciones -->
-<div class="card shadow-sm border-0 mb-4">
-    <div class="card-body p-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
-        <form method="GET" class="d-flex align-items-center gap-2">
-            <label class="text-secondary small fw-bold text-uppercase me-1">Fecha:</label>
-            <input type="date" name="fecha" value="{{ fecha_str }}" class="form-control form-control-sm"
-                style="width: 170px;" onchange="this.form.submit()">
-            <a href="{% url 'pagos:caja_diaria' %}" class="btn btn-sm btn-outline-secondary">Hoy</a>
-        </form>
-        <div class="d-flex flex-wrap gap-2">
-            <a href="{% url 'pagos:registrar_cobro' %}" class="btn btn-accent text-dark fw-bold btn-sm">
-                <i class="bi bi-cash-coin me-1"></i> Nuevo Cobro
-            </a>
-            {% if request.user.es_administradora %}
-            <a href="{% url 'pagos:reporte_medios' %}?fecha_desde={{ fecha_str }}&fecha_hasta={{ fecha_str }}"
-                class="btn btn-outline-info btn-sm">
-                <i class="bi bi-bar-chart me-1"></i> Reporte por Medio
-            </a>
-            <a href="{% url 'pagos:cierre_caja' %}?fecha={{ fecha_str }}" class="btn btn-danger fw-bold btn-sm">
-                <i class="bi bi-lock me-1"></i> Cierre de Caja
-            </a>
-            {% endif %}
-        </div>
+<!-- Fecha y acciones -->
+<div class="barra-acciones">
+    <form method="GET" class="barra-grupo">
+        <label for="fecha-caja" class="etiqueta-campo">Fecha</label>
+        <input type="date" id="fecha-caja" name="fecha" value="{{ fecha_str }}" class="form-control form-control-sm" style="width: 10.5rem;" onchange="this.form.submit()">
+        <a href="{% url 'pagos:caja_diaria' %}" class="btn btn-sm btn-outline-secondary">Hoy</a>
+    </form>
+    <div class="barra-grupo">
+        {% if request.user.es_administradora %}
+        <a href="{% url 'pagos:reporte_medios' %}?fecha_desde={{ fecha_str }}&fecha_hasta={{ fecha_str }}" class="btn btn-outline-secondary">
+            <i class="bi bi-bar-chart me-1"></i> Reporte por medio
+        </a>
+        <a href="{% url 'pagos:cierre_caja' %}?fecha={{ fecha_str }}" class="btn btn-outline-danger">
+            <i class="bi bi-lock me-1"></i> Cierre de caja
+        </a>
+        {% endif %}
+        <a href="{% url 'pagos:registrar_cobro' %}" class="btn btn-accent">
+            <i class="bi bi-plus-lg me-1"></i> Nuevo cobro
+        </a>
     </div>
 </div>
 
 <!-- Estado de caja -->
 {% if resumen.caja_cerrada %}
-<div class="alert alert-success d-flex align-items-center justify-content-between gap-2" role="alert">
-    <div class="d-flex align-items-center gap-2">
+<div class="alert alert-success d-flex align-items-center justify-content-between gap-3" role="status">
+    <div class="d-flex align-items-center gap-3">
         <i class="bi bi-lock-fill fs-5"></i>
         <div>
-            <strong>Caja cerrada</strong> el {{ resumen.cierre.fecha_creacion|date:"d/m/Y H:i" }} por {{
-            resumen.cierre.responsable.nombre }}.
-            Total: <strong>${{ resumen.cierre.total_general|floatformat:2 }}</strong> en {{
-            resumen.cierre.cantidad_cobros }} cobros.
+            <strong>Caja cerrada</strong> el {{ resumen.cierre.fecha_creacion|date:"d/m/Y H:i" }} por {{ resumen.cierre.responsable.nombre }}.
+            Total: <strong>${{ resumen.cierre.total_general|floatformat:2 }}</strong> en {{ resumen.cierre.cantidad_cobros }} cobros.
         </div>
     </div>
     {% if request.user.es_administradora %}
@@ -50,75 +45,50 @@
 </div>
 {% endif %}
 
-<!-- Métricas -->
-<div class="row g-3 mb-4">
-    <div class="col-md-4">
-        <div class="card border-0 bg-dark p-3">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <span class="text-secondary small text-uppercase fw-bold">Total del Día</span>
-                    <h3 class="mb-0 text-accent fw-bold">${{ resumen.total_general|floatformat:2 }}</h3>
-                </div>
-                <div class="p-3 bg-warning bg-opacity-25 rounded-circle text-warning">
-                    <i class="bi bi-cash-stack fs-3"></i>
-                </div>
-            </div>
-        </div>
+<!-- Totales del día -->
+<div class="metricas" role="group" aria-label="Totales del día">
+    <div class="metrica">
+        <div class="metrica-etiqueta">Total del día</div>
+        <div class="metrica-valor text-accent">${{ resumen.total_general|floatformat:2 }}</div>
+        <div class="metrica-nota">Suma de todos los medios de pago</div>
     </div>
-    <div class="col-md-4">
-        <div class="card border-0 bg-dark p-3">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <span class="text-secondary small text-uppercase fw-bold">Cobros</span>
-                    <h3 class="mb-0 text-light fw-bold">{{ resumen.cantidad_cobros }}</h3>
-                </div>
-                <div class="p-3 bg-secondary bg-opacity-25 rounded-circle text-accent">
-                    <i class="bi bi-receipt fs-3"></i>
-                </div>
-            </div>
-        </div>
+    <div class="metrica">
+        <div class="metrica-etiqueta">Cobros registrados</div>
+        <div class="metrica-valor">{{ resumen.cantidad_cobros }}</div>
+        <div class="metrica-nota">Servicios y productos</div>
     </div>
-    <div class="col-md-4">
-        <div class="card border-0 bg-dark p-3">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <span class="text-secondary small text-uppercase fw-bold">Descuentos</span>
-                    <h3 class="mb-0 text-success fw-bold">-${{ resumen.total_descuentos|floatformat:2 }}</h3>
-                </div>
-                <div class="p-3 bg-success bg-opacity-25 rounded-circle text-success">
-                    <i class="bi bi-percent fs-3"></i>
-                </div>
-            </div>
-            <small class="text-secondary">En efectivo, Mercado Pago y Ualá.</small>
-        </div>
+    <div class="metrica">
+        <div class="metrica-etiqueta">Descuentos aplicados</div>
+        <div class="metrica-valor">-${{ resumen.total_descuentos|floatformat:2 }}</div>
+        <div class="metrica-nota">En efectivo, Mercado Pago y Ualá</div>
     </div>
 </div>
 
-<!-- Resumen por medio de pago -->
-<div class="card shadow-sm border-0 mb-4">
-    <div class="card-header py-3">
-        <h5 class="mb-0 text-light"><i class="bi bi-wallet2 me-2 text-accent"></i> Ingresos por Medio de Pago — {% if fecha %}{{ fecha|date:"d/m/Y" }}{% else %}{% now "d/m/Y" %}{% endif %}</h5>
+<!-- Ingresos por medio de pago -->
+<div class="card mb-4">
+    <div class="card-header">
+        Ingresos por Medio de Pago — {% if fecha %}{{ fecha|date:"d/m/Y" }}{% else %}{% now "d/m/Y" %}{% endif %}
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-dark table-hover mb-0 align-middle">
-                <thead class="table-secondary text-secondary">
+            <table class="table table-hover mb-0 align-middle tabla-tarjetas">
+                <thead class="table-secondary">
                     <tr>
-                        <th class="ps-4">Medio de Pago</th>
-                        <th>Cobros</th>
-                        <th>Total</th>
-                        <th>Descuento</th>
+                        <th scope="col" class="ps-4">Medio de pago</th>
+                        <th scope="col">Cobros</th>
+                        <th scope="col">Total</th>
+                        <th scope="col">Descuento</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for item in resumen.detalle_por_medio %}
                     <tr>
-                        <td class="ps-4 fw-semibold text-light">{{ item.etiqueta }}</td>
-                        <td><span class="badge bg-dark border border-secondary">{{ item.cantidad }}</span></td>
-                        <td class="fw-bold text-accent">${{ item.total|floatformat:2 }}</td>
-                        <td>
+                        <td class="ps-4 fw-semibold" data-label="Medio de pago">{{ item.etiqueta }}</td>
+                        <td data-label="Cobros">{{ item.cantidad }}</td>
+                        <td class="fw-semibold text-accent" data-label="Total">${{ item.total|floatformat:2 }}</td>
+                        <td data-label="Descuento">
                             {% if item.descuento and item.descuento > 0 %}
-                            <span class="badge bg-success-subtle text-success">-${{ item.descuento|floatformat:2 }}{% if item.porcentaje %} ({{ item.porcentaje|floatformat:0 }}%){% endif %}</span>
+                            <span class="text-success">-${{ item.descuento|floatformat:2 }}{% if item.porcentaje %} ({{ item.porcentaje|floatformat:0 }}%){% endif %}</span>
                             {% else %}
                             <span class="text-secondary small">—</span>
                             {% endif %}
@@ -132,50 +102,48 @@
 </div>
 
 <!-- Listado de cobros -->
-<div class="card shadow-sm border-0">
-    <div class="card-header d-flex justify-content-between align-items-center py-3">
-        <h5 class="mb-0 text-light"><i class="bi bi-list-check me-2 text-accent"></i> Cobros del {% if fecha %}{{ fecha|date:"d/m/Y" }}{% else %}{% now "d/m/Y" %}{% endif %}</h5>
-        <span class="badge bg-dark border border-secondary text-secondary">{{ resumen.cantidad_cobros }} en lista</span>
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Cobros del {% if fecha %}{{ fecha|date:"d/m/Y" }}{% else %}{% now "d/m/Y" %}{% endif %}</span>
+        <span class="text-secondary fw-normal small">{{ resumen.cantidad_cobros }} en lista</span>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-dark table-hover mb-0 align-middle">
-                <thead class="table-secondary text-secondary">
+            <table class="table table-hover mb-0 align-middle tabla-tarjetas">
+                <thead class="table-secondary">
                     <tr>
-                        <th class="ps-4">#</th>
-                        <th>Clienta</th>
-                        <th>Tipo</th>
-                        <th>Detalle</th>
-                        <th>Medio</th>
-                        <th>Subtotal</th>
-                        <th>Desc.</th>
-                        <th>Total</th>
-                        <th></th>
+                        <th scope="col" class="ps-4">N.º</th>
+                        <th scope="col">Clienta</th>
+                        <th scope="col">Tipo</th>
+                        <th scope="col">Detalle</th>
+                        <th scope="col">Medio</th>
+                        <th scope="col">Subtotal</th>
+                        <th scope="col">Descuento</th>
+                        <th scope="col">Total</th>
+                        <th scope="col"><span class="visually-hidden">Acciones</span></th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for c in cobros %}
                     <tr>
-                        <td class="ps-4 text-secondary small">#{{ c.pk }}</td>
-                        <td class="fw-semibold text-light">{{ c.cliente_nombre }}</td>
-                        <td><span class="badge bg-secondary-subtle text-light">{{ c.get_tipo_display }}</span></td>
-                        <td class="text-secondary small">
+                        <td class="ps-4 text-secondary small" data-label="N.º">#{{ c.pk }}</td>
+                        <td class="fw-semibold" data-label="Clienta">{{ c.cliente_nombre }}</td>
+                        <td class="text-secondary" data-label="Tipo">{{ c.get_tipo_display }}</td>
+                        <td class="text-secondary small" data-label="Detalle">
                             {% if c.tipo == 'SERVICIO' %}
                             {% if c.servicio %}{{ c.servicio.nombre }}{% else %}Servicio{% endif %}
                             {% else %}
-                            {% if c.producto %}{{ c.producto.nombre }} x{{ c.cantidad }}{% else %}Producto x{{
-                            c.cantidad }}{% endif %}
+                            {% if c.producto %}{{ c.producto.nombre }} x{{ c.cantidad }}{% else %}Producto x{{ c.cantidad }}{% endif %}
                             {% endif %}
                             <div>{{ c.profesional.nombre }}</div>
                         </td>
-                        <td><span class="badge bg-info-subtle text-info">{{ c.get_medio_pago_display }}</span></td>
-                        <td class="text-secondary">${{ c.subtotal|floatformat:2 }}</td>
-                        <td class="text-success small">-${{ c.monto_descuento|floatformat:2 }}</td>
-                        <td class="fw-bold text-accent">${{ c.total|floatformat:2 }}</td>
-                        <td>
+                        <td data-label="Medio">{{ c.get_medio_pago_display }}</td>
+                        <td class="text-secondary" data-label="Subtotal">${{ c.subtotal|floatformat:2 }}</td>
+                        <td class="text-success small" data-label="Descuento">-${{ c.monto_descuento|floatformat:2 }}</td>
+                        <td class="fw-semibold text-accent" data-label="Total">${{ c.total|floatformat:2 }}</td>
+                        <td class="text-end pe-3" data-label="">
                             {% if not resumen.caja_cerrada %}
-                            <a href="{% url 'pagos:anular_cobro' c.pk %}" class="btn btn-sm btn-outline-danger"
-                                title="Anular cobro">
+                            <a href="{% url 'pagos:anular_cobro' c.pk %}" class="btn-icono peligro" title="Anular cobro" aria-label="Anular el cobro #{{ c.pk }}">
                                 <i class="bi bi-x-circle"></i>
                             </a>
                             {% else %}
@@ -188,10 +156,9 @@
                         <td colspan="9" class="text-center py-5 text-secondary">
                             <i class="bi bi-cash-coin fs-1 d-block mb-2"></i>
                             Sin cobros registrados para esta fecha.
-                            <div class="mt-2">
-                                <a href="{% url 'pagos:registrar_cobro' %}"
-                                    class="btn btn-sm btn-accent text-dark fw-bold">
-                                    <i class="bi bi-plus-circle me-1"></i> Registrar Primer Cobro
+                            <div class="mt-3">
+                                <a href="{% url 'pagos:registrar_cobro' %}" class="btn btn-sm btn-accent">
+                                    <i class="bi bi-plus-lg me-1"></i> Registrar el primer cobro
                                 </a>
                             </div>
                         </td>

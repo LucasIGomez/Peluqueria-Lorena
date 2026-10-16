@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
 
+{% block page_back %}
+<a href="{% url 'inventario:lista_productos' %}" class="volver" data-confirmar-salida="true"><i class="bi bi-arrow-left"></i> Volver al inventario</a>
+{% endblock %}
 {% block page_title %}Historial y Auditoría de Stock{% endblock %}
 {% block page_subtitle %}Registro cronológico de productos añadidos, eliminados, reposiciones y descuentos.{% endblock %}
 
@@ -9,7 +12,7 @@
         <!-- Buscador Inteligente y Filtros del Historial -->
         <form method="get" class="row g-3 align-items-end" id="form-busqueda-historial">
             <div class="col-md-7">
-                <label class="form-label small text-secondary mb-1">
+                <label for="buscar-historial" class="form-label small text-secondary mb-1">
                     <i class="bi bi-search me-1"></i> Buscador Inteligente de Producto
                 </label>
                 <div class="position-relative">
@@ -17,7 +20,7 @@
                         <span class="input-group-text bg-dark text-secondary border-secondary"><i class="bi bi-box-seam"></i></span>
                         <input type="text" id="buscar-historial" name="q" value="{{ busqueda }}" class="form-control" placeholder="Buscar producto por nombre..." autocomplete="off">
                         {% if busqueda %}
-                            <a href="{% url 'inventario:historial_movimientos' %}{% if tipo_seleccionado %}?tipo={{ tipo_seleccionado }}{% endif %}" class="btn btn-outline-light" title="Borrar búsqueda">
+                            <a href="{% url 'inventario:historial_movimientos' %}{% if tipo_seleccionado %}?tipo={{ tipo_seleccionado }}{% endif %}" class="btn btn-outline-secondary" title="Borrar búsqueda">
                                 <i class="bi bi-x-lg"></i>
                             </a>
                         {% endif %}
@@ -25,7 +28,7 @@
                 </div>
             </div>
             <div class="{% if busqueda or tipo_seleccionado %}col-md-4{% else %}col-md-5{% endif %}">
-                <label class="form-label small text-secondary mb-1">
+                <label for="filtro-tipo-movimiento" class="form-label small text-secondary mb-1">
                     <i class="bi bi-funnel me-1"></i> Tipo de Movimiento
                 </label>
                 <select id="filtro-tipo-movimiento" name="tipo" class="form-select form-select-sm">
@@ -39,7 +42,7 @@
             </div>
             {% if busqueda or tipo_seleccionado %}
             <div class="col-md-1">
-                <a href="{% url 'inventario:historial_movimientos' %}" class="btn btn-sm btn-outline-light w-100" title="Limpiar todos los filtros">
+                <a href="{% url 'inventario:historial_movimientos' %}" class="btn btn-sm btn-outline-secondary w-100" title="Limpiar todos los filtros">
                     <i class="bi bi-arrow-counterclockwise"></i>
                 </a>
             </div>
@@ -50,32 +53,29 @@
 
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h5 class="mb-0"><i class="bi bi-clock-history me-2 text-accent"></i> Registro de Movimientos</h5>
-        <a href="{% url 'inventario:lista_productos' %}" class="btn btn-sm btn-outline-light">
-            <i class="bi bi-arrow-left"></i> Volver al Inventario
-        </a>
+        <h2 class="h6 mb-0 fw-semibold">Registro de Movimientos</h2>
     </div>
     <div class="card-body p-0">
         <div class="table-responsive" style="max-height: 65vh; overflow-y: scroll;">
-            <table class="table table-dark table-hover mb-0 align-middle">
+            <table class="table table-dark table-hover mb-0 align-middle tabla-tarjetas">
                 <thead class="sticky-top bg-dark" style="z-index: 10;">
                     <tr>
-                        <th class="ps-4">Fecha y Hora</th>
-                        <th>Tipo de Movimiento</th>
-                        <th>Producto</th>
-                        <th>Cantidad</th>
-                        <th>Evolución de Stock</th>
-                        <th>Motivo / Detalle de la Operación</th>
-                        <th class="pe-4">Usuario</th>
+                        <th scope="col" class="ps-4">Fecha y Hora</th>
+                        <th scope="col">Tipo de Movimiento</th>
+                        <th scope="col">Producto</th>
+                        <th scope="col">Cantidad</th>
+                        <th scope="col">Evolución de Stock</th>
+                        <th scope="col">Motivo / Detalle de la Operación</th>
+                        <th scope="col" class="pe-4">Usuario</th>
                     </tr>
                 </thead>
                 <tbody id="tabla-movimientos-body">
                     {% for mov in movimientos %}
                     <tr class="fila-movimiento" data-producto="{{ mov.producto.nombre|lower }}" data-tipo="{{ mov.tipo_movimiento }}">
-                        <td class="ps-4 small text-secondary">
+                        <td class="ps-4 small text-secondary" data-label="Fecha y Hora">
                             {{ mov.fecha|date:"d/m/Y H:i" }}
                         </td>
-                        <td>
+                        <td data-label="Tipo de Movimiento">
                             {% if mov.tipo_movimiento == 'ALTA_PRODUCTO' %}
                                 <span class="badge bg-info text-dark">
                                     <i class="bi bi-plus-circle-fill me-1"></i> Producto añadido
@@ -102,8 +102,8 @@
                                 </span>
                             {% endif %}
                         </td>
-                        <td class="fw-bold">{{ mov.producto.nombre }}</td>
-                        <td>
+                        <td class="fw-bold" data-label="Producto">{{ mov.producto.nombre }}</td>
+                        <td data-label="Cantidad">
                             {% if mov.tipo_movimiento == 'REPOSICION' %}
                                 <span class="fw-bold text-success">+{{ mov.cantidad }} {{ mov.producto.unidad_abreviatura }}</span>
                             {% elif mov.tipo_movimiento == 'ALTA_PRODUCTO' %}
@@ -114,7 +114,7 @@
                                 <span class="fw-bold text-warning">-{{ mov.cantidad }} {{ mov.producto.unidad_abreviatura }}</span>
                             {% endif %}
                         </td>
-                        <td class="small">
+                        <td class="small" data-label="Evolución de Stock">
                             {% if mov.tipo_movimiento == 'CAMBIO_NOMBRE' or mov.tipo_movimiento == 'CAMBIO_DESCRIPCION' or mov.tipo_movimiento == 'CAMBIO_PRECIO' or mov.tipo_movimiento == 'CAMBIO_STOCK_MINIMO' or mov.tipo_movimiento == 'CAMBIO_UNIDAD_MEDIDA' %}
                                 <span class="text-secondary">—</span>
                             {% else %}
@@ -123,10 +123,10 @@
                                 <span class="fw-bold text-light">{{ mov.stock_posterior }}</span>
                             {% endif %}
                         </td>
-                        <td class="small text-light text-opacity-75">
+                        <td class="small text-light text-opacity-75" data-label="Motivo / Detalle de la Operación">
                             {{ mov.motivo|default:"Sin detalle" }}
                         </td>
-                        <td class="pe-4 small text-secondary">
+                        <td class="pe-4 small text-secondary" data-label="Usuario">
                             {{ mov.usuario.nombre|default:"Sistema" }}
                         </td>
                     </tr>

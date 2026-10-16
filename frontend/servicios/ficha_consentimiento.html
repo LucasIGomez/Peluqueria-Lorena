@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
 
+{% block page_back %}
+<a href="{% url 'servicios:control_diario' %}" class="volver" data-confirmar-salida="true"><i class="bi bi-arrow-left"></i> Volver al control diario</a>
+{% endblock %}
 {% block page_title %}Consentimiento Informado{% endblock %}
 {% block page_subtitle %}Declaración jurada y conformidad de la clienta para servicios químicos.{% endblock %}
 
@@ -8,9 +11,7 @@
     <div class="col-lg-9">
         <div class="card shadow-sm border-0">
             <div class="card-header py-3 bg-dark border-bottom border-warning-subtle d-flex justify-content-between align-items-center">
-                <h5 class="mb-0 text-light">
-                    <i class="bi bi-shield-check text-warning me-2"></i> Consentimiento Informado — Servicios Químicos
-                </h5>
+                <h2 class="h6 mb-0 fw-semibold">Consentimiento Informado — Servicios Químicos</h2>
                 <span class="badge bg-warning text-dark fw-bold">Peluquería Lorena</span>
             </div>
 
@@ -39,64 +40,64 @@
                         <div class="alert alert-danger small">{{ form.non_field_errors }}</div>
                     {% endif %}
 
-                    <h6 class="text-accent text-uppercase fw-bold mb-3 border-bottom border-secondary pb-2">
+                    <h6 class="text-accent fw-bold mb-3 border-bottom border-secondary pb-2">
                         Servicio Solicitado
                     </h6>
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
-                            <label class="form-label text-light">Servicio <span class="text-danger">*</span></label>
+                            <label for="{{ form.tipo_procedimiento.id_for_label }}" class="form-label text-light">Servicio <span class="text-danger">*</span></label>
                             {{ form.tipo_procedimiento }}
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label text-light">Detalle si es "Otro"</label>
+                            <label for="{{ form.otro_procedimiento_detalle.id_for_label }}" class="form-label text-light">Detalle si es "Otro"</label>
                             {{ form.otro_procedimiento_detalle }}
                         </div>
                     </div>
 
-                    <h6 class="text-accent text-uppercase fw-bold mb-3 border-bottom border-secondary pb-2">
+                    <h6 class="text-accent fw-bold mb-3 border-bottom border-secondary pb-2">
                         Datos de la Clienta
                     </h6>
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label text-light">Clienta Registrada (Opcional)</label>
+                            <label for="{{ form.cliente.id_for_label }}" class="form-label text-light">Clienta Registrada (Opcional)</label>
                             {{ form.cliente }}
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label text-light">Nombre y Apellido <span class="text-danger">*</span></label>
+                            <label for="{{ form.cliente_nombre.id_for_label }}" class="form-label text-light">Nombre y Apellido <span class="text-danger">*</span></label>
                             {{ form.cliente_nombre }}
                             {% if form.cliente_nombre.errors %}<div class="text-danger small mt-1">{{ form.cliente_nombre.errors }}</div>{% endif %}
                         </div>
                     </div>
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
-                            <label class="form-label text-light">DNI</label>
+                            <label for="{{ form.cliente_dni.id_for_label }}" class="form-label text-light">DNI</label>
                             {{ form.cliente_dni }}
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label text-light">Profesional</label>
+                            <label for="{{ form.profesional.id_for_label }}" class="form-label text-light">Profesional</label>
                             {{ form.profesional }}
                         </div>
                     </div>
 
-                    <h6 class="text-accent text-uppercase fw-bold mb-3 border-bottom border-secondary pb-2">
+                    <h6 class="text-accent fw-bold mb-3 border-bottom border-secondary pb-2">
                         Conformidad y Firma
                     </h6>
                     <div class="p-3 bg-dark rounded border border-warning-subtle mb-4">
                         <div class="form-check mb-3">
                             {{ form.acepta_terminos }}
-                            <label class="form-check-label text-light ms-2 fw-bold">
+                            <label for="{{ form.acepta_terminos.id_for_label }}" class="form-check-label text-light ms-2 fw-bold">
                                 La clienta manifiesta haber comprendido la información proporcionada y presta su conformidad para la realización del servicio.
                             </label>
                         </div>
                         <div>
-                            <label class="form-label text-light small fw-semibold">Firma / Aceptación Digital:</label>
+                            <label for="{{ form.firma_digital.id_for_label }}" class="form-label text-light small fw-semibold">Firma / Aceptación Digital:</label>
                             {{ form.firma_digital }}
                             <small class="text-secondary">Escriba el nombre completo de la clienta o conformidad digital.</small>
                         </div>
                     </div>
 
                     <div class="mb-4">
-                        <label class="form-label text-light">Observaciones del Diagnóstico</label>
+                        <label for="{{ form.observaciones.id_for_label }}" class="form-label text-light">Observaciones del Diagnóstico</label>
                         {{ form.observaciones }}
                     </div>
 
