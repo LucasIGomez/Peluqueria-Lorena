@@ -11,9 +11,7 @@ Define las entidades de negocio para:
 """
 from __future__ import annotations
 
-from datetime import date
 from decimal import Decimal
-from typing import Any, Optional
 
 from django.db import models
 from django.utils import timezone

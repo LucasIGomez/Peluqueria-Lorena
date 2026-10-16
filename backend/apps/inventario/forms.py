@@ -11,7 +11,7 @@ from decimal import Decimal
 from django import forms
 from django.core.exceptions import ValidationError
 
-from .models import MovimientoStock, Producto
+from .models import Producto
 
 
 class ProductoForm(forms.ModelForm):

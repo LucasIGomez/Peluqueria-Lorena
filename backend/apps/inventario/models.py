@@ -7,8 +7,6 @@ ventas directas, reposiciones y ajustes manuales) bajo POO.
 """
 from __future__ import annotations
 
-from typing import Any, Optional
-from decimal import Decimal
 
 from django.conf import settings
 from django.db import models

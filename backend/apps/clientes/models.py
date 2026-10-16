@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import re
 from datetime import date
-from typing import Any, Optional
+from typing import Optional
 
 from django.conf import settings
 from django.db import models

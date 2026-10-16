@@ -1,7 +1,6 @@
 """
 Peluquería Lorena — System Prompts para el Asistente Inteligente con Gemini.
 """
-from datetime import date
 from django.utils import timezone
 
 

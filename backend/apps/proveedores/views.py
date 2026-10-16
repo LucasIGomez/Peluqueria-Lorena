@@ -6,7 +6,6 @@ from .forms import ProveedorForm
 from apps.inventario.models import Producto
 from apps.inventario.services import InventarioService, InventarioError
 import json
-import io
 import os
 import subprocess
 import tempfile

@@ -7,7 +7,7 @@ Centraliza la lógica de negocio para:
 """
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date
 from typing import Any, Optional
 
 from django.db.models import Q, QuerySet

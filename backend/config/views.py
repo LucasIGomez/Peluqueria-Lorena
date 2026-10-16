@@ -23,12 +23,3 @@ def dashboard_view(request):
     """
     context = DashboardService.obtener_metricas()
     return render(request, "index.html", context)
-
-
-def modulo_en_desarrollo(request, nombre_modulo="Módulo"):
-    """Renderiza vista informativa para módulos en desarrollo."""
-    return render(
-        request,
-        "modulo_no_disponible.html",
-        {"nombre_modulo": nombre_modulo},
-    )

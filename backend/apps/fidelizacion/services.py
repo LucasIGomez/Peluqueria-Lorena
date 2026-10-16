@@ -21,7 +21,7 @@ from decimal import Decimal
 from typing import Any, Optional
 
 from django.db import transaction
-from django.db.models import Count, QuerySet, Sum
+from django.db.models import Sum
 from django.utils import timezone
 
 from apps.clientes.models import Cliente

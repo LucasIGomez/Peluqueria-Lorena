@@ -9,7 +9,6 @@ se atiende, se vincula a una atención de apps.servicios.ServicioRealizado
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import Any
 
 from django.conf import settings
 from django.db import models

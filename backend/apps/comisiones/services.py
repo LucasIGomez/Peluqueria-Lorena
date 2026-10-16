@@ -11,11 +11,10 @@ from __future__ import annotations
 
 from datetime import date
 from decimal import Decimal, ROUND_HALF_UP
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
-from django.conf import settings
 from django.db import transaction
-from django.db.models import Count, QuerySet, Sum
+from django.db.models import Count, Sum
 from django.utils import timezone
 
 from apps.servicios.models import Servicio, ServicioRealizado

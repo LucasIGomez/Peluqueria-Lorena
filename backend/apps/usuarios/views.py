@@ -14,13 +14,11 @@ Implementa:
 """
 from __future__ import annotations
 
-from typing import Any
 from django.contrib import messages
 from django.contrib.auth import login as auth_login, logout as auth_logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db import IntegrityError
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils.decorators import method_decorator
 from django.utils.http import url_has_allowed_host_and_scheme
 from rest_framework import status, viewsets
 from rest_framework.exceptions import ValidationError
@@ -29,7 +27,6 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from rest_framework_simplejwt.views import TokenRefreshView  # noqa: F401
 
 from .forms import LoginForm, UsuarioAdminForm, UsuarioEditForm
 from .models import Usuario
