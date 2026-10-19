@@ -162,6 +162,10 @@ class Producto(models.Model):
         self.stock_actual += cantidad
         self.save(update_fields=["stock_actual", "actualizado_en"])
 
+    def reponerStock(self, cantidad: int) -> None:
+        """Alias de compatibilidad para reponer_stock."""
+        self.reponer_stock(cantidad)
+
     def verificar_stock_minimo(self) -> bool:
         """
         Verifica si el stock actual alcanzó o está por debajo del stock mínimo.

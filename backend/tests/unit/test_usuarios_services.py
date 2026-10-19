@@ -119,6 +119,22 @@ class TestProxyModels:
         assert hasattr(admin, "consultar_agenda")
         assert hasattr(admin, "registrar_cobro")
 
+    def test_alias_camel_case_del_diagrama_de_clases(self) -> None:
+        """Los alias camelCase del diagrama devuelven lo mismo que los métodos snake_case."""
+        admin = AdministradoraFactory(email="alias-admin@test.com")
+        assert admin.consultarAgenda() == admin.consultar_agenda()
+        assert admin.gestionarClientas() == admin.gestionar_clientas()
+        assert admin.registrarCobro(total=1) == admin.registrar_cobro(total=1)
+        assert admin.registrarTrabajo(servicio="x") == admin.registrar_trabajo(servicio="x")
+        assert admin.gestionarUsuarios() == admin.gestionar_usuarios()
+        assert admin.gestionarServicios() == admin.gestionar_servicios()
+        assert admin.cerrarCaja() == admin.cerrar_caja()
+        assert admin.gestionarProveedores() == admin.gestionar_proveedores()
+        assert admin.generarReportes() == admin.generar_reportes()
+        assert admin.configurarBeneficios() == admin.configurar_beneficios()
+        assert admin.cerrarSesion() is True
+        assert admin.iniciarSesion()["email"] == admin.email
+
     def test_proxy_models_usan_misma_tabla(self) -> None:
         """Empleada y Administradora comparten la tabla de Usuario."""
         assert Empleada._meta.proxy is True
