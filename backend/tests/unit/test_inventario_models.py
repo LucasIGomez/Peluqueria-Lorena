@@ -32,6 +32,19 @@ class TestProductoDomainMethods:
         assert producto.stockActual == 10
         assert producto.stockMinimo == 3
 
+    def test_alias_reponer_stock_camel_case(self) -> None:
+        """El alias reponerStock del diagrama de clases suma stock igual que reponer_stock."""
+        producto = Producto.objects.create(
+            nombre="Tintura 60 ml",
+            precio=Decimal("3000.00"),
+            stock_actual=4,
+            stock_minimo=1,
+        )
+        producto.reponerStock(6)
+        producto.refresh_from_db()
+
+        assert producto.stock_actual == 10
+
     def test_descontar_stock_exitoso(self) -> None:
         """RF 7.2: Verifica que descontar_stock reduzca la existencia cuando hay stock."""
         producto = Producto.objects.create(

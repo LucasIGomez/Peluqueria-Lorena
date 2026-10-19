@@ -223,6 +223,14 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
         """
         return True
 
+    def iniciarSesion(self) -> dict[str, str]:
+        """Alias de compatibilidad para iniciar_sesion (diagrama de clases)."""
+        return self.iniciar_sesion()
+
+    def cerrarSesion(self) -> bool:
+        """Alias de compatibilidad para cerrar_sesion (diagrama de clases)."""
+        return self.cerrar_sesion()
+
 
 # ──────────────────────────────────────────────────────────────
 # Proxy Model: Empleada
@@ -283,6 +291,24 @@ class Empleada(Usuario):
         """
         # TODO: Integrar con módulo de Servicios en próxima etapa
         return {"empleada_id": self.pk, "trabajo": kwargs}
+
+    # ── Alias camelCase (coinciden con el diagrama de clases) ──
+
+    def consultarAgenda(self) -> dict[str, Any]:
+        """Alias de compatibilidad para consultar_agenda."""
+        return self.consultar_agenda()
+
+    def gestionarClientas(self) -> dict[str, Any]:
+        """Alias de compatibilidad para gestionar_clientas."""
+        return self.gestionar_clientas()
+
+    def registrarCobro(self, **kwargs: Any) -> dict[str, Any]:
+        """Alias de compatibilidad para registrar_cobro."""
+        return self.registrar_cobro(**kwargs)
+
+    def registrarTrabajo(self, **kwargs: Any) -> dict[str, Any]:
+        """Alias de compatibilidad para registrar_trabajo."""
+        return self.registrar_trabajo(**kwargs)
 
 
 # ──────────────────────────────────────────────────────────────
@@ -363,3 +389,29 @@ class Administradora(Empleada):
         """
         # TODO: Integrar con módulo de Clientes/Fidelización en próxima etapa
         return {"admin_id": self.pk, "accion": "configurar_beneficios"}
+
+    # ── Alias camelCase (coinciden con el diagrama de clases) ──
+
+    def gestionarUsuarios(self) -> dict[str, Any]:
+        """Alias de compatibilidad para gestionar_usuarios."""
+        return self.gestionar_usuarios()
+
+    def gestionarServicios(self) -> dict[str, Any]:
+        """Alias de compatibilidad para gestionar_servicios."""
+        return self.gestionar_servicios()
+
+    def cerrarCaja(self) -> dict[str, Any]:
+        """Alias de compatibilidad para cerrar_caja."""
+        return self.cerrar_caja()
+
+    def gestionarProveedores(self) -> dict[str, Any]:
+        """Alias de compatibilidad para gestionar_proveedores."""
+        return self.gestionar_proveedores()
+
+    def generarReportes(self) -> dict[str, Any]:
+        """Alias de compatibilidad para generar_reportes."""
+        return self.generar_reportes()
+
+    def configurarBeneficios(self) -> dict[str, Any]:
+        """Alias de compatibilidad para configurar_beneficios."""
+        return self.configurar_beneficios()
