@@ -2,10 +2,14 @@
 
 {% block title %}Dashboard — Peluquería Lorena{% endblock %}
 
-{% block page_subtitle %}{{ hoy|date:"l, d \d\e F \d\e Y"|capfirst }}{% endblock %}
+{% block page_subtitle %}Resumen del día en el salón.{% endblock %}
 
 {% block extra_css %}
 <style>
+    /* Las métricas se reparten el ancho de cada fila: nunca queda un hueco vacío. */
+    .metricas { display: flex; flex-wrap: wrap; }
+    .metricas > .metrica { flex: 1 1 12rem; }
+
     .fila-lista {
         display: flex;
         align-items: center;
