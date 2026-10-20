@@ -22,7 +22,7 @@ from apps.clientes.models import Cliente
 from apps.servicios.models import Servicio, ServicioRealizado
 from apps.usuarios.models import Usuario
 from .forms import FiltroLiquidacionForm, RegistroTrabajoForm
-from .models import ConfiguracionComision, Liquidacion
+from .models import ConfiguracionComision
 from .services import ComisionService
 
 

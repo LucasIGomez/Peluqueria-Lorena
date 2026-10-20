@@ -18,7 +18,7 @@ from django.utils import timezone
 from apps.clientes.models import Cliente
 from apps.servicios.models import ConsentimientoInformado, Servicio, ServicioRealizado
 from apps.usuarios.models import Usuario
-from .models import ConfiguracionComision, Liquidacion
+from .models import ConfiguracionComision
 
 
 class ConfiguracionComisionForm(forms.ModelForm):

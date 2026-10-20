@@ -4,11 +4,9 @@ Peluquería Lorena — Configuración de URLs raíz.
 Centraliza todas las rutas de la aplicación web y de la API.
 """
 from django.contrib import admin
-from django.contrib.auth.decorators import login_required
 from django.urls import include, path
-from django.views.generic import TemplateView
 
-from config.views import dashboard_view, modulo_en_desarrollo
+from config.views import dashboard_view
 
 urlpatterns = [
     path("admin/", admin.site.urls),

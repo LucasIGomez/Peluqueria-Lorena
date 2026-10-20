@@ -405,7 +405,6 @@ class CajaService:
         Consolida los cobros vigentes del día por medio de pago,
         con cantidades, descuentos y total general (base del cierre y reporte).
         """
-        from django.db.models import Sum as _Sum
 
         dia = fecha or timezone.localdate()
         cobros = Cobro.objects.filter(fecha=dia, anulado=False)

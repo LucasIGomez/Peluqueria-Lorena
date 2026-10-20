@@ -28,13 +28,7 @@ from .serializers import (
     MovimientoStockSerializer,
     ProductoSerializer,
 )
-from .services import (
-    CantidadInvalidaError,
-    InventarioError,
-    InventarioService,
-    ProductoNoEncontradoError,
-    StockInsuficienteError,
-)
+from .services import InventarioError, InventarioService, StockInsuficienteError
 
 
 # ──────────────────────────────────────────────────────────────

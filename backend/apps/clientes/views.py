@@ -8,7 +8,6 @@ Implementa:
 """
 from __future__ import annotations
 
-from typing import Any
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -17,7 +16,7 @@ from rest_framework import serializers, viewsets
 from rest_framework.permissions import IsAuthenticated
 
 from .forms import ClienteForm, EvolucionSesionForm, TratamientoProgresoForm, _validar_formato_telefono
-from .models import Cliente, EvolucionSesion, TratamientoProgreso
+from .models import Cliente, TratamientoProgreso
 from .services import ClienteService
 
 

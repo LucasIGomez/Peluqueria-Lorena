@@ -7,9 +7,7 @@ Define:
 """
 from __future__ import annotations
 
-from typing import Optional
 from django.db import models
-from django.utils import timezone
 
 
 class ConversacionBot(models.Model):

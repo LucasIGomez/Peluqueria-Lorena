@@ -11,7 +11,6 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Optional
-from django.conf import settings
 from django.utils import timezone
 
 

@@ -7,8 +7,6 @@ ventas directas, reposiciones y ajustes manuales) bajo POO.
 """
 from __future__ import annotations
 
-from typing import Any, Optional
-from decimal import Decimal
 
 from django.conf import settings
 from django.db import models
@@ -163,6 +161,10 @@ class Producto(models.Model):
 
         self.stock_actual += cantidad
         self.save(update_fields=["stock_actual", "actualizado_en"])
+
+    def reponerStock(self, cantidad: int) -> None:
+        """Alias de compatibilidad para reponer_stock."""
+        self.reponer_stock(cantidad)
 
     def verificar_stock_minimo(self) -> bool:
         """

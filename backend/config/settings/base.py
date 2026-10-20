@@ -68,6 +68,7 @@ LOCAL_APPS: List[str] = [
     "apps.bot_asistente",
     "apps.comisiones",
     "apps.fidelizacion",
+    "apps.notificaciones",
 ]
 
 INSTALLED_APPS: List[str] = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
@@ -209,6 +210,13 @@ LOGIN_REDIRECT_URL: str = "/"
 LOGOUT_REDIRECT_URL: str = "/usuarios/login/"
 
 # ──────────────────────────────────────────────
+# SESIÓN (RF 1.6: cierre automático por inactividad)
+# ──────────────────────────────────────────────
+# La sesión vence tras 15 minutos sin actividad; cada petición renueva el plazo.
+SESSION_COOKIE_AGE: int = int(os.environ.get("SESSION_INACTIVIDAD_SEGUNDOS", 15 * 60))
+SESSION_SAVE_EVERY_REQUEST: bool = True
+
+# ──────────────────────────────────────────────
 # DATOS DEL SALÓN Y DE LA DUEÑA
 # ──────────────────────────────────────────────
 DATOS_PELUQUERIA = {
@@ -229,6 +237,9 @@ WHATSAPP_VERIFY_TOKEN: str = config("WHATSAPP_VERIFY_TOKEN", default="")
 WHATSAPP_APP_SECRET: str = config("WHATSAPP_APP_SECRET", default="")
 WHATSAPP_PHONE_NUMBER_ID: str = config("WHATSAPP_PHONE_NUMBER_ID", default="")
 WHATSAPP_ACCESS_TOKEN: str = config("WHATSAPP_ACCESS_TOKEN", default="")
+
+# RF 12.4: minutos de anticipación del recordatorio de turno
+RECORDATORIO_TURNO_ANTICIPACION_MINUTOS: int = config("RECORDATORIO_TURNO_ANTICIPACION_MINUTOS", default=60, cast=int)
 
 BOT_CONFIG = {
     "HORARIO_APERTURA": 9,   # 09:00
