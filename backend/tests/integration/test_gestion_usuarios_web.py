@@ -283,3 +283,28 @@ class TestValidacionesGestionUsuarios:
         assert response.status_code == 200
         otra.refresh_from_db()
         assert otra.rol == Usuario.Rol.EMPLEADA
+
+
+@pytest.mark.django_db
+class TestCierreSesionPorInactividad:
+    """RF 1.6: la sesión se cierra tras 15 minutos sin actividad."""
+
+    def test_la_sesion_dura_15_minutos_y_se_renueva_en_cada_peticion(self, settings) -> None:
+        assert settings.SESSION_COOKIE_AGE == 15 * 60
+        assert settings.SESSION_SAVE_EVERY_REQUEST is True
+
+    def test_sesion_vencida_redirige_al_login(self, client) -> None:
+        """Con la sesión vencida, entrar a una pantalla protegida lleva al login."""
+        from datetime import timedelta
+
+        from django.contrib.sessions.models import Session
+        from django.utils import timezone
+
+        EmpleadaFactory(email="inactiva@test.com")
+        client.post(reverse("usuarios:login"), {"email": "inactiva@test.com", "password": "TestPass123!"})
+        assert client.get("/").status_code == 200
+
+        Session.objects.update(expire_date=timezone.now() - timedelta(minutes=1))
+        respuesta = client.get("/")
+        assert respuesta.status_code == 302
+        assert respuesta.url.startswith(reverse("usuarios:login"))
