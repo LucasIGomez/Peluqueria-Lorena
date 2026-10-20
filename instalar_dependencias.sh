@@ -29,18 +29,18 @@ deactivate
 cd ..
 echo "¡Dependencias del backend instaladas correctamente!"
 
-# 2. Dependencias del Frontend (Node.js)
+# 2. Dependencias del Frontend (Node.js si aplica)
 echo ""
-echo "-> [2/2] Instalando dependencias del Frontend (Node.js)..."
+echo "-> [2/2] Verificando dependencias del Frontend..."
 cd frontend
-
-# Instalar los paquetes con npm
-echo "Ejecutando npm install..."
-npm install
-
-# Volver a la raíz del proyecto
+if [ -f "package.json" ]; then
+    echo "Ejecutando npm install..."
+    npm install
+else
+    echo "Frontend basado en plantillas Django y CDN (no requiere npm)."
+fi
 cd ..
-echo "¡Dependencias del frontend instaladas correctamente!"
+echo "¡Frontend listo!"
 
 echo ""
 echo "======================================"
