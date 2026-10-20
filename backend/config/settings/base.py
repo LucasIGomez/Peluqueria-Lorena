@@ -25,14 +25,18 @@ BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent
 # ──────────────────────────────────────────────
 # SEGURIDAD
 # ──────────────────────────────────────────────
-SECRET_KEY: str = os.environ.get(
+SECRET_KEY: str = config(
     "DJANGO_SECRET_KEY",
-    "django-insecure-dev-key-peluqueria-lorena-cambiar-en-produccion",
+    default="django-insecure-dev-key-peluqueria-lorena-cambiar-en-produccion",
 )
 
 DEBUG: bool = False
 
-ALLOWED_HOSTS: List[str] = os.environ.get("DJANGO_ALLOWED_HOSTS", "").split(",")
+ALLOWED_HOSTS: List[str] = config(
+    "DJANGO_ALLOWED_HOSTS",
+    default="localhost,127.0.0.1,100.82.23.52",
+    cast=lambda v: [s.strip() for s in v.split(",") if s.strip()],
+)
 
 # ──────────────────────────────────────────────
 # APLICACIONES
@@ -44,6 +48,7 @@ DJANGO_APPS: List[str] = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.humanize",
 ]
 
 THIRD_PARTY_APPS: List[str] = [
@@ -230,5 +235,8 @@ BOT_CONFIG = {
     "HORARIO_CIERRE": 19,    # 19:00
     "DIAS_ATENCION": [1, 2, 3, 4, 5],  # Martes (1) a Sábado (5). Lunes=0, Domingo=6 cerrados
 }
+
+# Capacidad máxima simultánea del salón (puestos físicos / estilistas disponibles)
+SALON_CAPACIDAD_SIMULTANEA: int = config("SALON_CAPACIDAD_SIMULTANEA", default=2, cast=int)
 
 

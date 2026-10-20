@@ -33,6 +33,10 @@ class SolapamientoError(TurnoError):
     """Se lanza cuando el turno se superpone con otro de la misma peluquera."""
 
 
+class CapacidadAgotadaError(TurnoError):
+    """Se lanza cuando la franja horaria pedida alcanza la capacidad máxima simultánea del salón."""
+
+
 class TurnoService:
     """Servicio de dominio para la agenda de turnos."""
 
@@ -82,6 +86,51 @@ class TurnoService:
                 return True
         return False
 
+    @staticmethod
+    def franja_saturada(
+        fecha: date,
+        hora: time,
+        duracion_minutos: int,
+        excluir_pk: Optional[int] = None,
+        capacidad_maxima: Optional[int] = None,
+    ) -> bool:
+        """
+        Calcula el pico máximo de concurrencia simultánea en el salón durante la franja [hora, hora + duracion].
+        Retorna True si agregar este turno superaría la capacidad máxima permitida del salón.
+        """
+        from django.conf import settings
+        limite = capacidad_maxima if capacidad_maxima is not None else getattr(settings, "SALON_CAPACIDAD_SIMULTANEA", 2)
+
+        inicio = datetime.combine(fecha, hora)
+        fin = inicio + timedelta(minutes=duracion_minutos)
+
+        activos: QuerySet[Turno] = Turno.objects.filter(fecha=fecha).exclude(
+            estado__in=[Turno.Estado.CANCELADO, Turno.Estado.AUSENTE]
+        )
+        if excluir_pk is not None:
+            activos = activos.exclude(pk=excluir_pk)
+
+        eventos = []
+        for t in activos:
+            t_ini = datetime.combine(t.fecha, t.hora)
+            t_fin = t_ini + timedelta(minutes=t.duracion_minutos)
+            if t_ini < fin and inicio < t_fin:
+                eventos.append((max(t_ini, inicio), 1))    # Inicio de atención (+1)
+                eventos.append((min(t_fin, fin), -1))      # Fin de atención (-1)
+
+        simultaneos = 0
+        pico = 0
+        # En empate temporal, los fines (-1) se procesan antes que los inicios (+1)
+        for _, delta in sorted(eventos, key=lambda e: (e[0], e[1])):
+            simultaneos += delta
+            pico = max(pico, simultaneos)
+
+        return pico >= limite
+
+    @classmethod
+    def franjaSaturada(cls, *args: Any, **kwargs: Any) -> bool:
+        return cls.franja_saturada(*args, **kwargs)
+
     @classmethod
     def haySolapamiento(cls, *args: Any, **kwargs: Any) -> bool:
         return cls.hay_solapamiento(*args, **kwargs)
@@ -100,8 +149,9 @@ class TurnoService:
         profesional: Any = None,
         duracion_minutos: Optional[int] = None,
         notas: str = "",
+        permitir_solapamiento: bool = False,
     ) -> Turno:
-        """Agenda un nuevo turno, validando datos mínimos y solapamiento."""
+        """Agenda un nuevo turno, validando datos mínimos y solapamiento opcional."""
         if not cliente_nombre or not cliente_nombre.strip():
             raise TurnoInvalidoError("El nombre de la clienta es obligatorio.")
         if servicio is None:
@@ -112,7 +162,7 @@ class TurnoService:
             raise TurnoInvalidoError("La duración del turno debe ser mayor a cero.")
         cls.validar_fin_dentro_del_horario(hora, duracion)
 
-        if cls.hay_solapamiento(profesional, fecha, hora, duracion):
+        if not permitir_solapamiento and cls.hay_solapamiento(profesional, fecha, hora, duracion):
             raise SolapamientoError(
                 f"{getattr(profesional, 'nombre', 'La peluquera')} ya tiene un turno asignado en ese horario."
             )
@@ -146,6 +196,7 @@ class TurnoService:
         profesional: Any = "__sin_cambios__",
         duracion_minutos: Optional[int] = None,
         notas: Optional[str] = None,
+        permitir_solapamiento: bool = False,
     ) -> Turno:
         """Edita un turno existente, re-validando solapamiento con los nuevos datos."""
         if turno.estado in (Turno.Estado.CANCELADO, Turno.Estado.COMPLETADO):
@@ -160,7 +211,7 @@ class TurnoService:
         if nueva_hora != turno.hora or nueva_duracion != turno.duracion_minutos:
             cls.validar_fin_dentro_del_horario(nueva_hora, nueva_duracion)
 
-        if cls.hay_solapamiento(nuevo_profesional, nueva_fecha, nueva_hora, nueva_duracion, excluir_pk=turno.pk):
+        if not permitir_solapamiento and cls.hay_solapamiento(nuevo_profesional, nueva_fecha, nueva_hora, nueva_duracion, excluir_pk=turno.pk):
             raise SolapamientoError(
                 f"{getattr(nuevo_profesional, 'nombre', 'La peluquera')} ya tiene un turno asignado en ese horario."
             )
@@ -189,11 +240,16 @@ class TurnoService:
     # ── Asignación de peluquera ──
 
     @classmethod
-    def asignar_profesional(cls, turno: Turno, profesional: Any) -> Turno:
+    def asignar_profesional(
+        cls,
+        turno: Turno,
+        profesional: Any,
+        permitir_solapamiento: bool = False,
+    ) -> Turno:
         """Asigna o reasigna la peluquera que atiende el turno."""
         if turno.estado in (Turno.Estado.CANCELADO, Turno.Estado.COMPLETADO):
             raise TurnoInvalidoError("No se puede reasignar un turno cancelado o ya completado.")
-        if cls.hay_solapamiento(profesional, turno.fecha, turno.hora, turno.duracion_minutos, excluir_pk=turno.pk):
+        if not permitir_solapamiento and cls.hay_solapamiento(profesional, turno.fecha, turno.hora, turno.duracion_minutos, excluir_pk=turno.pk):
             raise SolapamientoError(
                 f"{getattr(profesional, 'nombre', 'La peluquera')} ya tiene un turno asignado en ese horario."
             )
@@ -206,6 +262,31 @@ class TurnoService:
     @classmethod
     def asignarProfesional(cls, *args: Any, **kwargs: Any) -> Turno:
         return cls.asignar_profesional(*args, **kwargs)
+
+    @classmethod
+    @transaction.atomic
+    def crear_turno_bolsa_comun(cls, **datos) -> Turno:
+        """
+        Crea un turno en bolsa común validando que no se supere la capacidad
+        máxima simultánea del salón. Lanza CapacidadAgotadaError si la franja está saturada.
+        """
+        fecha = datos["fecha"]
+        hora = datos["hora"]
+        servicio = datos["servicio"]
+        duracion = datos.get("duracion_minutos") or servicio.duracion_estimada_minutos
+
+        if cls.franja_saturada(fecha, hora, duracion):
+            raise CapacidadAgotadaError(
+                f"La capacidad del salón está completa para el {fecha.strftime('%d/%m/%Y')} a las {hora.strftime('%H:%M')} hs."
+            )
+
+        datos["profesional"] = None
+        datos["permitir_solapamiento"] = True
+        return cls.crear_turno(**datos)
+
+    @classmethod
+    def crearTurnoBolsaComun(cls, *args: Any, **kwargs: Any) -> Turno:
+        return cls.crear_turno_bolsa_comun(*args, **kwargs)
 
     # ── Estados ──
 
@@ -286,3 +367,8 @@ class TurnoService:
     @staticmethod
     def listarTurnosRango(*args: Any, **kwargs: Any) -> QuerySet[Turno]:
         return TurnoService.listar_turnos_rango(*args, **kwargs)
+
+
+# Alias a nivel de módulo para importación directa
+franja_saturada = TurnoService.franja_saturada
+hay_solapamiento = TurnoService.hay_solapamiento

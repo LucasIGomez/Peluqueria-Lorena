@@ -68,6 +68,15 @@
                             {% if form.profesional.errors %}<div class="text-danger small mt-1">{{ form.profesional.errors }}</div>{% endif %}
                             <small class="text-secondary">Puede quedar sin asignar hasta el día del turno.</small>
                         </div>
+                        <div class="col-md-6 d-flex align-items-center mt-4">
+                            <div class="form-check p-3 rounded bg-dark border border-secondary w-100">
+                                {{ form.permitir_solapamiento }}
+                                <label class="form-check-label text-light fw-semibold ms-2" for="id_permitir_solapamiento">
+                                    <i class="bi bi-layers text-accent me-1"></i> Permitir superposición de horario
+                                </label>
+                                <small class="text-secondary d-block ms-4 mt-1">Activar para atención simultánea en puestos distintos o tiempo de espera de químico (tintura, decoloración).</small>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="mb-4">

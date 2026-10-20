@@ -27,6 +27,12 @@ class TurnoForm(forms.ModelForm):
         widget=forms.TimeInput(attrs={"class": "form-control", "type": "time", "min": "09:00", "max": "19:00"}),
     )
 
+    permitir_solapamiento = forms.BooleanField(
+        label="Permitir superposición de horario (tiempo de espera de químico / atención simultánea)",
+        required=False,
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input", "id": "id_permitir_solapamiento"}),
+    )
+
     class Meta:
         model = Turno
         fields = [
@@ -93,11 +99,15 @@ class TurnoForm(forms.ModelForm):
         fecha = datos.get("fecha")
         hora = datos.get("hora")
         duracion = datos.get("duracion_minutos")
-        if profesional and fecha and hora and duracion:
+        permitir_solapamiento = datos.get("permitir_solapamiento", False)
+
+        if profesional and fecha and hora and duracion and not permitir_solapamiento:
             excluir_pk = self.instance.pk if self.instance and self.instance.pk else None
             if TurnoService.hay_solapamiento(profesional, fecha, hora, duracion, excluir_pk=excluir_pk):
                 self.add_error(
                     "profesional",
-                    f"{profesional.nombre} ya tiene un turno asignado en ese horario.",
+                    f"{profesional.nombre} ya tiene un turno asignado en ese horario. "
+                    "Para permitir atención simultánea (espera de tintura o puestos distintos), "
+                    "marcar la casilla 'Permitir superposición de horario'.",
                 )
         return datos

@@ -11,6 +11,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.bot_asistente.handlers.whatsapp_client import enviar_mensaje_whatsapp
+from apps.bot_asistente.models import MensajeBot
 from apps.bot_asistente.serializers import WhatsAppWebhookPayloadSerializer
 from apps.bot_asistente.services import TurnoBotService
 
@@ -40,7 +41,7 @@ class WhatsAppWebhookView(APIView):
             logger.warning("WHATSAPP_VERIFY_TOKEN no está configurado en settings.")
             return HttpResponse("Configuración incompleta", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        if mode == "subscribe" and verify_token == expected_token:
+        if mode == "subscribe" and verify_token and hmac.compare_digest(verify_token, expected_token):
             return HttpResponse(challenge, content_type="text/plain", status=status.HTTP_200_OK)
 
         return HttpResponseForbidden("Token de verificación inválido")
@@ -97,17 +98,27 @@ class WhatsAppWebhookView(APIView):
         telefono = info_mensaje.get("telefono")
         texto = info_mensaje.get("texto")
         nombre = info_mensaje.get("nombre", "Clienta")
+        wamid = info_mensaje.get("wamid")
 
         if not telefono or not texto:
             # Evento sin mensaje de texto útil (e.g. status de entrega o lectura de Meta)
             return Response({"status": "ignored", "detail": "Evento sin contenido de mensaje"}, status=status.HTTP_200_OK)
 
-        # 3. Procesamiento en el servicio de dominio
+        # 3. Deduplicación por wamid (idempotencia ante reintentos de Meta Cloud API)
+        if wamid and MensajeBot.objects.filter(wamid=wamid).exists():
+            logger.info("Mensaje de WhatsApp duplicado ignorado (wamid=%s)", wamid)
+            return Response(
+                {"status": "ignored", "detail": "Mensaje ya procesado"},
+                status=status.HTTP_200_OK,
+            )
+
+        # 4. Procesamiento en el servicio de dominio
         bot_service = TurnoBotService()
         respuesta_bot = bot_service.procesar_mensaje(
             telefono=telefono,
             texto=texto,
             nombre_remitente=nombre,
+            wamid=wamid,
         )
 
         # 4. Envío de respuesta saliente a Meta Cloud API

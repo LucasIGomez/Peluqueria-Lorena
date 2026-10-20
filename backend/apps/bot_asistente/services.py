@@ -22,7 +22,7 @@ from apps.clientes.models import Cliente
 from apps.clientes.services import ClienteService
 from apps.servicios.models import Servicio
 from apps.turnos.models import Turno
-from apps.turnos.services import HORA_CIERRE, TurnoInvalidoError, TurnoService
+from apps.turnos.services import CapacidadAgotadaError, HORA_CIERRE, TurnoInvalidoError, TurnoService
 
 from .ai.interpreter import BotResponseSchema, InterpreteIA, IntencionEnum
 from .handlers.business_hours import BusinessHoursValidator
@@ -72,6 +72,7 @@ class TurnoBotService:
         telefono_cliente: str = "",
         mensaje_texto: str = "",
         nombre_cliente: str = "",
+        wamid: Optional[str] = None,
     ) -> str:
         """
         Punto de entrada principal para procesar cualquier mensaje entrante de WhatsApp.
@@ -82,11 +83,7 @@ class TurnoBotService:
         nombre_remitente = nombre_remitente or nombre_cliente
         telefono_limpio = re.sub(r"\D", "", telefono)
 
-        # 1. Regla de Negocio: Restricción de Horario Comercial
-        if not cls._esta_en_horario():
-            return BusinessHoursValidator.obtener_mensaje_fuera_de_horario()
-
-        # 2. Recuperar o registrar la sesión de conversación
+        # 1. Recuperar o registrar la sesión de conversación
         conversacion, _ = ConversacionBot.objects.get_or_create(
             telefono_cliente=telefono_limpio,
             defaults={"nombre_remitente": nombre_remitente},
@@ -104,12 +101,19 @@ class TurnoBotService:
                 conversacion.cliente = cliente_existente
                 conversacion.save(update_fields=["cliente"])
 
-        # 3. Guardar mensaje entrante para auditoría
+        # 2. Guardar mensaje entrante para auditoría (con wamid para idempotencia)
         MensajeBot.objects.create(
             conversacion=conversacion,
             direccion=MensajeBot.Direccion.ENTRANTE,
             contenido=texto,
+            wamid=wamid,
         )
+
+        # 3. Regla de Negocio: Restricción de Horario Comercial
+        if not cls._esta_en_horario():
+            mensaje_fuera = BusinessHoursValidator.obtener_mensaje_fuera_de_horario()
+            cls._guardar_mensaje_saliente(conversacion, mensaje_fuera, "FUERA_DE_HORARIO")
+            return mensaje_fuera
 
         # 4. Si la conversación ya está escalada a atención humana
         if conversacion.requiere_humano:
@@ -338,7 +342,16 @@ class TurnoBotService:
         except (ValueError, IndexError):
             return "No pude interpretar con certeza la fecha u hora solicitada. ¿Podrías indicarla en formato de día y hora (ej: 'este jueves a las 16:00')?"
 
-        # 2. Validar que la fecha del turno caiga dentro del horario comercial del salón
+        # 2. Validar que la fecha no sea en el pasado
+        hoy = timezone.localdate()
+        ahora = timezone.localtime().time()
+        if fecha_turno < hoy or (fecha_turno == hoy and hora_turno <= ahora):
+            return (
+                f"La fecha u hora solicitada ({fecha_turno.strftime('%d/%m/%Y')} a las {hora_turno.strftime('%H:%M')} hs) "
+                "ya ha transcurrido. Por favor, indicanos un día y horario futuro para tu atención."
+            )
+
+        # 3. Validar que la fecha del turno caiga dentro del horario comercial del salón
         dt_turno = datetime.combine(fecha_turno, hora_turno)
         if not BusinessHoursValidator.esta_en_horario(dt_turno):
             return (
@@ -347,20 +360,24 @@ class TurnoBotService:
                 "Atendemos de *Martes a Sábado de 09:00 a 19:00 hs*. ¿Te gustaría elegir otro horario?"
             )
 
-        # 3. Identificar el servicio
+        # 4. Identificar el servicio en catálogo (sin asignación arbitraria)
         servicio_obj = None
         if schema_ia.servicios_detectados:
-            primer_servicio = schema_ia.servicios_detectados[0]
-            servicio_obj = Servicio.objects.filter(
-                nombre__icontains=primer_servicio, activo=True
-            ).first()
+            for nom in schema_ia.servicios_detectados:
+                servicio_obj = Servicio.objects.filter(
+                    nombre__icontains=nom, activo=True
+                ).first()
+                if servicio_obj:
+                    break
 
         if not servicio_obj:
-            # Fallback al primer servicio o genérico
-            servicio_obj = Servicio.objects.filter(activo=True).first()
-
-        if not servicio_obj:
-            return "En este momento no contamos con servicios habilitados en el catálogo. Por favor comunicate con Lorena (opción 5)."
+            conversacion.requiere_humano = True
+            conversacion.estado = ConversacionBot.Estado.ESCALADA_HUMANO
+            conversacion.save(update_fields=["requiere_humano", "estado"])
+            return (
+                "No pude identificar con exactitud el servicio solicitado en nuestro catálogo. "
+                "Te derivo directamente con Lorena para que coordinen el trabajo ideal. ¡Te respondemos en breve!"
+            )
 
         # Calcular duración estimada
         duracion = servicio_obj.duracion_estimada_minutos
@@ -376,7 +393,7 @@ class TurnoBotService:
                 "¿Te gustaría elegir un horario más temprano?"
             )
 
-        # 4. Obtener o crear Clienta a través de ClienteService
+        # 5. Obtener o crear Clienta a través de ClienteService
         tel_normalizado = normalizar_telefono(telefono)
         cliente = conversacion.cliente
         if not cliente:
@@ -390,21 +407,30 @@ class TurnoBotService:
             conversacion.cliente = cliente
             conversacion.save(update_fields=["cliente"])
 
-        # 5. Crear el Turno en Bolsa Común a través de TurnoService (profesional=None)
-        # La clienta no elige peluquera; se asigna internamente en el salón.
-        turno = TurnoService.crear_turno(
-            cliente=cliente,
-            cliente_nombre=cliente.nombre,
-            cliente_telefono=tel_normalizado,
-            servicio=servicio_obj,
-            profesional=None,  # Bolsa común
-            fecha=fecha_turno,
-            hora=hora_turno,
-            duracion_minutos=duracion,
-            notas="Agendado automáticamente por Asistente Virtual WhatsApp",
-        )
-        if turno.estado != Turno.Estado.CONFIRMADO:
-            TurnoService.cambiar_estado(turno, Turno.Estado.CONFIRMADO)
+        # 6. Crear el Turno en Bolsa Común con validación de capacidad simultánea
+        try:
+            turno = TurnoService.crear_turno_bolsa_comun(
+                cliente=cliente,
+                cliente_nombre=cliente.nombre,
+                cliente_telefono=tel_normalizado,
+                servicio=servicio_obj,
+                fecha=fecha_turno,
+                hora=hora_turno,
+                duracion_minutos=duracion,
+                notas="Agendado automáticamente por Asistente Virtual WhatsApp",
+            )
+            if turno.estado != Turno.Estado.CONFIRMADO:
+                TurnoService.cambiar_estado(turno, Turno.Estado.CONFIRMADO)
+        except CapacidadAgotadaError:
+            conversacion.requiere_humano = True
+            conversacion.estado = ConversacionBot.Estado.ESCALADA_HUMANO
+            conversacion.save(update_fields=["requiere_humano", "estado"])
+            return (
+                f"¡Gracias por escribirnos! 💛 Para el *{fecha_turno.strftime('%d/%m/%Y')} a las {hora_turno.strftime('%H:%M')} hs* "
+                "el salón ya cuenta con reservas activas y cupo completo. "
+                "Para no superponer atenciones y coordinar la mejor alternativa según el servicio, "
+                "te derivo directamente con Lorena. ¡Te responderemos por acá a la brevedad!"
+            )
 
         aviso_tecnico = ""
         if servicio_obj.requiere_consentimiento:

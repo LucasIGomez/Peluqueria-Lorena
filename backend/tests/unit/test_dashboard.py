@@ -16,6 +16,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from apps.clientes.models import Cliente
+from apps.fidelizacion.models import BeneficioOtorgado
 from apps.inventario.models import Producto
 from apps.pagos.models import Cobro
 from apps.servicios.models import Servicio
@@ -305,6 +306,46 @@ class TestDashboardService:
         nombres_hoy = [c.nombre for c in metricas["cumpleaneras_hoy"]]
         assert "Ana Cumple Hoy" in nombres_hoy
         assert "Beatriz Cumple Octubre" not in nombres_hoy
+
+    def test_rf2_6_series_de_graficos_y_fidelizacion(self, profesional):
+        """Entrega las series de Chart.js, últimos movimientos y cupones vigentes."""
+        hoy = date(2026, 10, 15)
+
+        for dias_atras, total in ((0, "10000.00"), (1, "5000.00"), (6, "2000.00")):
+            Cobro.objects.create(
+                cliente_nombre="Clienta Gráfico",
+                profesional=profesional,
+                tipo=Cobro.Tipo.SERVICIO,
+                precio_unitario=Decimal(total),
+                subtotal=Decimal(total),
+                total=Decimal(total),
+                fecha=hoy - timedelta(days=dias_atras),
+            )
+
+        cumpleanera = Cliente.objects.create(
+            nombre="Elena Cumple Pronto",
+            telefono="2975005555",
+            fecha_nacimiento=date(1991, 10, 18),
+            activo=True,
+        )
+        BeneficioOtorgado.objects.create(
+            cliente=cumpleanera,
+            tipo="CUMPLEANOS",
+            codigo="CUM-TEST-01",
+            descripcion_beneficio="15% OFF",
+            fecha_vencimiento=hoy + timedelta(days=3),
+        )
+
+        metricas = DashboardService.obtener_metricas(hoy=hoy)
+
+        assert len(metricas["ingresos_7_dias"]) == 7
+        assert metricas["ingresos_7_dias"][-1]["total"] == 10000.0
+        assert metricas["ingresos_7_dias"][0]["fecha"] == (hoy - timedelta(days=6)).isoformat()
+        assert metricas["distribucion_medios"][0]["codigo"] == Cobro.MedioPago.EFECTIVO
+        assert len(metricas["ultimos_movimientos"]) == 3
+        assert metricas["total_beneficios_disponibles"] == 1
+        assert metricas["beneficios_disponibles"][0].codigo == "CUM-TEST-01"
+        assert "Elena Cumple Pronto" in [c.nombre for c in metricas["cumpleaneras_semana"]]
 
 
 @pytest.mark.django_db

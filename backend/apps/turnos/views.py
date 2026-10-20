@@ -93,6 +93,7 @@ def crear_turno_view(request):
                     profesional=datos.get("profesional"),
                     duracion_minutos=datos.get("duracion_minutos"),
                     notas=datos.get("notas", ""),
+                    permitir_solapamiento=datos.get("permitir_solapamiento", False),
                 )
                 messages.success(
                     request,
@@ -152,6 +153,7 @@ def editar_turno_view(request, pk: int):
                     profesional=datos.get("profesional"),
                     duracion_minutos=datos.get("duracion_minutos"),
                     notas=datos.get("notas", ""),
+                    permitir_solapamiento=datos.get("permitir_solapamiento", False),
                 )
                 messages.success(request, "Turno actualizado correctamente.")
                 return redirect(f"{reverse('turnos:agenda')}?vista=dia&fecha={turno.fecha.isoformat()}")

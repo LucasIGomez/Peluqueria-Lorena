@@ -77,6 +77,15 @@ class MensajeBot(models.Model):
         max_length=15,
         choices=Direccion.choices,
     )
+    wamid = models.CharField(
+        "ID de mensaje Meta (wamid)",
+        max_length=128,
+        unique=True,
+        null=True,
+        blank=True,
+        db_index=True,
+        help_text="Identificador único del mensaje emitido por WhatsApp para prevenir duplicaciones.",
+    )
     contenido = models.TextField("contenido del mensaje")
     intencion = models.CharField("intención detectada", max_length=50, blank=True)
     payload_ia = models.JSONField("respuesta estructurada de IA", null=True, blank=True)

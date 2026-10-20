@@ -28,7 +28,8 @@ class WhatsAppWebhookPayloadSerializer(serializers.Serializer):
             return {
                 "telefono": data["from_number"],
                 "texto": data["text"],
-                "nombre": data.get("name", "Clienta")
+                "nombre": data.get("name", "Clienta"),
+                "wamid": data.get("wamid", ""),
             }
 
         # Formato oficial Meta Cloud API
@@ -46,6 +47,7 @@ class WhatsAppWebhookPayloadSerializer(serializers.Serializer):
                         msg = messages[0]
                         msg_type = msg.get("type", "text")
                         telefono = msg.get("from", "")
+                        wamid = msg.get("id", "")
 
                         texto = ""
                         if msg_type == "text":
@@ -61,11 +63,13 @@ class WhatsAppWebhookPayloadSerializer(serializers.Serializer):
                             return {
                                 "telefono": telefono,
                                 "texto": texto,
-                                "nombre": nombre
+                                "nombre": nombre,
+                                "wamid": wamid,
                             }
 
         return {
             "telefono": "",
             "texto": "",
-            "nombre": "Clienta"
+            "nombre": "Clienta",
+            "wamid": "",
         }

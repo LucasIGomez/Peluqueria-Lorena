@@ -1,452 +1,1601 @@
 {% extends 'base.html' %}
+{% load humanize %}
 
-{% block title %}Dashboard — Peluquería Lorena{% endblock %}
+{% block title %}Panel de control — Peluquería Lorena{% endblock %}
+
+{% block page_title %}Hola, {{ request.user.nombre }}.{% endblock %}
+{% block page_subtitle %}Tu salón, de un vistazo: caja, agenda y stock en un solo lugar.{% endblock %}
+
+{% block extra_css %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,600&display=swap" rel="stylesheet">
+<style>
+    /* ──────────────────────────────────────────────────────────
+       Panel de control — dirección visual "salón atelier"
+       Carbón cálido + latón dorado + marfil. Bordes finos, sin ruido.
+       ────────────────────────────────────────────────────────── */
+    .dash {
+        --dash-bg: #121418;
+        --dash-surface: #181b21;
+        --dash-surface-2: #1d2129;
+        --dash-surface-3: #232831;
+        --dash-line: rgba(255, 255, 255, 0.075);
+        --dash-line-strong: rgba(255, 255, 255, 0.13);
+        --dash-ink: #f2efe8;
+        --dash-ink-2: #c3c6ce;
+        --dash-muted: #8f96a3;
+        --dash-gold: #e5c158;
+        --dash-gold-soft: rgba(229, 193, 88, 0.13);
+        --dash-green: #6fd3a8;
+        --dash-green-soft: rgba(111, 211, 168, 0.12);
+        --dash-red: #ef8b7c;
+        --dash-red-soft: rgba(239, 139, 124, 0.12);
+        --dash-blue: #85b4ff;
+        --dash-blue-soft: rgba(133, 180, 255, 0.12);
+        --dash-radius: 16px;
+        --dash-radius-sm: 10px;
+        --dash-space: 8px;
+        color: var(--dash-ink);
+        font-variant-numeric: tabular-nums;
+        max-width: 1600px;
+        margin: 0 auto;
+    }
+
+    .dash *,
+    .dash *::before,
+    .dash *::after { box-sizing: border-box; }
+
+    .dash a { color: inherit; }
+
+    .dash :focus-visible {
+        outline: 2px solid var(--dash-gold);
+        outline-offset: 3px;
+        border-radius: 6px;
+    }
+
+    .dash-display {
+        font-family: 'Bodoni Moda', Georgia, 'Times New Roman', serif;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+    }
+
+    /* ── Acciones rápidas ── */
+    .quick-bar {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding: 10px;
+        margin-bottom: 20px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent);
+        border: 1px solid var(--dash-line);
+        border-radius: 14px;
+        animation: dash-in 0.38s cubic-bezier(0.23, 1, 0.32, 1) both;
+    }
+
+    .quick-bar-label {
+        padding: 0 8px 0 6px;
+        color: var(--dash-muted);
+        font-size: 0.78rem;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+    }
+
+    .quick-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        flex: 1;
+    }
+
+    .quick-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 9px;
+        min-height: 42px;
+        padding: 9px 14px;
+        border-radius: 9px;
+        border: 1px solid var(--dash-line);
+        background: var(--dash-surface-2);
+        color: var(--dash-ink-2);
+        font-size: 0.86rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: background-color 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.1s ease;
+    }
+
+    .quick-action i { color: var(--dash-gold); font-size: 1rem; }
+
+    .quick-action:hover {
+        background: var(--dash-surface-3);
+        border-color: var(--dash-line-strong);
+        color: var(--dash-ink);
+    }
+
+    .quick-action:active { transform: scale(0.98); }
+
+    .quick-action.is-primary {
+        background: var(--dash-gold);
+        border-color: var(--dash-gold);
+        color: #171307;
+    }
+
+    .quick-action.is-primary i { color: #171307; }
+
+    .quick-action.is-primary:hover {
+        background: #f0cf70;
+        border-color: #f0cf70;
+        color: #171307;
+    }
+
+    /* ── Bento grid ── */
+    .bento {
+        display: grid;
+        grid-template-columns: repeat(12, minmax(0, 1fr));
+        gap: 16px;
+        align-items: stretch;
+    }
+
+    .bento-flow { align-items: start; }
+
+    .b-5 { grid-column: span 5; }
+    .b-4 { grid-column: span 4; }
+    .b-3 { grid-column: span 3; }
+    .b-2 { grid-column: span 2; }
+    .b-7 { grid-column: span 7; }
+
+    .d-card {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+        background: var(--dash-surface);
+        border: 1px solid var(--dash-line);
+        border-radius: var(--dash-radius);
+        overflow: hidden;
+    }
+
+    .d-card::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        pointer-events: none;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+    }
+
+    .d-card-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 18px 20px 0;
+    }
+
+    .d-card-title {
+        margin: 0;
+        color: var(--dash-ink);
+        font-size: 0.98rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        line-height: 1.3;
+    }
+
+    .d-eyebrow {
+        display: block;
+        margin-bottom: 3px;
+        color: var(--dash-muted);
+        font-size: 0.7rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+
+    .d-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        min-height: 34px;
+        padding: 4px 2px;
+        color: var(--dash-muted);
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-decoration: none;
+        white-space: nowrap;
+        transition: color 0.16s ease;
+    }
+
+    .d-link:hover { color: var(--dash-gold); }
+
+    .d-card-body { padding: 16px 20px 20px; }
+
+    .d-count {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 22px;
+        height: 22px;
+        padding: 0 7px;
+        border: 1px solid var(--dash-line-strong);
+        border-radius: 999px;
+        color: var(--dash-ink-2);
+        background: rgba(255, 255, 255, 0.03);
+        font-size: 0.72rem;
+        font-weight: 700;
+    }
+
+    .card-total {
+        color: var(--dash-gold);
+        font-size: 0.95rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    /* ── KPIs ── */
+    .kpi {
+        min-height: 100%;
+        animation: dash-in 0.42s cubic-bezier(0.23, 1, 0.32, 1) both;
+    }
+
+    .kpi:nth-child(2) { animation-delay: 0.04s; }
+    .kpi:nth-child(3) { animation-delay: 0.07s; }
+    .kpi:nth-child(4) { animation-delay: 0.1s; }
+
+    .kpi-hero {
+        background:
+            radial-gradient(120% 150% at 100% 0%, rgba(229, 193, 88, 0.11), transparent 55%),
+            var(--dash-surface);
+        border-color: rgba(229, 193, 88, 0.24);
+    }
+
+    .kpi-hero::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 20px;
+        right: 20px;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, var(--dash-gold), transparent);
+        opacity: 0.75;
+    }
+
+    .kpi-inner {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        padding: 18px 20px 20px;
+    }
+
+    .kpi-label {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        margin: 0;
+        color: var(--dash-ink-2);
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+
+    .kpi-label i { color: var(--dash-gold); font-size: 0.95rem; }
+
+    .kpi-value {
+        margin: 10px 0 2px;
+        color: var(--dash-ink);
+        font-size: clamp(1.75rem, 3.2vw, 2.75rem);
+        line-height: 1;
+        letter-spacing: -0.03em;
+        white-space: nowrap;
+    }
+
+    .kpi-value.is-small {
+        font-size: clamp(1.5rem, 2.3vw, 2rem);
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        font-weight: 700;
+    }
+
+    .kpi-meta {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px 12px;
+        margin-top: auto;
+        padding-top: 12px;
+        color: var(--dash-muted);
+        font-size: 0.77rem;
+        line-height: 1.5;
+    }
+
+    .kpi-meta strong { color: var(--dash-ink-2); font-weight: 600; }
+
+    .delta {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .delta.is-up { color: var(--dash-green); background: var(--dash-green-soft); }
+    .delta.is-down { color: var(--dash-red); background: var(--dash-red-soft); }
+    .delta.is-flat { color: var(--dash-muted); background: rgba(255, 255, 255, 0.045); }
+
+    .kpi-split {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        margin-top: auto;
+        padding-top: 12px;
+        color: var(--dash-muted);
+        font-size: 0.76rem;
+    }
+
+    .kpi-split span { display: inline-flex; align-items: center; gap: 6px; }
+
+    .dot {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        flex: 0 0 auto;
+    }
+
+    .dot.is-gold { background: var(--dash-gold); }
+    .dot.is-green { background: var(--dash-green); }
+    .dot.is-red { background: var(--dash-red); }
+    .dot.is-blue { background: var(--dash-blue); }
+
+    .stock-value.is-alert { color: var(--dash-gold); }
+    .stock-value.is-ok { color: var(--dash-green); }
+
+    /* ── Agenda del día ── */
+    .turno-list {
+        display: flex;
+        flex-direction: column;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .turno {
+        display: grid;
+        grid-template-columns: 64px minmax(0, 1fr) auto;
+        gap: 14px;
+        align-items: center;
+        padding: 14px 0;
+        border-top: 1px solid var(--dash-line);
+    }
+
+    .turno:first-child { border-top: 0; padding-top: 4px; }
+
+    .turno-hora {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        align-self: start;
+        padding-top: 2px;
+    }
+
+    .turno-hora strong {
+        color: var(--dash-gold);
+        font-size: 1.04rem;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+    }
+
+    .turno-hora small { color: var(--dash-muted); font-size: 0.68rem; }
+
+    .turno-main { min-width: 0; }
+
+    .turno-cliente {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px 8px;
+        color: var(--dash-ink);
+        font-size: 0.92rem;
+        font-weight: 700;
+        line-height: 1.35;
+    }
+
+    .turno-servicio {
+        margin-top: 3px;
+        color: var(--dash-ink-2);
+        font-size: 0.8rem;
+        line-height: 1.4;
+    }
+
+    .turno-prof {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        margin-top: 6px;
+        color: var(--dash-muted);
+        font-size: 0.72rem;
+    }
+
+    .turno-side {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+
+    .pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 9px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        font-size: 0.68rem;
+        font-weight: 700;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+
+    .pill.is-pending { color: var(--dash-gold); background: var(--dash-gold-soft); border-color: rgba(229, 193, 88, 0.22); }
+    .pill.is-confirmed { color: var(--dash-blue); background: var(--dash-blue-soft); border-color: rgba(133, 180, 255, 0.22); }
+    .pill.is-done { color: var(--dash-green); background: var(--dash-green-soft); border-color: rgba(111, 211, 168, 0.22); }
+    .pill.is-cancelled { color: var(--dash-red); background: var(--dash-red-soft); border-color: rgba(239, 139, 124, 0.22); }
+    .pill.is-neutral { color: var(--dash-muted); background: rgba(255, 255, 255, 0.04); border-color: var(--dash-line); }
+
+    .icon-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 34px;
+        height: 34px;
+        border: 1px solid var(--dash-line);
+        border-radius: 8px;
+        background: transparent;
+        color: var(--dash-muted);
+        text-decoration: none;
+        transition: color 0.16s ease, border-color 0.16s ease, background-color 0.16s ease;
+    }
+
+    .icon-btn:hover {
+        color: var(--dash-gold);
+        border-color: rgba(229, 193, 88, 0.35);
+        background: var(--dash-gold-soft);
+    }
+
+    .icon-btn.is-pay:hover {
+        color: var(--dash-green);
+        border-color: rgba(111, 211, 168, 0.35);
+        background: var(--dash-green-soft);
+    }
+
+    .agenda-footer {
+        margin-top: 4px;
+        padding-top: 16px;
+        border-top: 1px solid var(--dash-line);
+    }
+
+    .mini-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 8px;
+    }
+
+    .mini-head h3 {
+        margin: 0;
+        color: var(--dash-ink-2);
+        font-size: 0.74rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+    }
+
+    .mini-list {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .mini-turno {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 7px 0;
+        color: var(--dash-muted);
+        font-size: 0.77rem;
+        border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+    }
+
+    .mini-turno:last-child { border-bottom: 0; padding-bottom: 0; }
+
+    .mini-turno strong { color: var(--dash-ink-2); font-weight: 600; }
+
+    .mini-turno .when {
+        color: var(--dash-gold);
+        font-weight: 600;
+        white-space: nowrap;
+    }
+
+    /* ── Gráficos ── */
+    .chart-stack {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        min-width: 0;
+    }
+
+    .chart-stack > .d-card { flex: 1; }
+
+    .chart-wrap {
+        position: relative;
+        width: 100%;
+        height: 214px;
+        margin-top: 8px;
+    }
+
+    .chart-wrap.is-donut { height: 188px; }
+
+    .chart-note {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--dash-line);
+        color: var(--dash-muted);
+        font-size: 0.74rem;
+    }
+
+    .chart-note strong {
+        color: var(--dash-ink);
+        font-size: 0.9rem;
+        font-weight: 700;
+    }
+
+    .legend {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 12px;
+    }
+
+    .legend-row {
+        display: grid;
+        grid-template-columns: 9px minmax(0, 1fr) auto;
+        gap: 9px;
+        align-items: center;
+        font-size: 0.78rem;
+    }
+
+    .legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--legend-color, var(--dash-gold));
+    }
+
+    .legend-label {
+        min-width: 0;
+        color: var(--dash-ink-2);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .legend-value { color: var(--dash-muted); font-size: 0.73rem; white-space: nowrap; }
+    .legend-value strong { color: var(--dash-ink); font-weight: 600; }
+
+    /* ── Movimientos de caja ── */
+    .receipt-card { position: relative; }
+
+    .receipt-card::before {
+        content: "";
+        position: absolute;
+        bottom: -1px;
+        left: 0;
+        right: 0;
+        height: 7px;
+        background:
+            radial-gradient(circle at 7px -1px, transparent 6px, var(--dash-surface) 6.5px) 0 0 / 14px 7px repeat-x;
+        pointer-events: none;
+        opacity: 0.9;
+    }
+
+    .mov-list {
+        display: flex;
+        flex-direction: column;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .mov {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        padding: 11px 0;
+        border-top: 1px dashed rgba(255, 255, 255, 0.065);
+    }
+
+    .mov:first-child { border-top: 0; padding-top: 2px; }
+
+    .mov-main { min-width: 0; }
+
+    .mov-title {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        color: var(--dash-ink);
+        font-size: 0.85rem;
+        font-weight: 600;
+        line-height: 1.35;
+    }
+
+    .mov-title span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .mov-meta {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 5px 8px;
+        margin-top: 3px;
+        color: var(--dash-muted);
+        font-size: 0.7rem;
+    }
+
+    .medio-dot { width: 7px; height: 7px; border-radius: 50%; flex: 0 0 auto; }
+    .medio-dot.is-efectivo { background: #e5c158; }
+    .medio-dot.is-mp { background: #6ea8fe; }
+    .medio-dot.is-uala { background: #a78bfa; }
+    .medio-dot.is-debito { background: #5fd0a5; }
+    .medio-dot.is-credito { background: #ee8f74; }
+
+    .mov-side {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .mov-amount {
+        color: var(--dash-ink);
+        font-size: 0.9rem;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .mov-amount small {
+        display: block;
+        color: var(--dash-muted);
+        font-size: 0.65rem;
+        font-weight: 500;
+        text-align: right;
+    }
+
+    .mov-pdf {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 7px;
+        border: 1px solid var(--dash-line);
+        color: var(--dash-muted);
+        text-decoration: none;
+        transition: color 0.16s ease, border-color 0.16s ease;
+    }
+
+    .mov-pdf:hover { color: var(--dash-gold); border-color: rgba(229, 193, 88, 0.35); }
+
+    /* ── Stock ── */
+    .stock-list {
+        display: flex;
+        flex-direction: column;
+        gap: 11px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .stock-item { min-width: 0; }
+
+    .stock-line {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 10px;
+        margin-bottom: 5px;
+    }
+
+    .stock-name {
+        min-width: 0;
+        color: var(--dash-ink);
+        font-size: 0.8rem;
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .stock-qty {
+        color: var(--dash-muted);
+        font-size: 0.7rem;
+        white-space: nowrap;
+    }
+
+    .stock-qty strong { color: var(--dash-gold); font-weight: 700; }
+    .stock-qty strong.is-out { color: var(--dash-red); }
+
+    .stock-track {
+        height: 4px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.06);
+    }
+
+    .stock-fill {
+        height: 100%;
+        max-width: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--dash-gold), #f0cf70);
+        transition: width 0.45s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    .stock-fill.is-out { background: var(--dash-red); }
+
+    .card-actions {
+        display: flex;
+        gap: 8px;
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid var(--dash-line);
+    }
+
+    .btn-soft {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        min-height: 36px;
+        padding: 7px 12px;
+        border-radius: 8px;
+        border: 1px solid var(--dash-line);
+        background: transparent;
+        color: var(--dash-ink-2);
+        font-size: 0.76rem;
+        font-weight: 600;
+        text-decoration: none;
+        transition: color 0.16s ease, border-color 0.16s ease, background-color 0.16s ease;
+    }
+
+    .btn-soft:hover { color: var(--dash-gold); border-color: rgba(229, 193, 88, 0.3); background: var(--dash-gold-soft); }
+    .btn-soft.is-gold { color: #171307; background: var(--dash-gold); border-color: var(--dash-gold); }
+    .btn-soft.is-gold:hover { background: #f0cf70; color: #171307; }
+
+    /* ── Fidelización ── */
+    .fid-section + .fid-section {
+        margin-top: 14px;
+        padding-top: 14px;
+        border-top: 1px solid var(--dash-line);
+    }
+
+    .fid-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        margin: 0 0 8px;
+        color: var(--dash-ink-2);
+        font-size: 0.75rem;
+        font-weight: 700;
+    }
+
+    .fid-person {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 6px 0;
+    }
+
+    .fid-person-main { min-width: 0; }
+
+    .fid-person-name {
+        color: var(--dash-ink);
+        font-size: 0.79rem;
+        font-weight: 600;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .fid-person-meta { color: var(--dash-muted); font-size: 0.68rem; }
+
+    .fid-person-meta .is-today { color: var(--dash-gold); font-weight: 700; }
+
+    .wa-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        color: var(--dash-green);
+        background: var(--dash-green-soft);
+        text-decoration: none;
+        flex: 0 0 auto;
+    }
+
+    .wa-link:hover { color: #0d1a15; background: var(--dash-green); }
+
+    .coupon {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 9px 10px;
+        border: 1px dashed rgba(229, 193, 88, 0.28);
+        border-radius: 9px;
+        background: rgba(229, 193, 88, 0.055);
+        text-decoration: none;
+        transition: border-color 0.16s ease, background-color 0.16s ease;
+    }
+
+    .coupon:hover { border-color: rgba(229, 193, 88, 0.55); background: rgba(229, 193, 88, 0.09); }
+    .coupon + .coupon { margin-top: 7px; }
+    .coupon-main { min-width: 0; }
+
+    .coupon-code {
+        color: var(--dash-gold);
+        font-size: 0.76rem;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+    }
+
+    .coupon-client {
+        color: var(--dash-muted);
+        font-size: 0.68rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .coupon-due { color: var(--dash-ink-2); font-size: 0.67rem; white-space: nowrap; }
+
+    /* ── Estados vacíos ── */
+    .empty {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 150px;
+        padding: 18px 12px;
+        text-align: center;
+        color: var(--dash-muted);
+    }
+
+    .empty i { color: rgba(229, 193, 88, 0.5); font-size: 1.8rem; }
+
+    .empty p { margin: 0; font-size: 0.8rem; line-height: 1.5; max-width: 26ch; }
+
+    .empty .btn-soft { margin-top: 5px; }
+
+    .empty.is-compact { min-height: 96px; padding: 10px; }
+    .empty.is-compact i { font-size: 1.35rem; }
+
+    /* ── Animación de entrada (un solo gesto) ── */
+    @keyframes dash-in {
+        from { opacity: 0; transform: translateY(9px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 1199.98px) {
+        .b-5, .b-4, .b-3, .b-2 { grid-column: span 6; }
+        .b-7 { grid-column: span 12; }
+        .kpi-hero { grid-column: span 6; }
+        .fid-card { grid-column: span 12; }
+        .stock-card { grid-column: span 6; }
+        .chart-stack {
+            grid-column: span 12;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 991.98px) {
+        .quick-bar { padding: 9px; }
+        .quick-bar-label { display: none; }
+        .quick-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+        .quick-action { justify-content: flex-start; }
+    }
+
+    @media (max-width: 767.98px) {
+        .bento { gap: 12px; }
+        .b-5, .b-4, .b-3, .b-2, .b-7,
+        .kpi-hero, .fid-card, .stock-card { grid-column: span 12; }
+
+        .quick-actions { grid-template-columns: 1fr; }
+        .quick-action { width: 100%; }
+
+        .chart-stack {
+            grid-column: span 12;
+            grid-template-columns: minmax(0, 1fr);
+        }
+
+        .d-card-head { padding: 16px 16px 0; }
+        .d-card-body { padding: 14px 16px 18px; }
+        .kpi-inner { padding: 16px; }
+
+        .turno {
+            grid-template-columns: 54px minmax(0, 1fr);
+            gap: 10px;
+            align-items: start;
+        }
+
+        .turno-side {
+            grid-column: 2;
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            margin-top: 2px;
+        }
+
+        .turno-hora strong { font-size: 0.95rem; }
+
+        .chart-wrap { height: 190px; }
+        .chart-wrap.is-donut { height: 170px; }
+    }
+
+    @media (max-width: 420px) {
+        .kpi-value { font-size: 2rem; }
+        .mov-side { gap: 5px; }
+        .mov-amount { font-size: 0.82rem; }
+        .mov-pdf { display: none; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .quick-bar, .kpi { animation: none; }
+        .stock-fill { transition: none; }
+        .quick-action, .icon-btn, .d-link, .btn-soft, .mov-pdf, .coupon { transition: none; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<!-- Encabezado de Bienvenida y Fecha -->
-<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3">
-    <div>
-        <h2 class="fw-bold mb-1 text-light">
-            ¡Hola, {{ request.user.nombre }}! 👋
-        </h2>
-        <p class="text-secondary mb-0">
-            <i class="bi bi-calendar3 me-1 text-accent"></i>
-            {{ hoy|date:"l, d \d\e F \d\e Y"|capfirst }} &bull; Panel de Control del Salón
-        </p>
-    </div>
-    <div class="d-flex gap-2">
-        <a href="{% url 'turnos:crear_turno' %}" class="btn btn-accent text-dark fw-bold">
-            <i class="bi bi-calendar-plus me-1"></i> + Agendar Turno
-        </a>
-        <a href="{% url 'servicios:registrar_servicio_realizado' %}" class="btn btn-outline-light">
-            <i class="bi bi-scissors me-1"></i> + Atender
-        </a>
-        <a href="{% url 'pagos:caja_diaria' %}" class="btn btn-outline-warning">
-            <i class="bi bi-cash-stack me-1"></i> Caja Diaria
-        </a>
-    </div>
-</div>
+<div class="dash">
 
-<!-- RF 2.2: Resumen de Ingresos (Día, Semana y Mes) -->
-<div class="row g-3 mb-4">
-    <!-- Ingresos del Día -->
-    <div class="col-md-4">
-        <div class="card h-100 border-0 shadow-sm" style="background: linear-gradient(135deg, #1e222b 0%, #171a21 100%);">
-            <div class="card-body p-4 d-flex justify-content-between align-items-start">
-                <div>
-                    <span class="text-secondary small text-uppercase fw-semibold tracking-wide">
-                        <i class="bi bi-sun text-warning me-1"></i> Ingresos de Hoy
-                    </span>
-                    <h3 class="fw-bold text-light mt-2 mb-1">${{ ingresos_dia|floatformat:2 }}</h3>
-                    <div class="small text-secondary">
-                        <span class="badge bg-dark border border-secondary text-light me-1">{{ cobros_count_dia }}</span> cobro(s) registrado(s) hoy
-                    </div>
-                </div>
-                <div class="bg-dark rounded-circle p-3 d-flex align-items-center justify-content-center border border-warning-subtle" style="width: 52px; height: 52px;">
-                    <i class="bi bi-cash text-warning fs-4"></i>
-                </div>
+    <!-- ── Acciones rápidas ── -->
+    <nav class="quick-bar" aria-label="Acciones rápidas">
+        <span class="quick-bar-label">Acciones rápidas</span>
+        <div class="quick-actions">
+            <a href="{% url 'pagos:registrar_cobro' %}" class="quick-action is-primary">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i> Nueva venta / cobro
+            </a>
+            <a href="{% url 'turnos:crear_turno' %}" class="quick-action">
+                <i class="bi bi-calendar-plus" aria-hidden="true"></i> Agendar turno
+            </a>
+            <a href="{% url 'clientes:crear_cliente' %}" class="quick-action">
+                <i class="bi bi-person-plus" aria-hidden="true"></i> Nueva clienta
+            </a>
+            <a href="{% url 'inventario:crear_producto' %}" class="quick-action">
+                <i class="bi bi-box-seam" aria-hidden="true"></i> Registrar producto
+            </a>
+        </div>
+    </nav>
+
+    <!-- ── Alerta: Conversaciones de WhatsApp Derivadas a Atención Humana ── -->
+    {% if conversaciones_derivadas_count > 0 %}
+    <aside class="alert alert-warning d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 p-3 mb-3 mb-md-4 rounded-4 shadow-sm" style="background: rgba(229, 193, 88, 0.12); border: 1px solid rgba(229, 193, 88, 0.35); color: var(--dash-ink);" role="alert" aria-label="Clientas esperando atención en WhatsApp">
+        <div class="d-flex align-items-center gap-3">
+            <div class="d-flex align-items-center justify-content-center rounded-3 flex-shrink-0" style="width: 40px; height: 40px; background: #25D366; color: #fff; font-size: 1.25rem;">
+                <i class="bi bi-whatsapp"></i>
+            </div>
+            <div>
+                <h6 class="mb-0 fw-bold" style="color: var(--dash-gold);">
+                    <i class="bi bi-exclamation-circle-fill me-1"></i> Atención requerida en WhatsApp ({{ conversaciones_derivadas_count }})
+                </h6>
+                <small style="color: var(--dash-ink-2);">
+                    Clientas que solicitaron hablar con el salón o consultas con capacidad agotada en agenda.
+                </small>
             </div>
         </div>
-    </div>
-
-    <!-- Ingresos de la Semana -->
-    <div class="col-md-4">
-        <div class="card h-100 border-0 shadow-sm" style="background: linear-gradient(135deg, #1e222b 0%, #171a21 100%);">
-            <div class="card-body p-4 d-flex justify-content-between align-items-start">
-                <div>
-                    <span class="text-secondary small text-uppercase fw-semibold tracking-wide">
-                        <i class="bi bi-calendar-week text-accent me-1"></i> Ingresos Esta Semana
-                    </span>
-                    <h3 class="fw-bold text-light mt-2 mb-1">${{ ingresos_semana|floatformat:2 }}</h3>
-                    <div class="small text-secondary">
-                        Desde el lunes {{ inicio_semana|date:"d/m" }}
-                    </div>
-                </div>
-                <div class="bg-dark rounded-circle p-3 d-flex align-items-center justify-content-center border border-secondary" style="width: 52px; height: 52px;">
-                    <i class="bi bi-graph-up-arrow text-accent fs-4"></i>
-                </div>
-            </div>
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            {% for conv in conversaciones_derivadas %}
+            <a href="https://wa.me/{{ conv.telefono_cliente }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-warning d-inline-flex align-items-center gap-1 rounded-pill px-3 py-1 text-decoration-none" style="font-size: 0.8rem; border-color: rgba(229, 193, 88, 0.5); color: var(--dash-gold);">
+                <i class="bi bi-chat-dots-fill"></i> {{ conv.nombre_remitente|default:conv.telefono_cliente }}
+            </a>
+            {% endfor %}
+            <a href="{% url 'admin:bot_asistente_conversacionbot_changelist' %}?requiere_humano__exact=1" class="btn btn-sm d-inline-flex align-items-center gap-1 rounded-pill px-3 py-1 fw-bold text-dark text-decoration-none" style="font-size: 0.8rem; background: var(--dash-gold); border: none;">
+                Gestionar en Admin <i class="bi bi-arrow-right-short"></i>
+            </a>
         </div>
-    </div>
+    </aside>
+    {% endif %}
 
-    <!-- Ingresos del Mes -->
-    <div class="col-md-4">
-        <div class="card h-100 border-0 shadow-sm" style="background: linear-gradient(135deg, #1e222b 0%, #171a21 100%);">
-            <div class="card-body p-4 d-flex justify-content-between align-items-start">
-                <div>
-                    <span class="text-secondary small text-uppercase fw-semibold tracking-wide">
-                        <i class="bi bi-calendar-month text-info me-1"></i> Ingresos en {{ hoy|date:"F"|capfirst }}
-                    </span>
-                    <h3 class="fw-bold text-light mt-2 mb-1">${{ ingresos_mes|floatformat:2 }}</h3>
-                    <div class="small text-secondary">
-                        Acumulado mensual
-                    </div>
+    <!-- ── KPIs ── -->
+    <div class="bento mb-3 mb-md-4">
+        <section class="d-card kpi kpi-hero b-5" aria-labelledby="kpi-hoy">
+            <div class="kpi-inner">
+                <p class="kpi-label" id="kpi-hoy">
+                    <i class="bi bi-cash-stack" aria-hidden="true"></i> Ingresos de Hoy
+                </p>
+                <div class="kpi-value dash-display">${{ ingresos_dia|intcomma }}</div>
+                <div class="d-flex align-items-center flex-wrap gap-2 mt-2">
+                    {% if variacion_dia_pct is not None %}
+                        {% if variacion_dia_pct > 0 %}
+                            <span class="delta is-up"><i class="bi bi-arrow-up-right" aria-hidden="true"></i> {{ variacion_dia_pct|floatformat:1 }}% vs. ayer</span>
+                        {% elif variacion_dia_pct < 0 %}
+                            <span class="delta is-down"><i class="bi bi-arrow-down-right" aria-hidden="true"></i> {{ variacion_dia_pct|floatformat:1 }}% vs. ayer</span>
+                        {% else %}
+                            <span class="delta is-flat"><i class="bi bi-dash" aria-hidden="true"></i> Igual que ayer</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="delta is-flat"><i class="bi bi-calendar2" aria-hidden="true"></i> Sin ventas ayer</span>
+                    {% endif %}
                 </div>
-                <div class="bg-dark rounded-circle p-3 d-flex align-items-center justify-content-center border border-info-subtle" style="width: 52px; height: 52px;">
-                    <i class="bi bi-pie-chart text-info fs-4"></i>
+                <div class="kpi-meta">
+                    <span><strong>{{ ventas_count_dia }}</strong> venta{{ ventas_count_dia|pluralize:"s" }} hoy</span>
+                    <span>Ticket promedio <strong>${{ ticket_promedio_dia|intcomma }}</strong></span>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
+        </section>
 
-<div class="row g-4">
-    <!-- Columna Principal Izquierda (8 columnas) -->
-    <div class="col-lg-8">
-        <!-- RF 2.1: Turnos del Día -->
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center py-3 bg-dark border-secondary">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="bi bi-calendar-check fs-5 text-accent"></i>
-                    <h5 class="mb-0 text-light fw-bold">Turnos del Día</h5>
-                    <span class="badge bg-secondary ms-1">{{ turnos_hoy_total }}</span>
-                </div>
-                <div class="d-flex gap-2 align-items-center">
-                    <span class="badge bg-success-subtle text-success border border-success-subtle d-none d-sm-inline">
-                        {{ turnos_hoy_completados_count }} completado(s)
-                    </span>
-                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle d-none d-sm-inline">
-                        {{ turnos_hoy_pendientes_count }} pendiente(s)
-                    </span>
-                    <a href="{% url 'turnos:agenda' %}" class="btn btn-sm btn-outline-secondary">
-                        Ver Agenda <i class="bi bi-arrow-right"></i>
-                    </a>
+        <section class="d-card kpi b-3" aria-labelledby="kpi-mes">
+            <div class="kpi-inner">
+                <p class="kpi-label" id="kpi-mes">
+                    <i class="bi bi-calendar-month" aria-hidden="true"></i> Ingresos del Mes
+                </p>
+                <div class="kpi-value is-small">${{ ingresos_mes|intcomma }}</div>
+                <div class="kpi-meta">
+                    <span>{{ hoy|date:"F"|capfirst }} en curso</span>
+                    <span>Semana <strong>${{ ingresos_semana|intcomma }}</strong></span>
                 </div>
             </div>
-            <div class="card-body p-0">
-                {% if turnos_hoy %}
-                    <div class="table-responsive">
-                        <table class="table table-dark table-hover mb-0 align-middle">
-                            <thead class="table-secondary text-secondary small">
-                                <tr>
-                                    <th class="ps-4">Hora</th>
-                                    <th>Clienta</th>
-                                    <th>Servicio Solicitado</th>
-                                    <th>Peluquera</th>
-                                    <th>Estado</th>
-                                    <th class="text-end pe-4">Acción</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for turno in turnos_hoy %}
-                                    <tr>
-                                        <td class="ps-4">
-                                            <span class="badge bg-dark border border-secondary text-accent font-monospace fs-6">
-                                                {{ turno.hora|time:"H:i" }}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <div class="fw-bold text-light">{{ turno.cliente_nombre }}</div>
-                                            {% if turno.cliente_telefono %}
-                                                <small class="text-secondary">{{ turno.cliente_telefono }}</small>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <span class="text-light">{{ turno.servicio.nombre }}</span>
-                                            <div class="small text-secondary">{{ turno.duracion_minutos }} min</div>
-                                        </td>
-                                        <td>
-                                            {% if turno.profesional %}
-                                                <span class="badge bg-dark border border-secondary text-light">
-                                                    <i class="bi bi-person me-1"></i>{{ turno.profesional.nombre }}
-                                                </span>
-                                            {% else %}
-                                                <span class="text-secondary small fst-italic">Sin asignar</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            {% if turno.estado == "COMPLETADO" %}
-                                                <span class="badge bg-success">Completado</span>
-                                            {% elif turno.estado == "CONFIRMADO" %}
-                                                <span class="badge bg-info text-dark">Confirmado</span>
-                                            {% elif turno.estado == "PENDIENTE" %}
-                                                <span class="badge bg-warning text-dark">Pendiente</span>
-                                            {% elif turno.estado == "AUSENTE" %}
-                                                <span class="badge bg-secondary">Ausente</span>
-                                            {% elif turno.estado == "CANCELADO" %}
-                                                <span class="badge bg-danger">Cancelado</span>
-                                            {% else %}
-                                                <span class="badge bg-secondary">{{ turno.get_estado_display }}</span>
-                                            {% endif %}
-                                        </td>
-                                        <td class="text-end pe-4">
-                                            <a href="{% url 'turnos:agenda' %}?fecha={{ hoy|date:'Y-m-d' }}" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Ver en agenda">
-                                                <i class="bi bi-box-arrow-up-right"></i>
-                                            </a>
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+        </section>
+
+        <section class="d-card kpi b-2" aria-labelledby="kpi-turnos">
+            <div class="kpi-inner">
+                <p class="kpi-label" id="kpi-turnos">
+                    <i class="bi bi-calendar-check" aria-hidden="true"></i> Turnos de Hoy
+                </p>
+                <div class="kpi-value is-small">{{ turnos_hoy_total }}</div>
+                <div class="kpi-split">
+                    <span><i class="dot is-gold" aria-hidden="true"></i> {{ turnos_hoy_pendientes_count }} pend.</span>
+                    <span><i class="dot is-green" aria-hidden="true"></i> {{ turnos_hoy_completados_count }} listos</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="d-card kpi b-2" aria-labelledby="kpi-stock">
+            <div class="kpi-inner">
+                <p class="kpi-label" id="kpi-stock">
+                    <i class="bi bi-exclamation-triangle" aria-hidden="true"></i> Stock Crítico
+                </p>
+                <div class="kpi-value is-small stock-value {% if total_alertas_stock %}is-alert{% else %}is-ok{% endif %}">
+                    {{ total_alertas_stock }}
+                </div>
+                {% if total_alertas_stock %}
+                    <div class="kpi-split">
+                        <span><i class="dot is-red" aria-hidden="true"></i> {{ sin_stock_count }} sin stock</span>
                     </div>
                 {% else %}
-                    <div class="text-center py-5 text-secondary">
-                        <i class="bi bi-calendar-x fs-1 d-block mb-2 text-secondary opacity-50"></i>
-                        <p class="mb-2">No hay turnos agendados para el día de hoy.</p>
-                        <a href="{% url 'turnos:crear_turno' %}" class="btn btn-sm btn-accent text-dark fw-bold">
-                            <i class="bi bi-plus-circle me-1"></i> Agendar Primer Turno
-                        </a>
+                    <div class="kpi-split">
+                        <span><i class="dot is-green" aria-hidden="true"></i> Todo en orden</span>
                     </div>
                 {% endif %}
             </div>
-        </div>
+        </section>
+    </div>
 
-        <!-- RF 2.4: Próximos Turnos (Más allá del día en curso) -->
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center py-3 bg-dark border-secondary">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="bi bi-calendar-range fs-5 text-info"></i>
-                    <h5 class="mb-0 text-light fw-bold">Próximos Turnos Agendados</h5>
-                    <span class="badge bg-secondary ms-1">{{ proximos_turnos_total }}</span>
+    <!-- ── Agenda + gráficos ── -->
+    <div class="bento bento-flow mb-3 mb-md-4">
+        <section class="d-card agenda-card b-7" aria-labelledby="agenda-title">
+            <div class="d-card-head">
+                <div>
+                    <span class="d-eyebrow">Agenda del día</span>
+                    <h2 class="d-card-title" id="agenda-title">
+                        Turnos del Día
+                        <span class="d-count ms-1">{{ turnos_hoy_total }}</span>
+                    </h2>
                 </div>
-                <a href="{% url 'turnos:agenda' %}" class="btn btn-sm btn-outline-secondary">
-                    Ver Todos <i class="bi bi-arrow-right"></i>
+                <a href="{% url 'turnos:agenda' %}" class="d-link">
+                    Ver agenda <i class="bi bi-arrow-right" aria-hidden="true"></i>
                 </a>
             </div>
-            <div class="card-body p-0">
-                {% if proximos_turnos %}
-                    <div class="table-responsive">
-                        <table class="table table-dark table-hover mb-0 align-middle">
-                            <thead class="table-secondary text-secondary small">
-                                <tr>
-                                    <th class="ps-4">Fecha y Hora</th>
-                                    <th>Clienta</th>
-                                    <th>Servicio</th>
-                                    <th>Peluquera</th>
-                                    <th class="text-end pe-4">Estado</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for turno in proximos_turnos %}
-                                    <tr>
-                                        <td class="ps-4">
-                                            <div class="text-light fw-bold">{{ turno.fecha|date:"D d \d\e M"|capfirst }}</div>
-                                            <span class="small text-accent font-monospace">{{ turno.hora|time:"H:i" }} hs</span>
-                                        </td>
-                                        <td>
-                                            <span class="text-light fw-semibold">{{ turno.cliente_nombre }}</span>
-                                        </td>
-                                        <td>
-                                            <span class="text-secondary">{{ turno.servicio.nombre }}</span>
-                                        </td>
-                                        <td>
-                                            {% if turno.profesional %}
-                                                <small class="text-secondary">{{ turno.profesional.nombre }}</small>
-                                            {% else %}
-                                                <small class="text-secondary fst-italic">Por asignar</small>
-                                            {% endif %}
-                                        </td>
-                                        <td class="text-end pe-4">
-                                            {% if turno.estado == "CONFIRMADO" %}
-                                                <span class="badge bg-info text-dark">Confirmado</span>
-                                            {% elif turno.estado == "PENDIENTE" %}
-                                                <span class="badge bg-warning text-dark">Pendiente</span>
-                                            {% else %}
-                                                <span class="badge bg-secondary">{{ turno.get_estado_display }}</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+            <div class="d-card-body d-flex flex-column flex-grow-1">
+                {% if turnos_hoy %}
+                    <ul class="turno-list">
+                        {% for turno in turnos_hoy %}
+                            <li class="turno">
+                                <div class="turno-hora">
+                                    <strong>{{ turno.hora|time:"H:i" }}</strong>
+                                    <small>{{ turno.duracion_minutos }} min</small>
+                                </div>
+                                <div class="turno-main">
+                                    <div class="turno-cliente">
+                                        {{ turno.cliente_nombre }}
+                                        {% if turno.cliente_telefono %}
+                                            <span class="text-secondary small fw-normal">{{ turno.cliente_telefono }}</span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="turno-servicio">{{ turno.servicio.nombre }}</div>
+                                    <div class="turno-prof">
+                                        <i class="bi bi-person" aria-hidden="true"></i>
+                                        {% if turno.profesional %}{{ turno.profesional.nombre }}{% else %}Sin asignar{% endif %}
+                                    </div>
+                                </div>
+                                <div class="turno-side">
+                                    {% if turno.estado == "COMPLETADO" %}
+                                        <span class="pill is-done"><i class="bi bi-check2" aria-hidden="true"></i> Completado</span>
+                                    {% elif turno.estado == "CONFIRMADO" %}
+                                        <span class="pill is-confirmed"><i class="bi bi-check-circle" aria-hidden="true"></i> Confirmado</span>
+                                    {% elif turno.estado == "PENDIENTE" %}
+                                        <span class="pill is-pending"><i class="bi bi-hourglass-split" aria-hidden="true"></i> Pendiente</span>
+                                    {% elif turno.estado == "CANCELADO" %}
+                                        <span class="pill is-cancelled"><i class="bi bi-x-circle" aria-hidden="true"></i> Cancelado</span>
+                                    {% else %}
+                                        <span class="pill is-neutral">{{ turno.get_estado_display }}</span>
+                                    {% endif %}
+
+                                    {% if turno.estado != "COMPLETADO" and turno.estado != "CANCELADO" %}
+                                        <a href="{% url 'servicios:registrar_servicio_realizado' %}?turno={{ turno.pk }}"
+                                           class="icon-btn" title="Atender turno" aria-label="Atender el turno de {{ turno.cliente_nombre }}">
+                                            <i class="bi bi-scissors" aria-hidden="true"></i>
+                                        </a>
+                                    {% endif %}
+                                    {% if turno.cliente %}
+                                        <a href="{% url 'pagos:registrar_cobro' %}?cliente={{ turno.cliente.pk }}"
+                                           class="icon-btn is-pay" title="Cobrar a {{ turno.cliente_nombre }}" aria-label="Cobrar el turno de {{ turno.cliente_nombre }}">
+                                            <i class="bi bi-cash-coin" aria-hidden="true"></i>
+                                        </a>
+                                    {% endif %}
+                                    <a href="{% url 'turnos:agenda' %}?fecha={{ hoy|date:'Y-m-d' }}"
+                                       class="icon-btn" title="Ver en la agenda" aria-label="Ver el turno de {{ turno.cliente_nombre }} en la agenda">
+                                        <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+                                    </a>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
                 {% else %}
-                    <div class="text-center py-4 text-secondary">
-                        <i class="bi bi-calendar2-check fs-2 d-block mb-1 text-secondary opacity-50"></i>
-                        <small>No hay turnos agendados para los próximos días.</small>
+                    <div class="empty">
+                        <i class="bi bi-calendar2-x" aria-hidden="true"></i>
+                        <p>Hoy no hay turnos agendados. La agenda está libre para una nueva reserva.</p>
+                        <a href="{% url 'turnos:crear_turno' %}" class="btn-soft is-gold">
+                            <i class="bi bi-plus-lg" aria-hidden="true"></i> Agendar turno
+                        </a>
                     </div>
                 {% endif %}
-            </div>
-        </div>
 
-        <!-- Accesos Rápidos Operativos del Salón -->
-        <div class="card shadow-sm border-0">
-            <div class="card-header py-3 bg-dark border-secondary">
-                <h6 class="mb-0 text-light fw-bold"><i class="bi bi-grid-fill me-2 text-accent"></i> Accesos Directos a Módulos</h6>
-            </div>
-            <div class="card-body p-3">
-                <div class="row g-2">
-                    <div class="col-sm-6 col-md-4">
-                        <a href="{% url 'servicios:control_diario' %}" class="btn btn-dark w-100 text-start p-2 border border-secondary d-flex align-items-center gap-2">
-                            <i class="bi bi-calendar-check text-warning fs-5"></i>
-                            <div>
-                                <div class="text-light small fw-bold">Control Diario</div>
-                                <div class="text-secondary" style="font-size: 0.75rem;">Atenciones en vivo</div>
-                            </div>
-                        </a>
+                <div class="agenda-footer">
+                    <div class="mini-head">
+                        <h3>Próximos Turnos</h3>
+                        <a href="{% url 'turnos:agenda' %}" class="d-link">Ver todos</a>
                     </div>
-                    <div class="col-sm-6 col-md-4">
-                        <a href="{% url 'clientes:lista_clientes' %}" class="btn btn-dark w-100 text-start p-2 border border-secondary d-flex align-items-center gap-2">
-                            <i class="bi bi-people-fill text-info fs-5"></i>
-                            <div>
-                                <div class="text-light small fw-bold">Fichas de Clientas</div>
-                                <div class="text-secondary" style="font-size: 0.75rem;">Historial capilar</div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-sm-6 col-md-4">
-                        <a href="/inventario/productos/" class="btn btn-dark w-100 text-start p-2 border border-secondary d-flex align-items-center gap-2">
-                            <i class="bi bi-box-seam text-accent fs-5"></i>
-                            <div>
-                                <div class="text-light small fw-bold">Catálogo Insumos</div>
-                                <div class="text-secondary" style="font-size: 0.75rem;">Stock y precios</div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-sm-6 col-md-4">
-                        <a href="{% url 'servicios:cierre_diario' %}" class="btn btn-dark w-100 text-start p-2 border border-secondary d-flex align-items-center gap-2">
-                            <i class="bi bi-box-arrow-down text-warning fs-5"></i>
-                            <div>
-                                <div class="text-light small fw-bold">Cierre de Insumos</div>
-                                <div class="text-secondary" style="font-size: 0.75rem;">Descuento automático</div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-sm-6 col-md-4">
-                        <a href="{% url 'servicios:crear_consentimiento' %}" class="btn btn-dark w-100 text-start p-2 border border-secondary d-flex align-items-center gap-2">
-                            <i class="bi bi-shield-check text-success fs-5"></i>
-                            <div>
-                                <div class="text-light small fw-bold">Consentimiento</div>
-                                <div class="text-secondary" style="font-size: 0.75rem;">Resguardo legal</div>
-                            </div>
-                        </a>
-                    </div>
-                    {% if request.user.is_authenticated and request.user.es_administradora %}
-                        <div class="col-sm-6 col-md-4">
-                            <a href="/usuarios/gestion/" class="btn btn-dark w-100 text-start p-2 border border-warning-subtle d-flex align-items-center gap-2">
-                                <i class="bi bi-person-gear text-warning fs-5"></i>
-                                <div>
-                                    <div class="text-warning small fw-bold">Gestión Usuarios</div>
-                                    <div class="text-secondary" style="font-size: 0.75rem;">Roles y accesos</div>
-                                </div>
-                            </a>
+                    {% if proximos_turnos %}
+                        <ul class="mini-list">
+                            {% for turno in proximos_turnos|slice:":3" %}
+                                <li class="mini-turno">
+                                    <span class="when">{{ turno.fecha|date:"D d/m"|capfirst }} · {{ turno.hora|time:"H:i" }}</span>
+                                    <span class="text-truncate"><strong>{{ turno.cliente_nombre }}</strong> — {{ turno.servicio.nombre }}</span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <div class="empty is-compact">
+                            <i class="bi bi-calendar2-week" aria-hidden="true"></i>
+                            <p>No hay turnos agendados para los próximos días.</p>
                         </div>
                     {% endif %}
                 </div>
             </div>
-        </div>
-    </div>
+        </section>
 
-    <!-- Columna Lateral Derecha (4 columnas) -->
-    <div class="col-lg-4">
-        <!-- RF 2.3: Alertas de Stock Mínimo -->
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center py-3 bg-dark border-secondary">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="bi bi-exclamation-triangle-fill text-warning fs-5"></i>
-                    <h6 class="mb-0 text-light fw-bold">Alertas de Stock</h6>
+        <div class="chart-stack b-5">
+        <section class="d-card chart-card" aria-labelledby="trend-title">
+            <div class="d-card-head">
+                <div>
+                    <span class="d-eyebrow">Últimos 7 días</span>
+                    <h2 class="d-card-title" id="trend-title">Ingresos de la Semana</h2>
                 </div>
-                {% if total_alertas_stock > 0 %}
-                    <span class="badge bg-danger">{{ total_alertas_stock }} crítico(s)</span>
+                <span class="card-total">${{ ingresos_7d_total|floatformat:0|intcomma }}</span>
+            </div>
+            <div class="d-card-body d-flex flex-column flex-grow-1">
+                {% if ingresos_7d_total > 0 %}
+                    <div class="chart-wrap">
+                        <canvas id="chartIngresos7d" role="img"
+                                aria-label="Gráfico de ingresos de los últimos siete días"></canvas>
+                    </div>
+                    <div class="chart-note">
+                        <span>Promedio diario</span>
+                        <strong>${{ ingresos_7d_promedio|intcomma }}</strong>
+                    </div>
                 {% else %}
-                    <span class="badge bg-success-subtle text-success border border-success-subtle">Óptimo</span>
+                    <div class="empty flex-grow-1">
+                        <i class="bi bi-graph-up" aria-hidden="true"></i>
+                        <p>Sin ventas en los últimos 7 días. Cuando la caja registre movimientos, la tendencia aparece acá.</p>
+                        <a href="{% url 'pagos:registrar_cobro' %}" class="btn-soft">Registrar venta</a>
+                    </div>
                 {% endif %}
             </div>
-            <div class="card-body p-3">
-                {% if productos_bajo_stock %}
-                    <div class="d-flex flex-column gap-2 mb-3">
-                        {% for producto in productos_bajo_stock %}
-                            <div class="p-2 rounded bg-dark border {% if producto.stock_actual <= 0 %}border-danger{% else %}border-warning-subtle{% endif %} d-flex justify-content-between align-items-center">
-                                <div class="me-2">
-                                    <div class="text-light fw-semibold small text-truncate" style="max-width: 170px;" title="{{ producto.nombre }}">
-                                        {{ producto.nombre }}
-                                    </div>
-                                    <small class="text-secondary">
-                                        Mínimo: {{ producto.stock_minimo }} {{ producto.unidad_abreviatura }}
-                                    </small>
-                                </div>
-                                <div class="text-end">
-                                    {% if producto.stock_actual <= 0 %}
-                                        <span class="badge bg-danger">Sin stock</span>
-                                    {% else %}
-                                        <span class="badge bg-warning text-dark">{{ producto.stock_actual }} {{ producto.unidad_abreviatura }}</span>
-                                    {% endif %}
-                                </div>
+        </section>
+
+        <section class="d-card chart-card" aria-labelledby="medios-title">
+            <div class="d-card-head">
+                <div>
+                    <span class="d-eyebrow">Este mes</span>
+                    <h2 class="d-card-title" id="medios-title">Distribución por Medio de Pago</h2>
+                </div>
+                <a href="{% url 'pagos:reporte_medios' %}" class="d-link">Reporte</a>
+            </div>
+            <div class="d-card-body d-flex flex-column flex-grow-1">
+                {% if distribucion_medios %}
+                    <div class="chart-wrap is-donut">
+                        <canvas id="chartMediosPago" role="img"
+                                aria-label="Gráfico de distribución de ingresos por medio de pago"></canvas>
+                    </div>
+                    <div class="legend">
+                        {% for medio in distribucion_medios %}
+                            <div class="legend-row">
+                                <span class="legend-dot" style="--legend-color: {{ medio.color }};" aria-hidden="true"></span>
+                                <span class="legend-label">{{ medio.etiqueta }}</span>
+                                <span class="legend-value"><strong>${{ medio.total|floatformat:0|intcomma }}</strong> · {{ medio.porcentaje|floatformat:1 }}%</span>
                             </div>
                         {% endfor %}
                     </div>
-                    <div class="d-flex gap-2">
-                        <a href="/inventario/reponer-stock/" class="btn btn-sm btn-warning text-dark fw-bold w-100">
-                            <i class="bi bi-plus-circle me-1"></i> Reponer Stock
-                        </a>
-                        <a href="/inventario/productos/?bajo_stock=1" class="btn btn-sm btn-outline-secondary">
-                            Ver Todos
-                        </a>
-                    </div>
                 {% else %}
-                    <div class="text-center py-3 text-secondary">
-                        <i class="bi bi-check2-circle text-success fs-1 d-block mb-1"></i>
-                        <div class="text-light fw-semibold small">Stock en niveles óptimos</div>
-                        <small class="text-secondary">Ningún producto está por debajo del mínimo.</small>
+                    <div class="empty flex-grow-1">
+                        <i class="bi bi-pie-chart" aria-hidden="true"></i>
+                        <p>Todavía no hay cobros este mes. La distribución por medio de pago se mostrará acá.</p>
                     </div>
                 {% endif %}
             </div>
+        </section>
         </div>
+    </div>
 
-        <!-- RF 2.5: Cumpleaños del Mes -->
-        <div class="card shadow-sm border-0 mb-4">
-            <div class="card-header d-flex justify-content-between align-items-center py-3 bg-dark border-secondary">
-                <div class="d-flex align-items-center gap-2">
-                    <i class="bi bi-gift-fill text-accent fs-5"></i>
-                    <h6 class="mb-0 text-light fw-bold">Cumpleaños de {{ hoy|date:"F"|capfirst }}</h6>
+    <!-- ── Caja, stock y fidelización ── -->
+    <div class="bento">
+        <section class="d-card receipt-card b-5" aria-labelledby="caja-title">
+            <div class="d-card-head">
+                <div>
+                    <span class="d-eyebrow">Caja</span>
+                    <h2 class="d-card-title" id="caja-title">Últimos Movimientos de Caja</h2>
                 </div>
-                <span class="badge bg-secondary">{{ total_cumpleaneras_mes }}</span>
+                <a href="{% url 'pagos:caja_diaria' %}" class="d-link">
+                    Ver caja <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                </a>
             </div>
-            <div class="card-body p-3">
-                {% if cumpleaneras_hoy %}
-                    <!-- Destacado Cumpleaños de Hoy -->
-                    <div class="p-3 mb-3 rounded border border-warning" style="background: rgba(229, 193, 88, 0.1);">
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                            <span class="fs-4">🎂</span>
-                            <div>
-                                <span class="badge bg-warning text-dark fw-bold">¡CUMPLEAÑOS HOY!</span>
-                            </div>
-                        </div>
-                        {% for c in cumpleaneras_hoy %}
-                            <div class="d-flex justify-content-between align-items-center mt-2">
-                                <div>
-                                    <div class="text-light fw-bold">{{ c.nombre }}</div>
-                                    <small class="text-secondary">{{ c.telefono }}</small>
+            <div class="d-card-body">
+                {% if ultimos_movimientos %}
+                    <ul class="mov-list">
+                        {% for mov in ultimos_movimientos %}
+                            <li class="mov">
+                                <div class="mov-main">
+                                    <div class="mov-title">
+                                        <i class="medio-dot {% if mov.principal.medio_pago == 'EFECTIVO' %}is-efectivo{% elif mov.principal.medio_pago == 'MERCADO_PAGO' %}is-mp{% elif mov.principal.medio_pago == 'UALA' %}is-uala{% elif mov.principal.medio_pago == 'TARJETA_DEBITO' %}is-debito{% else %}is-credito{% endif %}" aria-hidden="true"></i>
+                                        <span>{{ mov.principal.cliente_nombre }}</span>
+                                    </div>
+                                    <div class="mov-meta">
+                                        <span>{{ mov.principal.get_medio_pago_display }}</span>
+                                        <span aria-hidden="true">·</span>
+                                        <span>
+                                            {% if mov.principal.fecha == hoy %}
+                                                Hoy {{ mov.principal.fecha_creacion|time:"H:i" }}
+                                            {% else %}
+                                                {{ mov.principal.fecha|date:"d/m" }} {{ mov.principal.fecha_creacion|time:"H:i" }}
+                                            {% endif %}
+                                        </span>
+                                        {% if mov.es_grupo %}
+                                            <span aria-hidden="true">·</span>
+                                            <span>{{ mov.cobros|length }} ítems</span>
+                                        {% endif %}
+                                    </div>
                                 </div>
-                                <a href="{{ c.link_whatsapp }}?text=¡Hola%20{{ c.nombre|urlencode }}!%20Desde%20Peluquer%C3%ADa%20Lorena%20te%20deseamos%20un%20muy%20feliz%20cumplea%C3%B1os%20%F0%9F%8E%89%E2%9C%A8" 
-                                   target="_blank" class="btn btn-sm btn-success" title="Enviar felicitación por WhatsApp">
-                                    <i class="bi bi-whatsapp me-1"></i> Saludar
+                                <div class="mov-side">
+                                    <div class="mov-amount">
+                                        ${{ mov.total|intcomma }}
+                                        {% if mov.es_grupo %}<small>venta</small>{% endif %}
+                                    </div>
+                                    <a href="{% url 'pagos:factura_pdf' mov.principal.pk %}"
+                                       target="_blank" rel="noopener"
+                                       class="mov-pdf" title="Ver comprobante PDF"
+                                       aria-label="Ver comprobante PDF de {{ mov.principal.cliente_nombre }}">
+                                        <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>
+                                    </a>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <div class="empty">
+                        <i class="bi bi-receipt" aria-hidden="true"></i>
+                        <p>La caja todavía está quieta. Registrá la primera venta del día para verla acá.</p>
+                        <a href="{% url 'pagos:registrar_cobro' %}" class="btn-soft is-gold">
+                            <i class="bi bi-plus-lg" aria-hidden="true"></i> Registrar cobro
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="d-card stock-card b-4" aria-labelledby="stock-title">
+            <div class="d-card-head">
+                <div>
+                    <span class="d-eyebrow">Alertas de Stock</span>
+                    <h2 class="d-card-title" id="stock-title">
+                        Insumos en Bajo Stock
+                        {% if total_alertas_stock %}<span class="d-count ms-1">{{ total_alertas_stock }}</span>{% endif %}
+                    </h2>
+                </div>
+                <a href="{% url 'inventario:lista_productos' %}" class="d-link">Inventario</a>
+            </div>
+            <div class="d-card-body d-flex flex-column flex-grow-1">
+                {% if productos_bajo_stock %}
+                    <ul class="stock-list">
+                        {% for producto in productos_bajo_stock|slice:":5" %}
+                            <li class="stock-item">
+                                <div class="stock-line">
+                                    <span class="stock-name" title="{{ producto.nombre }}">{{ producto.nombre }}</span>
+                                    <span class="stock-qty">
+                                        <strong class="{% if producto.stock_actual <= 0 %}is-out{% endif %}">{{ producto.stock_actual }}</strong>
+                                        / {{ producto.stock_minimo }} {{ producto.unidad_abreviatura }}
+                                    </span>
+                                </div>
+                                <div class="stock-track" role="presentation">
+                                    <div class="stock-fill {% if producto.stock_actual <= 0 %}is-out{% endif %}"
+                                         style="width: {% widthratio producto.stock_actual producto.stock_minimo 100 %}%;"></div>
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                    <div class="card-actions mt-auto">
+                        <a href="{% url 'inventario:reponer_stock_general' %}" class="btn-soft is-gold">
+                            <i class="bi bi-plus-circle" aria-hidden="true"></i> Reponer stock
+                        </a>
+                        <a href="{% url 'inventario:lista_productos' %}?bajo_stock=1" class="btn-soft">Ver todos</a>
+                    </div>
+                {% else %}
+                    <div class="empty flex-grow-1">
+                        <i class="bi bi-check2-circle" aria-hidden="true"></i>
+                        <p>Todo el stock está por encima del mínimo. No hay reposiciones urgentes.</p>
+                        <a href="{% url 'inventario:lista_productos' %}" class="btn-soft">Revisar inventario</a>
+                    </div>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="d-card fid-card b-3" aria-labelledby="fid-title">
+            <div class="d-card-head">
+                <div>
+                    <span class="d-eyebrow">Fidelización</span>
+                    <h2 class="d-card-title" id="fid-title">Cumpleaños y Beneficios</h2>
+                </div>
+                <a href="{% url 'fidelizacion:panel_beneficios' %}" class="d-link">Cupones</a>
+            </div>
+            <div class="d-card-body flex-grow-1">
+                <div class="fid-section">
+                    <h3 class="fid-title">
+                        <span><i class="bi bi-gift me-1 text-accent" aria-hidden="true"></i> Cumpleaños esta semana</span>
+                        <span class="d-count">{{ total_cumpleaneras_semana }}</span>
+                    </h3>
+                    {% if cumpleaneras_semana %}
+                        {% for clienta in cumpleaneras_semana|slice:":3" %}
+                            <div class="fid-person">
+                                <div class="fid-person-main">
+                                    <div class="fid-person-name">{{ clienta.nombre }}</div>
+                                    <div class="fid-person-meta">
+                                        {% if clienta.es_cumpleanos_hoy %}
+                                            <span class="is-today">¡Cumple hoy!</span>
+                                        {% else %}
+                                            {{ clienta.fecha_nacimiento|date:"d/m" }} · en {{ clienta.dias_para_cumpleanos }} día{{ clienta.dias_para_cumpleanos|pluralize:"s" }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <a href="{{ clienta.link_whatsapp }}?text=¡Hola%20{{ clienta.nombre|urlencode }}!%20Desde%20Peluquería%20Lorena%20queremos%20saludarte%20por%20tu%20cumpleaños%20🎉"
+                                   target="_blank" rel="noopener" class="wa-link"
+                                   title="Saludar por WhatsApp" aria-label="Saludar a {{ clienta.nombre }} por WhatsApp">
+                                    <i class="bi bi-whatsapp" aria-hidden="true"></i>
                                 </a>
                             </div>
                         {% endfor %}
-                    </div>
-                {% endif %}
+                    {% else %}
+                        <div class="empty is-compact">
+                            <i class="bi bi-balloon" aria-hidden="true"></i>
+                            <p>Sin cumpleaños en los próximos 7 días.</p>
+                        </div>
+                    {% endif %}
+                </div>
 
-                {% if cumpleaneras_mes %}
-                    <div class="small text-secondary mb-2 fw-semibold">Clientas que cumplen este mes:</div>
-                    <div class="d-flex flex-column gap-2" style="max-height: 240px; overflow-y: auto;">
-                        {% for c in cumpleaneras_mes %}
-                            <div class="p-2 rounded bg-dark border border-secondary d-flex justify-content-between align-items-center">
-                                <div>
-                                    <span class="text-light small fw-semibold">{{ c.nombre }}</span>
-                                    {% if c.es_cumpleanos_hoy %}
-                                        <span class="badge bg-warning text-dark ms-1" style="font-size: 0.65rem;">Hoy</span>
-                                    {% endif %}
+                <div class="fid-section">
+                    <h3 class="fid-title">
+                        <span><i class="bi bi-ticket-perforated me-1 text-accent" aria-hidden="true"></i> Cupones disponibles</span>
+                        <span class="d-count">{{ total_beneficios_disponibles }}</span>
+                    </h3>
+                    {% if beneficios_disponibles %}
+                        {% for beneficio in beneficios_disponibles|slice:":2" %}
+                            <a href="{% url 'fidelizacion:detalle_beneficio' beneficio.pk %}" class="coupon">
+                                <div class="coupon-main">
+                                    <div class="coupon-code">{{ beneficio.codigo }}</div>
+                                    <div class="coupon-client">{{ beneficio.cliente.nombre }} · {{ beneficio.descripcion_beneficio }}</div>
                                 </div>
-                                <div class="d-flex align-items-center gap-2">
-                                    <span class="badge bg-dark border border-secondary text-accent small">
-                                        {{ c.fecha_nacimiento|date:"d \d\e M" }}
-                                    </span>
-                                    <a href="{{ c.link_whatsapp }}" target="_blank" class="text-success small" title="WhatsApp">
-                                        <i class="bi bi-whatsapp"></i>
-                                    </a>
-                                </div>
-                            </div>
+                                <span class="coupon-due">hasta {{ beneficio.fecha_vencimiento|date:"d/m" }}</span>
+                            </a>
                         {% endfor %}
-                    </div>
-                {% else %}
-                    <div class="text-center py-3 text-secondary">
-                        <i class="bi bi-balloon fs-2 d-block mb-1 text-secondary opacity-50"></i>
-                        <small>No hay cumpleaños registrados en {{ hoy|date:"F" }}.</small>
-                    </div>
-                {% endif %}
+                        {% if beneficios_por_vencer_count %}
+                            <div class="fid-person-meta mt-2">
+                                <i class="bi bi-clock me-1" aria-hidden="true"></i>
+                                {{ beneficios_por_vencer_count }} vence{{ beneficios_por_vencer_count|pluralize:"n" }} esta semana.
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="empty is-compact">
+                            <i class="bi bi-ticket" aria-hidden="true"></i>
+                            <p>No hay cupones pendientes de canje.</p>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <div class="fid-person-meta mt-3 pt-2 border-top border-secondary border-opacity-10">
+                    <i class="bi bi-calendar-heart me-1" aria-hidden="true"></i>
+                    {{ total_cumpleaneras_mes }} cumpleaños en {{ hoy|date:"F"|capfirst }}.
+                </div>
             </div>
-        </div>
+        </section>
     </div>
 </div>
+
+{{ ingresos_7_dias|json_script:"ingresos-7d-data" }}
+{{ distribucion_medios|json_script:"medios-pago-data" }}
+{% endblock %}
+
+{% block extra_js %}
+{% if ingresos_7d_total > 0 or distribucion_medios %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+    (function () {
+        if (typeof Chart === 'undefined') return;
+
+        const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        const money = new Intl.NumberFormat('es-AR', {
+            style: 'currency', currency: 'ARS', maximumFractionDigits: 0
+        });
+        const moneyFull = new Intl.NumberFormat('es-AR', {
+            style: 'currency', currency: 'ARS', minimumFractionDigits: 2
+        });
+        const compact = new Intl.NumberFormat('es-AR', {
+            notation: 'compact', maximumFractionDigits: 1
+        });
+
+        Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+        Chart.defaults.font.size = 11;
+        Chart.defaults.color = '#8f96a3';
+
+        const tooltipBase = {
+            backgroundColor: '#232831',
+            borderColor: 'rgba(255,255,255,0.12)',
+            borderWidth: 1,
+            titleColor: '#f2efe8',
+            bodyColor: '#c3c6ce',
+            padding: 10,
+            cornerRadius: 8,
+            displayColors: false
+        };
+
+        // ── Tendencia de ingresos (7 días) ──
+        const ingresosCanvas = document.getElementById('chartIngresos7d');
+        const ingresosData = JSON.parse(document.getElementById('ingresos-7d-data').textContent);
+        if (ingresosCanvas && ingresosData.length) {
+            const ctx = ingresosCanvas.getContext('2d');
+            const gradient = ctx.createLinearGradient(0, 0, 0, 210);
+            gradient.addColorStop(0, 'rgba(229, 193, 88, 0.22)');
+            gradient.addColorStop(1, 'rgba(229, 193, 88, 0)');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ingresosData.map(d => d.etiqueta),
+                    datasets: [{
+                        data: ingresosData.map(d => d.total),
+                        borderColor: '#e5c158',
+                        borderWidth: 2,
+                        backgroundColor: gradient,
+                        fill: true,
+                        tension: 0.38,
+                        pointRadius: 0,
+                        pointHoverRadius: 5,
+                        pointHoverBackgroundColor: '#e5c158',
+                        pointHoverBorderColor: '#121418',
+                        pointHoverBorderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: reducedMotion ? false : { duration: 700, easing: 'easeOutQuart' },
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            ...tooltipBase,
+                            callbacks: {
+                                title: items => items[0].label,
+                                label: item => ' ' + moneyFull.format(item.parsed.y)
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            border: { display: false },
+                            ticks: { color: '#7d8491', maxRotation: 0, autoSkip: false }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            border: { display: false },
+                            grid: { color: 'rgba(255,255,255,0.055)', drawTicks: false },
+                            ticks: {
+                                color: '#7d8491',
+                                padding: 8,
+                                maxTicksLimit: 4,
+                                callback: value => '$' + compact.format(value)
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ── Distribución por medio de pago ──
+        const mediosCanvas = document.getElementById('chartMediosPago');
+        const mediosData = JSON.parse(document.getElementById('medios-pago-data').textContent);
+        if (mediosCanvas && mediosData.length) {
+            new Chart(mediosCanvas.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: mediosData.map(m => m.etiqueta),
+                    datasets: [{
+                        data: mediosData.map(m => m.total),
+                        backgroundColor: mediosData.map(m => m.color),
+                        borderColor: '#181b21',
+                        borderWidth: 3,
+                        hoverOffset: 5
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '72%',
+                    animation: reducedMotion ? false : { duration: 750, easing: 'easeOutQuart' },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            ...tooltipBase,
+                            callbacks: {
+                                label: item => {
+                                    const total = item.dataset.data.reduce((a, b) => a + b, 0);
+                                    const pct = total ? (item.parsed / total) * 100 : 0;
+                                    return ' ' + money.format(item.parsed) + ' · ' + pct.toFixed(1) + '%';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    })();
+</script>
+{% endif %}
 {% endblock %}
