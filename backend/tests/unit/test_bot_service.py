@@ -1,10 +1,11 @@
 """
 Peluquería Lorena — Pruebas unitarias para TurnoBotService.
 """
-from datetime import date, time
+from datetime import time, timedelta
 from decimal import Decimal
 from unittest.mock import MagicMock, patch
 import pytest
+from django.utils import timezone
 
 from apps.bot_asistente.ai.interpreter import BotResponseSchema, IntencionEnum
 from apps.bot_asistente.models import ConversacionBot
@@ -83,12 +84,15 @@ class TestTurnoBotService:
     def test_agendado_automatico_en_bolsa_comun(self) -> None:
         """Si la IA detecta agendar turno en horario comercial, crea el Turno con profesional=None."""
         telefono = "5491122334455"
+        # Próximo jueves (día de atención) siempre en el futuro, para que el test no caduque.
+        hoy = timezone.localdate()
+        proximo_jueves = hoy + timedelta(days=(3 - hoy.weekday()) % 7 or 7)
         mock_schema = BotResponseSchema(
             intencion=IntencionEnum.AGENDAR_TURNO,
             servicios_detectados=["Corte Damas"],
-            fecha_sugerida="2026-09-24",
+            fecha_sugerida=proximo_jueves.isoformat(),
             hora_sugerida="15:00",
-            mensaje_respuesta="¡Perfecto! Te agendé para Corte Damas este jueves 24/09 a las 15:00.",
+            mensaje_respuesta=f"¡Perfecto! Te agendé para Corte Damas este jueves {proximo_jueves:%d/%m} a las 15:00.",
             requiere_escalado=False,
         )
 
@@ -105,7 +109,7 @@ class TestTurnoBotService:
         assert turno is not None
         assert turno.servicio == self.corte
         assert turno.profesional is None  # Bolsa común
-        assert turno.fecha == date(2026, 9, 24)
+        assert turno.fecha == proximo_jueves
         assert turno.hora == time(15, 0)
         assert turno.duracion_minutos == 45
         assert turno.estado in [Turno.Estado.CONFIRMADO, Turno.Estado.PENDIENTE]

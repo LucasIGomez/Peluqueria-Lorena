@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import user_passes_test
 from .models import Proveedor
 from .forms import ProveedorForm
 from apps.inventario.models import Producto
@@ -15,12 +15,17 @@ from django.conf import settings
 from django.utils import timezone
 from django.utils.text import slugify
 
-@login_required
+def es_admin_check(user) -> bool:
+    """Proveedores y órdenes de compra son de gestión exclusiva de la Administradora."""
+    return user.is_authenticated and user.es_administradora
+
+
+@user_passes_test(es_admin_check, login_url="index")
 def lista_proveedores(request):
     proveedores = Proveedor.objects.all().order_by('nombre')
     return render(request, 'proveedores/lista_proveedores.html', {'proveedores': proveedores})
 
-@login_required
+@user_passes_test(es_admin_check, login_url="index")
 def crear_proveedor(request):
     if request.method == 'POST':
         form = ProveedorForm(request.POST)
@@ -32,7 +37,7 @@ def crear_proveedor(request):
         form = ProveedorForm()
     return render(request, 'proveedores/form_proveedor.html', {'form': form, 'accion': 'Registrar'})
 
-@login_required
+@user_passes_test(es_admin_check, login_url="index")
 def editar_proveedor(request, pk):
     proveedor = get_object_or_404(Proveedor, pk=pk)
     if request.method == 'POST':
@@ -45,7 +50,7 @@ def editar_proveedor(request, pk):
         form = ProveedorForm(instance=proveedor)
     return render(request, 'proveedores/form_proveedor.html', {'form': form, 'accion': 'Editar'})
 
-@login_required
+@user_passes_test(es_admin_check, login_url="index")
 def eliminar_proveedor(request, pk):
     proveedor = get_object_or_404(Proveedor, pk=pk)
     if request.method == 'POST':
@@ -54,7 +59,7 @@ def eliminar_proveedor(request, pk):
         return redirect('proveedores:lista_proveedores')
     return render(request, 'proveedores/eliminar_proveedor.html', {'proveedor': proveedor})
 
-@login_required
+@user_passes_test(es_admin_check, login_url="index")
 def generar_orden(request):
     proveedores = Proveedor.objects.all().order_by('nombre')
     productos = Producto.objects.filter(activo=True).order_by('nombre')
@@ -63,7 +68,7 @@ def generar_orden(request):
         'productos': productos,
     })
 
-@login_required
+@user_passes_test(es_admin_check, login_url="index")
 def descargar_orden_compra(request):
     """
     Genera y descarga el archivo Word (.docx) de la Orden de Compra
@@ -180,7 +185,7 @@ def descargar_orden_compra(request):
     except Exception as e:
         return JsonResponse({'error': f'Error al procesar la orden: {str(e)}'}, status=500)
 
-@login_required
+@user_passes_test(es_admin_check, login_url="index")
 def crear_producto_ajax(request):
     if request.method == 'POST':
         try:

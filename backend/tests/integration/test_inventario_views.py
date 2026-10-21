@@ -15,7 +15,7 @@ from rest_framework.test import APIClient
 
 from apps.inventario.models import MovimientoStock, Producto
 from apps.inventario.services import InventarioService
-from tests.factories.usuario_factory import EmpleadaFactory
+from tests.factories.usuario_factory import AdministradoraFactory, EmpleadaFactory
 
 
 @pytest.mark.django_db
@@ -69,6 +69,7 @@ class TestInventarioWebViews:
 
     def test_crear_producto_formulario_web(self, client) -> None:
         """RF 7.1: Alta de producto mediante formulario web y registro de 'Producto añadido'."""
+        client.force_login(AdministradoraFactory(email="admin.alta.producto@test.com"))
         url = reverse("inventario:crear_producto")
         response_get = client.get(url)
         assert response_get.status_code == 200
@@ -95,6 +96,7 @@ class TestInventarioWebViews:
 
     def test_editar_producto_formulario_web(self, client) -> None:
         """RF 7.1: Edición de producto existente (solo modifica nombre, descripción, precio y stock mínimo)."""
+        client.force_login(AdministradoraFactory(email="admin.edita.producto@test.com"))
         producto = Producto.objects.create(
             nombre="Cera Modeladora",
             precio=Decimal("2000.00"),
@@ -151,6 +153,7 @@ class TestInventarioWebViews:
 
     def test_eliminar_producto_baja_logica_registra_movimiento(self, client) -> None:
         """RF 7.1: Baja lógica de producto registra 'Producto eliminado'."""
+        client.force_login(AdministradoraFactory(email="admin.baja.producto@test.com"))
         producto = Producto.objects.create(
             nombre="Producto Descontinuado",
             precio=Decimal("1000.00"),
