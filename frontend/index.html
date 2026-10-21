@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load humanize %}
+{% load humanize static %}
 
 {% block title %}Panel de control — Peluquería Lorena{% endblock %}
 
@@ -7,9 +7,7 @@
 {% block page_subtitle %}Tu salón, de un vistazo: caja, agenda y stock en un solo lugar.{% endblock %}
 
 {% block extra_css %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,500;6..96,600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'vendor/fonts/bodoni-moda.css' %}">
 <style>
     /* ──────────────────────────────────────────────────────────
        Panel de control — dirección visual "salón atelier"
@@ -1463,7 +1461,7 @@
 
 {% block extra_js %}
 {% if ingresos_7d_total > 0 or distribucion_medios %}
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="{% static 'vendor/chartjs/chart.umd.js' %}"></script>
 <script>
     (function () {
         if (typeof Chart === 'undefined') return;
