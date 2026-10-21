@@ -12,7 +12,7 @@ de la API REST para cumplir con:
 from typing import Any
 
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Q
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -20,6 +20,8 @@ from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+
+from apps.usuarios.permissions import EsAdministradora
 
 from .forms import AgregarStockForm, ConsumoServicioForm, ProductoEditForm, ProductoForm
 from .models import MovimientoStock, Producto
@@ -34,6 +36,11 @@ from .services import InventarioError, InventarioService, StockInsuficienteError
 # ──────────────────────────────────────────────────────────────
 # Vistas Web (Django Templates + Bootstrap 5)
 # ──────────────────────────────────────────────────────────────
+
+
+def es_admin_check(user) -> bool:
+    """Alta, edición y baja de productos son exclusivas de la Administradora."""
+    return user.is_authenticated and user.es_administradora
 
 
 @login_required
@@ -69,7 +76,7 @@ def lista_productos(request):
     return render(request, "inventario/lista_productos.html", context)
 
 
-@login_required
+@user_passes_test(es_admin_check, login_url="inventario:lista_productos")
 def crear_producto(request):
     """
     RF 7.1: Alta de un nuevo producto en el inventario.
@@ -114,7 +121,7 @@ def crear_producto(request):
     )
 
 
-@login_required
+@user_passes_test(es_admin_check, login_url="inventario:lista_productos")
 def editar_producto(request, pk: int):
     """
     RF 7.1: Edición de un producto existente.
@@ -283,7 +290,7 @@ def descontar_stock_servicio(request, pk: int | None = None):
     )
 
 
-@login_required
+@user_passes_test(es_admin_check, login_url="inventario:lista_productos")
 def eliminar_producto(request, pk: int):
     """
     RF 7.1: Baja de un producto del catálogo (baja lógica por defecto o física).
@@ -368,6 +375,12 @@ class ProductoViewSet(viewsets.ModelViewSet):
     queryset = Producto.objects.filter(activo=True).order_by("nombre")
     serializer_class = ProductoSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_permissions(self):
+        """Alta, edición y baja de productos: solo Administradora; el resto, cualquier usuaria autenticada."""
+        if self.action in ("create", "update", "partial_update", "destroy"):
+            return [IsAuthenticated(), EsAdministradora()]
+        return super().get_permissions()
 
     def perform_destroy(self, instance: Producto) -> None:
         """Baja lógica por defecto con registro de auditoría."""
