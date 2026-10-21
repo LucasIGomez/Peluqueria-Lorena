@@ -246,7 +246,7 @@ class TurnoBotService:
 
     @classmethod
     def _menu_agendar_turno(cls, conversacion: ConversacionBot) -> str:
-        conversacion.estado = ConversacionBot.Estado.EN_PROGRESO
+        conversacion.estado = ConversacionBot.Estado.EN_PROCESO
         conversacion.save(update_fields=["estado"])
         return (
             "¡Genial! Para agendar tu turno, contame por favor:\n"
@@ -371,7 +371,7 @@ class TurnoBotService:
 
         if not servicio_obj:
             conversacion.requiere_humano = True
-            conversacion.estado = ConversacionBot.Estado.ESCALADA_HUMANO
+            conversacion.estado = ConversacionBot.Estado.ESCALADO_HUMANO
             conversacion.save(update_fields=["requiere_humano", "estado"])
             return (
                 "No pude identificar con exactitud el servicio solicitado en nuestro catálogo. "
@@ -422,7 +422,7 @@ class TurnoBotService:
                 TurnoService.cambiar_estado(turno, Turno.Estado.CONFIRMADO)
         except CapacidadAgotadaError:
             conversacion.requiere_humano = True
-            conversacion.estado = ConversacionBot.Estado.ESCALADA_HUMANO
+            conversacion.estado = ConversacionBot.Estado.ESCALADO_HUMANO
             conversacion.save(update_fields=["requiere_humano", "estado"])
             return (
                 f"¡Gracias por escribirnos! 💛 Para el *{fecha_turno.strftime('%d/%m/%Y')} a las {hora_turno.strftime('%H:%M')} hs* "

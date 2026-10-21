@@ -29,7 +29,7 @@ class ConversacionBotAdmin(admin.ModelAdmin):
         "link_whatsapp",
     )
     list_filter = ("requiere_humano", "estado", "ultimo_mensaje_at")
-    search_fields = ("telefono_cliente", "nombre_remitente", "cliente__nombre", "cliente__apellido")
+    search_fields = ("telefono_cliente", "nombre_remitente", "cliente__nombre")
     readonly_fields = ("fecha_creacion", "ultimo_mensaje_at")
     inlines = [MensajeBotInline]
     actions = ["marcar_atendido"]
