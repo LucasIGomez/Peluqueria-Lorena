@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
 
+{% block page_back %}
+<a href="{% url 'fidelizacion:panel_beneficios' %}" class="volver" data-confirmar-salida="true"><i class="bi bi-arrow-left"></i> Volver a cupones</a>
+{% endblock %}
 {% block page_title %}Cupón {{ beneficio.codigo }}{% endblock %}
 {% block page_subtitle %}{{ beneficio.cliente.nombre }} · {{ beneficio.descripcion_beneficio }}{% endblock %}
 
@@ -8,7 +11,7 @@
     <div class="col-lg-6">
         <div class="card shadow-sm border-0">
             <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0 text-light"><i class="bi bi-ticket-perforated me-2 text-accent"></i> Ficha del cupón</h5>
+                <h2 class="h6 mb-0 fw-semibold">Ficha del cupón</h2>
                 {% if beneficio.estado == 'DISPONIBLE' %}
                 <span class="badge bg-success">Disponible</span>
                 {% elif beneficio.estado == 'CANJEADO' %}
@@ -41,7 +44,7 @@
                     {% endif %}
                 </dl>
                 <div class="alert alert-dark border-secondary mt-3 mb-0">
-                    <div class="text-secondary small text-uppercase fw-bold mb-1">Mensaje enviado a la clienta</div>
+                    <div class="text-secondary small fw-bold mb-1">Mensaje enviado a la clienta</div>
                     <p class="mb-0 text-light small">{{ beneficio.mensaje_renderizado }}</p>
                 </div>
             </div>
@@ -57,7 +60,7 @@
                 {{ form.observaciones }}
             </div>
             <div class="card-footer bg-dark d-flex justify-content-end">
-                <button type="submit" name="canjear" class="btn btn-accent text-dark fw-bold px-4">
+                <button type="submit" name="canjear" class="btn btn-accent px-4">
                     <i class="bi bi-check2-circle me-1"></i> Confirmar canje
                 </button>
             </div>

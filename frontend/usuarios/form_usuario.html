@@ -1,14 +1,17 @@
 {% extends 'base.html' %}
 
+{% block page_back %}
+<a href="{% url 'usuarios:lista_usuarios' %}" class="volver" data-confirmar-salida="true"><i class="bi bi-arrow-left"></i> Volver a usuarios</a>
+{% endblock %}
 {% block page_title %}{{ accion }}{% endblock %}
 {% block page_subtitle %}Gestión de credenciales y roles del personal.{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center py-3">
     <div class="col-md-6">
-        <div class="card shadow border-0" style="background-color: #1a1d24; border: 1px solid #2a2e35 !important;">
-            <div class="card-header py-3 border-bottom" style="border-color: #2a2e35 !important;">
-                <h5 class="mb-0 text-light"><i class="bi bi-person-gear me-2 text-accent"></i> {{ accion }}</h5>
+        <div class="card shadow border-0" style="background-color: var(--superficie); border: 1px solid var(--linea) !important;">
+            <div class="card-header py-3 border-bottom" style="border-color: var(--linea) !important;">
+                <h2 class="h6 mb-0 fw-semibold">{{ accion }}</h2>
             </div>
 
             <div class="card-body p-4">
@@ -80,7 +83,7 @@
                         <a href="{% url 'usuarios:lista_usuarios' %}" id="btnCancelarUsuario" class="btn btn-secondary">
                             Cancelar
                         </a>
-                        <button type="submit" id="btnGuardarUsuario" class="btn btn-accent fw-bold text-dark">
+                        <button type="submit" id="btnGuardarUsuario" class="btn btn-accent">
                             <i class="bi bi-save me-1"></i> Guardar Cambios
                         </button>
                     </div>
@@ -93,13 +96,13 @@
 <!-- Modal Emergente de Confirmación de Guardar / Aceptar -->
 <div class="modal fade" id="modalConfirmarUsuario" tabindex="-1" aria-labelledby="modalConfirmarUsuarioLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+        <div class="modal-content shadow-lg" style="background-color: var(--superficie); border: 1px solid var(--linea-fuerte);">
             <div class="modal-header border-0 pb-0">
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body text-center pt-1 pb-3 px-4">
                 <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
-                    style="width: 60px; height: 60px; background-color: rgba(229, 193, 88, 0.15); color: var(--accent-color);">
+                    style="width: 60px; height: 60px; background-color: rgba(207, 169, 90, 0.15); color: var(--accent-color);">
                     <i class="bi bi-check2-circle fs-1"></i>
                 </div>
                 <h5 class="modal-title fw-bold mb-2 text-light" id="modalConfirmarUsuarioLabel">
@@ -127,10 +130,10 @@
                 </div>
             </div>
             <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
-                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
                     Revisar
                 </button>
-                <button type="button" id="btnConfirmarGuardarUsuario" class="btn btn-accent px-4 fw-semibold text-dark">
+                <button type="button" id="btnConfirmarGuardarUsuario" class="btn btn-accent px-4">
                     <i class="bi bi-check-lg me-1"></i> {% if "crear" in accion|lower %}Sí, registrar{% else %}Sí, guardar{% endif %}
                 </button>
             </div>
@@ -141,7 +144,7 @@
 <!-- Modal Emergente de Confirmación de Cancelación -->
 <div class="modal fade" id="modalCancelarUsuario" tabindex="-1" aria-labelledby="modalCancelarUsuarioLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+        <div class="modal-content shadow-lg" style="background-color: var(--superficie); border: 1px solid var(--linea-fuerte);">
             <div class="modal-header border-0 pb-0">
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
@@ -156,7 +159,7 @@
                 </p>
             </div>
             <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
-                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
                     Continuar editando
                 </button>
                 <a href="{% url 'usuarios:lista_usuarios' %}" class="btn btn-danger px-4 fw-semibold">

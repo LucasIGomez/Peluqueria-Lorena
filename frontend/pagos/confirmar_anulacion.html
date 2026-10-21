@@ -1,12 +1,15 @@
 {% extends 'base.html' %}
 
+{% block page_back %}
+<a href="{% url 'pagos:caja_diaria' %}" class="volver" data-confirmar-salida="true"><i class="bi bi-arrow-left"></i> Volver a la caja</a>
+{% endblock %}
 {% block page_title %}Anular Cobro{% endblock %}
 {% block page_subtitle %}Confirmación de anulación con reposición de stock si corresponde.{% endblock %}
 
 {% block content %}
 <div class="card shadow-sm border-danger mx-auto" style="max-width: 560px;">
     <div class="card-header py-3 bg-danger bg-opacity-10">
-        <h5 class="mb-0 text-danger"><i class="bi bi-exclamation-triangle me-2"></i> Anular Cobro #{{ cobro.pk }}</h5>
+        <h2 class="h6 mb-0 fw-semibold">Anular Cobro #{{ cobro.pk }}</h2>
     </div>
     <div class="card-body p-4">
         <p class="text-light">Clienta: <strong>{{ cobro.cliente_nombre }}</strong></p>

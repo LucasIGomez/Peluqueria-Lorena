@@ -1,14 +1,17 @@
 {% extends 'base.html' %}
 
+{% block page_back %}
+<a href="{% url 'proveedores:lista_proveedores' %}" class="volver" data-confirmar-salida="true"><i class="bi bi-arrow-left"></i> Volver a proveedores</a>
+{% endblock %}
 {% block page_title %}{{ accion }} Proveedor{% endblock %}
 {% block page_subtitle %}Ingresa los datos del proveedor.{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center py-2">
     <div class="col-lg-6 col-md-8">
-        <div class="card shadow border-0" style="background-color: #1a1d24; border: 1px solid #2a2e35 !important;">
-            <div class="card-header py-3 border-bottom" style="border-color: #2a2e35 !important;">
-                <h5 class="mb-0 text-light"><i class="bi bi-truck me-2 text-accent"></i> {{ accion }} Proveedor</h5>
+        <div class="card shadow border-0" style="background-color: var(--superficie); border: 1px solid var(--linea) !important;">
+            <div class="card-header py-3 border-bottom" style="border-color: var(--linea) !important;">
+                <h2 class="h6 mb-0 fw-semibold">{{ accion }} Proveedor</h2>
             </div>
             <div class="card-body p-4">
                 <form method="post" id="formProveedor" novalidate>
@@ -53,9 +56,9 @@
                     </div>
 
                     <div class="mt-4 pt-3 border-top border-secondary border-opacity-25 d-flex flex-column flex-sm-row justify-content-end gap-2">
-                        <a href="{% url 'proveedores:lista_proveedores' %}" class="btn btn-outline-light px-4 text-center"
+                        <a href="{% url 'proveedores:lista_proveedores' %}" class="btn btn-outline-secondary px-4 text-center"
                             id="btnCancelarProveedor">Cancelar</a>
-                        <button type="submit" class="btn btn-accent px-4 fw-semibold text-center" id="btnGuardarProveedor">
+                        <button type="submit" class="btn btn-accent px-4 text-center" id="btnGuardarProveedor">
                             <i class="bi bi-check-lg me-1"></i> Guardar Proveedor
                         </button>
                     </div>
@@ -69,14 +72,14 @@
 <div class="modal fade" id="modalConfirmarProveedor" tabindex="-1" aria-labelledby="modalConfirmarProveedorLabel"
     aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+        <div class="modal-content shadow-lg" style="background-color: var(--superficie); border: 1px solid var(--linea-fuerte);">
             <div class="modal-header border-0 pb-0">
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                     aria-label="Cerrar"></button>
             </div>
             <div class="modal-body text-center pt-1 pb-3 px-4">
                 <div class="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
-                    style="width: 60px; height: 60px; background-color: rgba(229, 193, 88, 0.15); color: var(--accent-color);">
+                    style="width: 60px; height: 60px; background-color: rgba(207, 169, 90, 0.15); color: var(--accent-color);">
                     <i class="bi bi-check2-circle fs-1"></i>
                 </div>
                 <h5 class="modal-title fw-bold mb-2 text-light" id="modalConfirmarProveedorLabel">¿Guardar los datos del
@@ -93,10 +96,10 @@
             </div>
             <div
                 class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
-                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
                     Revisar
                 </button>
-                <button type="button" id="btnConfirmarGuardarProveedor" class="btn btn-accent px-4 fw-semibold">
+                <button type="button" id="btnConfirmarGuardarProveedor" class="btn btn-accent px-4">
                     <i class="bi bi-check-lg me-1"></i> Sí, guardar
                 </button>
             </div>
@@ -108,7 +111,7 @@
 <div class="modal fade" id="modalCancelarProveedor" tabindex="-1" aria-labelledby="modalCancelarProveedorLabel"
     aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+        <div class="modal-content shadow-lg" style="background-color: var(--superficie); border: 1px solid var(--linea-fuerte);">
             <div class="modal-header border-0 pb-0">
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                     aria-label="Cerrar"></button>
@@ -127,7 +130,7 @@
             </div>
             <div
                 class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
-                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
                     Continuar editando
                 </button>
                 <a href="{% url 'proveedores:lista_proveedores' %}" id="btnConfirmarCancelarProveedor" class="btn btn-danger px-4 fw-semibold">

@@ -18,7 +18,7 @@
                 <i class="bi bi-info-circle-fill fs-3"></i>
             </div>
             <div>
-                <h6 class="mb-1 text-accent fw-bold">Esquema Relevado Oficial de Peluquería Lorena</h6>
+                <h2 class="h6 mb-1 text-accent">Esquema Relevado Oficial de Peluquería Lorena</h2>
                 <p class="mb-0 text-secondary small">
                     El modelo del salón establece una retribución del <strong>50% en Cortes</strong> y del <strong>25% en Trabajos Técnicos</strong> (Color, Mechas y Tratamientos Capilares). Los porcentajes definidos aquí se aplicarán automáticamente a cada nuevo servicio registrado sobre el presupuesto acordado.
                 </p>
@@ -29,19 +29,19 @@
             {% csrf_token %}
             <div class="card shadow-sm border-0">
                 <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0 text-light"><i class="bi bi-sliders me-2 text-accent"></i> Porcentajes por Categoría de Servicio</h5>
+                    <h2 class="h6 mb-0 fw-semibold">Porcentajes por Categoría de Servicio</h2>
                     <span id="badgeEstadoFormulario" class="badge bg-secondary">Sin cambios</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-dark table-hover align-middle mb-0">
-                            <thead class="table-secondary text-uppercase small">
+                        <table class="table table-dark table-hover align-middle mb-0 tabla-tarjetas">
+                            <thead class="table-secondary small">
                                 <tr>
-                                    <th class="ps-4">Categoría de Servicio</th>
-                                    <th style="width: 190px;">Porcentaje Comisión (%)</th>
-                                    <th>Detalle / Especificación</th>
-                                    <th class="text-center" style="width: 100px;">Estado</th>
-                                    <th class="text-secondary small text-end pe-4" style="width: 140px;">Base Relevada</th>
+                                    <th scope="col" class="ps-4">Categoría de Servicio</th>
+                                    <th scope="col" style="width: 190px;">Porcentaje Comisión (%)</th>
+                                    <th scope="col">Detalle / Especificación</th>
+                                    <th scope="col" class="text-center" style="width: 100px;">Estado</th>
+                                    <th scope="col" class="text-secondary small text-end pe-4" style="width: 140px;">Base Relevada</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -52,39 +52,39 @@
                                     data-initial-pct="{{ config.porcentaje|stringformat:'.2f' }}"
                                     data-initial-desc="{{ config.descripcion }}"
                                     data-initial-activo="{% if config.activo %}1{% else %}0{% endif %}">
-                                    <td class="ps-4">
+                                    <td class="ps-4" data-label="Categoría de Servicio">
                                         <div class="fw-bold text-light fs-6">{{ config.get_categoria_display }}</div>
                                         <small class="text-secondary">Código: <code>{{ config.categoria }}</code></small>
                                     </td>
-                                    <td>
+                                    <td data-label="Porcentaje Comisión (%)">
                                         <div class="input-group">
                                             <input type="number" step="0.01" min="0" max="100" 
                                                    name="porcentaje_{{ config.pk }}" 
                                                    id="inputPct_{{ config.pk }}"
                                                    value="{{ config.porcentaje|stringformat:'.2f' }}" 
-                                                   class="form-control fw-bold text-end text-accent bg-dark border-secondary input-pct" required>
+                                                   aria-label="Porcentaje de comisión de {{ config.get_categoria_display }}" class="form-control fw-bold text-end text-accent input-pct" required>
                                             <span class="input-group-text bg-secondary border-secondary text-light">%</span>
                                         </div>
                                         <div class="invalid-feedback small d-none" id="errorPct_{{ config.pk }}">
                                             Debe ser entre 0% y 100%
                                         </div>
                                     </td>
-                                    <td>
+                                    <td data-label="Detalle / Especificación">
                                         <input type="text" name="descripcion_{{ config.pk }}" 
                                                id="inputDesc_{{ config.pk }}"
                                                value="{{ config.descripcion }}" 
-                                               class="form-control form-control-sm bg-dark border-secondary text-light input-desc"
+                                               aria-label="Detalle de {{ config.get_categoria_display }}" class="form-control form-control-sm input-desc"
                                                placeholder="Notas o descripción técnica">
                                     </td>
-                                    <td class="text-center">
+                                    <td class="text-center" data-label="Estado">
                                         <div class="form-check form-switch d-inline-block">
                                             <input class="form-check-input input-activo" type="checkbox" 
                                                    name="activo_{{ config.pk }}" 
                                                    id="inputActivo_{{ config.pk }}"
-                                                   role="switch" {% if config.activo %}checked{% endif %}>
+                                                   role="switch" aria-label="Categoría {{ config.get_categoria_display }} activa" {% if config.activo %}checked{% endif %}>
                                         </div>
                                     </td>
-                                    <td class="text-end pe-4">
+                                    <td class="text-end pe-4" data-label="Base Relevada">
                                         {% if config.categoria == 'CORTES' %}
                                             <span class="badge bg-success bg-opacity-25 text-success border border-success fw-bold">50.00%</span>
                                         {% else %}
@@ -107,7 +107,7 @@
                     <small class="text-secondary"><i class="bi bi-shield-check me-1 text-warning"></i> Cambios aplicables a futuros servicios registrados.</small>
                     <div class="d-flex gap-2">
                         <button type="button" id="btnCancelar" class="btn btn-outline-secondary">Cancelar</button>
-                        <button type="button" id="btnSolicitarGuardar" class="btn btn-accent text-dark fw-bold px-4">
+                        <button type="button" id="btnSolicitarGuardar" class="btn btn-accent px-4">
                             <i class="bi bi-check-circle me-1"></i> Guardar Configuración
                         </button>
                     </div>
@@ -130,7 +130,7 @@
             <div class="modal-body">
                 <p class="mb-2">¿Estás segura de que deseas aplicar los siguientes cambios en las comisiones?</p>
                 <div class="p-3 bg-black rounded border border-secondary mb-3">
-                    <div class="text-secondary small text-uppercase fw-bold mb-2">Detalle de modificaciones detectadas:</div>
+                    <div class="text-secondary small fw-bold mb-2">Detalle de modificaciones detectadas:</div>
                     <ul class="list-group list-group-flush mb-0" id="listaCambiosConfirmar">
                         <!-- Generado dinámicamente -->
                     </ul>
@@ -142,7 +142,7 @@
             </div>
             <div class="modal-footer border-secondary">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Revisar</button>
-                <button type="button" id="btnConfirmarSubmit" class="btn btn-accent text-dark fw-bold px-4">
+                <button type="button" id="btnConfirmarSubmit" class="btn btn-accent px-4">
                     <i class="bi bi-check2-circle me-1"></i> Sí, Aplicar Cambios
                 </button>
             </div>
@@ -235,7 +235,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             const detalleFila = [];
             if (!isNaN(currentPct) && Math.abs(currentPct - initialPct) > 0.001) {
-                detalleFila.push(`Porcentaje: <span class="text-secondary">${initialPct.toFixed(2)}%</span> ➔ <strong class="text-accent">${currentPct.toFixed(2)}%</strong>`);
+                detalleFila.push(`Porcentaje: <span class="text-secondary">${initialPct.toFixed(2)}%</span> pasa a <strong class="text-accent">${currentPct.toFixed(2)}%</strong>`);
             }
             if (currentActivo !== initialActivo) {
                 const estadoTxt = currentActivo ? '<span class="text-success">Activo</span>' : '<span class="text-danger">Inactivo</span>';

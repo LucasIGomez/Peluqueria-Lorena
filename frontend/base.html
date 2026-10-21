@@ -1,346 +1,685 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es" data-bs-theme="dark">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Lorena System{% endblock %}</title>
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <title>{% block title %}Peluquería Lorena{% endblock %}</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f0c09'/%3E%3Ctext x='32' y='46' font-family='Georgia,serif' font-size='42' text-anchor='middle' fill='%23cfa95a'%3EL%3C/text%3E%3C/svg%3E">
+    <!-- Bootstrap, íconos y tipografías: archivos propios del proyecto (no dependen de internet) -->
+    <link rel="preload" href="{% static 'vendor/fonts/hanken-grotesk-normal-1.woff2' %}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{% static 'vendor/fonts/instrument-serif-normal-3.woff2' %}" as="font" type="font/woff2" crossorigin>
+    <link href="{% static 'vendor/bootstrap/bootstrap.min.css' %}" rel="stylesheet">
+    <link rel="stylesheet" href="{% static 'vendor/bootstrap-icons/bootstrap-icons.min.css' %}">
+    <link rel="stylesheet" href="{% static 'vendor/fonts/fuentes.css' %}">
     <style>
-        :root {
-            --bs-body-bg: #121418;
-            --bs-body-color: #e9ecef;
-            --accent-color: #e5c158;
-            --sidebar-bg: #1a1d24;
-            --card-bg: #1a1d24;
+        /* ══════════════════════════════════════════════════════════
+           Sistema visual de Peluquería Lorena
+           Café muy oscuro como fondo, dorado como único color de acción,
+           bronce y naranja para estados. Los tonos de Bootstrap se
+           redefinen acá para que todas las pantallas los hereden.
+           ══════════════════════════════════════════════════════════ */
+        :root,
+        [data-bs-theme=dark] {
+            --tinta: #0f0c09;
+            --superficie: #16120e;
+            --elevada: #1e1913;
+            --campo: #231d16;
+            --linea: #2e261d;
+            --linea-fuerte: #3f3527;
+            --marfil: #f4eee3;
+            --bruma: #baad98;
+            --apagado: #8f8372;
+            --oro: #cfa95a;
+            --oro-claro: #e4c987;
+            --oro-rgb: 207, 169, 90;
+            --sobre-oro: #1a1307;
+            --bs-dark-rgb: 30, 25, 19;
+            --bs-light-rgb: 244, 238, 227;
+            --cobre: #b5793c;
+            --tabaco: #4a3520;
+            --serif: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+            --sans: 'Hanken Grotesk', 'Segoe UI', system-ui, sans-serif;
+
+            /* Compatibilidad con el nombre anterior del acento */
+            --accent-color: var(--oro);
+            --sidebar-bg: var(--superficie);
+            --card-bg: var(--superficie);
+
+            /* Bootstrap */
+            color-scheme: dark;
+            --bs-body-bg: var(--tinta);
+            --bs-body-color: var(--marfil);
+            --bs-body-font-family: var(--sans);
+            --bs-secondary-color: var(--bruma);
+            --bs-tertiary-color: var(--apagado);
+            --bs-secondary-bg: var(--campo);
+            --bs-tertiary-bg: var(--elevada);
+            --bs-border-color: var(--linea-fuerte);
+            --bs-border-color-translucent: rgba(255, 255, 255, 0.1);
+            --bs-heading-color: var(--marfil);
+            --bs-link-color: var(--oro);
+            --bs-link-color-rgb: 207, 169, 90;
+            --bs-link-hover-color: var(--oro-claro);
+            --bs-link-hover-color-rgb: 228, 201, 135;
+            --bs-primary-rgb: 207, 169, 90;
+            --bs-secondary-rgb: 152, 140, 122;
+            --bs-success-rgb: 155, 196, 154;
+            --bs-info-rgb: 214, 190, 130;
+            --bs-warning-rgb: 221, 138, 69;
+            --bs-danger-rgb: 226, 112, 95;
+            --bs-primary-text-emphasis: #ecd9a6;
+            --bs-success-text-emphasis: #c3dcc2;
+            --bs-info-text-emphasis: #e8d5a8;
+            --bs-warning-text-emphasis: #f0b88a;
+            --bs-danger-text-emphasis: #f0a095;
+            --bs-primary-bg-subtle: rgba(207, 169, 90, 0.12);
+            --bs-success-bg-subtle: rgba(155, 196, 154, 0.12);
+            --bs-info-bg-subtle: rgba(214, 190, 130, 0.12);
+            --bs-warning-bg-subtle: rgba(221, 138, 69, 0.12);
+            --bs-danger-bg-subtle: rgba(226, 112, 95, 0.12);
+            --bs-primary-border-subtle: rgba(207, 169, 90, 0.35);
+            --bs-success-border-subtle: rgba(155, 196, 154, 0.35);
+            --bs-info-border-subtle: rgba(214, 190, 130, 0.35);
+            --bs-warning-border-subtle: rgba(221, 138, 69, 0.35);
+            --bs-danger-border-subtle: rgba(226, 112, 95, 0.35);
         }
 
         body {
-            background-color: var(--bs-body-bg);
-            color: var(--bs-body-color);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
             min-height: 100vh;
             margin: 0;
+            font-family: var(--sans);
+            -webkit-font-smoothing: antialiased;
         }
 
-        /* Sidebar styling */
+        h1, h2, h3, .h1, .h2, .h3 {
+            font-family: var(--serif);
+            font-weight: 400 !important;
+            letter-spacing: 0.005em;
+        }
+
+        ::selection { background: rgba(var(--oro-rgb), 0.35); }
+
+        /* Superficies del navegador que también llevan la paleta */
+        html { scrollbar-color: var(--linea-fuerte) var(--tinta); }
+        input, textarea, select { caret-color: var(--oro); accent-color: var(--oro); }
+        a { text-underline-offset: 0.2em; }
+
+        /* Anillo de foco visible para quien navega con teclado (el de Bootstrap es casi invisible en tonos oscuros) */
+        a:focus-visible, button:focus-visible, summary:focus-visible, [tabindex]:focus-visible,
+        .btn:focus-visible, .nav-link:focus-visible, .form-check-input:focus-visible {
+            outline: 2px solid var(--oro) !important;
+            outline-offset: 2px;
+            box-shadow: none !important;
+        }
+        table, .metrica-valor, .servicio-precio, .cierre-personas { font-variant-numeric: tabular-nums; }
+
+        /* Enlace para saltar el menú (teclado y lectores de pantalla) */
+        .saltar { position: fixed; top: 0.75rem; left: 0.75rem; z-index: 2000; padding: 0.6rem 1rem; background: var(--oro); border-radius: 0.5rem; color: var(--sobre-oro); font-weight: 600; text-decoration: none; }
+        .saltar:not(:focus):not(:active) { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+        .main-content:focus { outline: none; }
+
+        /* ── Menú lateral ── */
         .sidebar {
-            width: 250px;
-            background-color: var(--sidebar-bg);
-            border-right: 1px solid #2a2e35;
+            position: fixed;
             display: flex;
             flex-direction: column;
-            position: fixed;
+            width: 264px;
             height: 100vh;
             overflow-y: auto;
+            background: var(--superficie);
+            border-right: 1px solid var(--linea);
+            scrollbar-width: thin;
+            scrollbar-color: var(--linea-fuerte) transparent;
         }
 
         .sidebar-header {
-            padding: 1.5rem;
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: var(--bs-body-color);
+            justify-content: space-between;
+            padding: 1.6rem 1.5rem 1.2rem;
         }
 
-        .sidebar-header i {
-            color: var(--accent-color);
-            font-size: 1.5rem;
+        .marca-lateral {
+            color: var(--marfil);
+            font-family: var(--serif);
+            font-size: 1.75rem;
+            line-height: 1;
+            text-decoration: none;
         }
+
+        .marca-lateral:hover { color: var(--marfil); }
 
         .sidebar-profile {
-            padding: 1rem;
-            margin: 0 1rem;
-            background-color: #22262e;
-            border-radius: 10px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 0.75rem;
+            margin: 0 1rem;
+            padding: 0.75rem;
+            border: 1px solid var(--linea);
+            border-radius: 0.85rem;
         }
 
-        .sidebar-profile img {
-            width: 40px;
-            height: 40px;
+        .avatar-inicial {
+            flex: none;
+            display: grid;
+            place-items: center;
+            width: 2.5rem;
+            height: 2.5rem;
             border-radius: 50%;
-            object-fit: cover;
+            background: var(--tabaco);
+            color: var(--oro-claro);
+            font-family: var(--serif);
+            font-size: 1.35rem;
+            line-height: 1;
         }
 
-        .sidebar-profile-info {
-            line-height: 1.2;
-        }
-
-        .sidebar-profile-info .name {
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
-
-        .sidebar-profile-info .role {
-            font-size: 0.7rem;
-            color: var(--accent-color);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
+        .sidebar-profile-info { min-width: 0; line-height: 1.25; }
+        .sidebar-profile-info .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.925rem; font-weight: 600; }
+        .sidebar-profile-info .role { color: var(--bruma); font-size: 0.8rem; }
 
         .sidebar-nav {
-            list-style: none;
-            padding: 1rem 0;
-            margin: 0;
             flex-grow: 1;
+            margin: 0;
+            padding: 0.75rem 0 1.25rem;
+            list-style: none;
         }
 
-        .sidebar-nav .nav-item {
-            padding: 0 1rem;
-            margin-bottom: 0.5rem;
+        .sidebar-nav .nav-item { padding: 0 1rem; margin-bottom: 0.15rem; }
+
+        .sidebar-nav .nav-grupo {
+            margin: 1.35rem 0 0.4rem;
+            padding: 0 1.5rem;
+            color: var(--apagado);
+            font-size: 0.8rem;
+            font-weight: 500;
         }
 
         .sidebar-nav .nav-link {
-            color: #a0a5b1;
-            padding: 0.8rem 1rem;
-            border-radius: 8px;
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 0.75rem;
+            padding: 0.55rem 0.8rem;
+            border-radius: 0.6rem;
+            color: var(--bruma);
+            font-size: 0.925rem;
             text-decoration: none;
-            transition: all 0.2s;
+            transition: background-color 0.15s ease, color 0.15s ease;
         }
 
-        .sidebar-nav .nav-link:hover,
+        .sidebar-nav .nav-link i { flex: none; width: 1.15rem; font-size: 1.05rem; color: var(--apagado); transition: color 0.15s ease; }
+        .sidebar-nav .nav-link:hover { background: rgba(255, 255, 255, 0.04); color: var(--marfil); }
+        .sidebar-nav .nav-link:hover i { color: var(--bruma); }
+
         .sidebar-nav .nav-link.active {
-            background-color: rgba(229, 193, 88, 0.1);
-            color: var(--accent-color);
+            background: rgba(var(--oro-rgb), 0.12);
+            color: var(--oro-claro);
         }
 
-        .sidebar-nav .nav-link i {
-            font-size: 1.2rem;
-        }
+        .sidebar-nav .nav-link.active i { color: var(--oro); }
 
-        /* Main content styling */
+        .sidebar-nav .nav-salir { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--linea); }
+
+        /* ── Contenido principal ── */
         .main-content {
-            margin-left: 250px;
-            flex-grow: 1;
-            padding: 2rem;
             display: flex;
             flex-direction: column;
+            flex-grow: 1;
+            min-width: 0;
+            margin-left: 264px;
+            padding: 2.25rem clamp(1.25rem, 3.2vw, 3.25rem) 3rem;
         }
 
-        /* Cards styling */
+        .encabezado {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 0.5rem 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .titulo-pagina { margin: 0; font-size: clamp(2rem, 3vw, 2.6rem); line-height: 1.05; }
+        .subtitulo-pagina { margin: 0.35rem 0 0; color: var(--bruma); font-size: 0.95rem; }
+        .fecha-hoy { color: var(--apagado); font-size: 0.875rem; }
+        .fecha-hoy::first-letter { text-transform: uppercase; }
+
+        /* ── Componentes de Bootstrap con la nueva paleta ── */
         .card {
-            background-color: var(--card-bg);
-            border: 1px solid #2a2e35;
-            border-radius: 12px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --bs-card-bg: var(--superficie);
+            --bs-card-border-color: var(--linea);
+            --bs-card-border-radius: 0.9rem;
+            --bs-card-inner-border-radius: calc(0.9rem - 1px);
+            --bs-card-cap-bg: transparent;
+            box-shadow: none;
         }
 
-        .card-header {
-            border-bottom: 1px solid #2a2e35;
-            background-color: transparent;
-            padding: 1rem 1.5rem;
-            font-weight: 600;
-        }
-
-        .text-accent {
-            color: var(--accent-color) !important;
-        }
-
-        .bg-accent {
-            background-color: var(--accent-color) !important;
-            color: #000 !important;
-        }
-
-        .btn-accent {
-            background-color: var(--accent-color);
-            color: #121418;
-            font-weight: 600;
-            border: none;
-        }
-
-        .btn-accent:hover {
-            background-color: #d4b24e;
-            color: #121418;
-        }
+        .card-header { padding: 1rem 1.5rem; border-bottom: 1px solid var(--linea); background: transparent; font-weight: 600; }
+        /* Títulos pequeños (de tarjetas y secciones) en la tipografía de interfaz; el serif queda para títulos grandes */
+        .card-header :is(h2, h3, h4, h5, h6), :is(h2, h3, h4).h6, :is(h2, h3, h4).h5 { font-family: var(--sans); font-size: 1rem; font-weight: 600 !important; letter-spacing: 0; }
 
         .form-control,
         .form-select {
-            background-color: #22262e;
-            border: 1px solid #3c4149;
-            color: #fff;
+            background-color: var(--campo);
+            border: 1px solid var(--linea-fuerte);
+            border-radius: 0.6rem;
+            color: var(--marfil);
         }
+
+        .form-control::placeholder { color: #a99c88; }
 
         .form-control:focus,
         .form-select:focus {
-            background-color: #22262e;
-            border-color: var(--accent-color);
-            color: #fff;
-            box-shadow: 0 0 0 0.25rem rgba(229, 193, 88, 0.25);
+            background-color: var(--campo);
+            border-color: var(--oro);
+            color: var(--marfil);
+            box-shadow: 0 0 0 0.2rem rgba(var(--oro-rgb), 0.25);
         }
 
-        /* ── Diseño Responsive (Móvil y Tablet) ── */
+        .form-control:disabled, .form-select:disabled, .form-control[readonly] { background-color: var(--elevada); color: var(--apagado); }
+
+        .form-check-input { background-color: var(--campo); border-color: var(--linea-fuerte); }
+        .form-check-input:checked { background-color: var(--oro); border-color: var(--oro); }
+        .form-check-input:focus { border-color: var(--oro); box-shadow: 0 0 0 0.2rem rgba(var(--oro-rgb), 0.25); }
+        .form-switch .form-check-input:checked { background-color: var(--oro); border-color: var(--oro); }
+        .input-group-text { background-color: var(--elevada); border-color: var(--linea-fuerte); color: var(--bruma); }
+
+        .text-accent { color: var(--oro) !important; }
+        .bg-accent { background-color: var(--oro) !important; color: #1a1307 !important; }
+        .border-secondary { border-color: var(--linea-fuerte) !important; }
+        hr { border-color: var(--linea-fuerte); opacity: 1; }
+
+        .btn { --bs-btn-border-radius: 0.6rem; font-weight: 500; }
+
+        .btn-accent,
+        .btn-primary {
+            --bs-btn-color: #1a1307; --bs-btn-bg: var(--oro); --bs-btn-border-color: var(--oro);
+            --bs-btn-hover-color: #1a1307; --bs-btn-hover-bg: var(--oro-claro); --bs-btn-hover-border-color: var(--oro-claro);
+            --bs-btn-active-color: #1a1307; --bs-btn-active-bg: #b8923f; --bs-btn-active-border-color: #b8923f;
+            --bs-btn-disabled-color: #1a1307; --bs-btn-disabled-bg: var(--oro); --bs-btn-disabled-border-color: var(--oro);
+            --bs-btn-focus-shadow-rgb: 207, 169, 90;
+            font-weight: 600;
+        }
+
+        .btn-success {
+            --bs-btn-color: #101a10; --bs-btn-bg: #9bc49a; --bs-btn-border-color: #9bc49a;
+            --bs-btn-hover-color: #101a10; --bs-btn-hover-bg: #aed1ad; --bs-btn-hover-border-color: #aed1ad;
+            --bs-btn-active-color: #101a10; --bs-btn-active-bg: #88b387; --bs-btn-active-border-color: #88b387;
+            --bs-btn-disabled-color: #101a10; --bs-btn-disabled-bg: #9bc49a; --bs-btn-disabled-border-color: #9bc49a;
+        }
+
+        .btn-danger {
+            --bs-btn-color: #1c0e0b; --bs-btn-bg: #e2705f; --bs-btn-border-color: #e2705f;
+            --bs-btn-hover-color: #1c0e0b; --bs-btn-hover-bg: #ea8576; --bs-btn-hover-border-color: #ea8576;
+            --bs-btn-active-color: #1c0e0b; --bs-btn-active-bg: #cf5f4f; --bs-btn-active-border-color: #cf5f4f;
+            --bs-btn-disabled-color: #1c0e0b; --bs-btn-disabled-bg: #e2705f; --bs-btn-disabled-border-color: #e2705f;
+        }
+
+        .btn-warning {
+            --bs-btn-color: #1d1208; --bs-btn-bg: #dd8a45; --bs-btn-border-color: #dd8a45;
+            --bs-btn-hover-color: #1d1208; --bs-btn-hover-bg: #e69d62; --bs-btn-hover-border-color: #e69d62;
+            --bs-btn-active-color: #1d1208; --bs-btn-active-bg: #c97a3a; --bs-btn-active-border-color: #c97a3a;
+            --bs-btn-disabled-color: #1d1208; --bs-btn-disabled-bg: #dd8a45; --bs-btn-disabled-border-color: #dd8a45;
+        }
+
+        /* "Info" se usa para acciones secundarias: se muestra en dorado suave para no sumar otro color */
+        .btn-info {
+            --bs-btn-color: var(--oro-claro); --bs-btn-bg: rgba(207, 169, 90, 0.14); --bs-btn-border-color: rgba(207, 169, 90, 0.35);
+            --bs-btn-hover-color: #1a1307; --bs-btn-hover-bg: var(--oro); --bs-btn-hover-border-color: var(--oro);
+            --bs-btn-active-color: #1a1307; --bs-btn-active-bg: var(--oro); --bs-btn-active-border-color: var(--oro);
+            --bs-btn-disabled-color: var(--apagado); --bs-btn-disabled-bg: transparent; --bs-btn-disabled-border-color: var(--linea);
+        }
+
+        .btn-secondary {
+            --bs-btn-color: var(--marfil); --bs-btn-bg: var(--campo); --bs-btn-border-color: var(--linea-fuerte);
+            --bs-btn-hover-color: var(--marfil); --bs-btn-hover-bg: var(--elevada); --bs-btn-hover-border-color: var(--apagado);
+            --bs-btn-active-color: var(--marfil); --bs-btn-active-bg: var(--elevada); --bs-btn-active-border-color: var(--apagado);
+        }
+
+        .btn-outline-secondary {
+            --bs-btn-color: var(--bruma); --bs-btn-border-color: var(--linea-fuerte);
+            --bs-btn-hover-color: var(--marfil); --bs-btn-hover-bg: var(--elevada); --bs-btn-hover-border-color: var(--apagado);
+            --bs-btn-active-color: var(--marfil); --bs-btn-active-bg: var(--elevada); --bs-btn-active-border-color: var(--apagado);
+            --bs-btn-disabled-color: var(--apagado); --bs-btn-disabled-border-color: var(--linea);
+        }
+
+        .btn-outline-secondary {
+            --bs-btn-color: var(--marfil); --bs-btn-border-color: var(--linea-fuerte);
+            --bs-btn-hover-color: var(--marfil); --bs-btn-hover-bg: var(--elevada); --bs-btn-hover-border-color: var(--bruma);
+            --bs-btn-active-color: var(--marfil); --bs-btn-active-bg: var(--elevada); --bs-btn-active-border-color: var(--bruma);
+        }
+
+        .btn-outline-primary { --bs-btn-color: var(--oro); --bs-btn-border-color: var(--oro); --bs-btn-hover-color: #1a1307; --bs-btn-hover-bg: var(--oro); --bs-btn-hover-border-color: var(--oro); --bs-btn-active-color: #1a1307; --bs-btn-active-bg: var(--oro); --bs-btn-active-border-color: var(--oro); }
+        .btn-outline-success { --bs-btn-color: #9bc49a; --bs-btn-border-color: #9bc49a; --bs-btn-hover-color: #101a10; --bs-btn-hover-bg: #9bc49a; --bs-btn-hover-border-color: #9bc49a; --bs-btn-active-color: #101a10; --bs-btn-active-bg: #9bc49a; --bs-btn-active-border-color: #9bc49a; }
+        .btn-outline-danger { --bs-btn-color: #e2705f; --bs-btn-border-color: #e2705f; --bs-btn-hover-color: #1c0e0b; --bs-btn-hover-bg: #e2705f; --bs-btn-hover-border-color: #e2705f; --bs-btn-active-color: #1c0e0b; --bs-btn-active-bg: #e2705f; --bs-btn-active-border-color: #e2705f; }
+        .btn-outline-warning { --bs-btn-color: #dd8a45; --bs-btn-border-color: #dd8a45; --bs-btn-hover-color: #1d1208; --bs-btn-hover-bg: #dd8a45; --bs-btn-hover-border-color: #dd8a45; --bs-btn-active-color: #1d1208; --bs-btn-active-bg: #dd8a45; --bs-btn-active-border-color: #dd8a45; }
+        .btn-outline-info { --bs-btn-color: var(--oro-claro); --bs-btn-border-color: rgba(207, 169, 90, 0.45); --bs-btn-hover-color: #1a1307; --bs-btn-hover-bg: var(--oro); --bs-btn-hover-border-color: var(--oro); --bs-btn-active-color: #1a1307; --bs-btn-active-bg: var(--oro); --bs-btn-active-border-color: var(--oro); }
+
+        .badge.bg-success, .badge.bg-warning, .badge.bg-info, .badge.bg-danger, .badge.bg-secondary, .badge.bg-primary { --bs-badge-color: #17101b; font-weight: 600; }
+
+        .alert { --bs-alert-border-radius: 0.6rem; }
+        .alert-error { --bs-alert-color: var(--bs-danger-text-emphasis); --bs-alert-bg: var(--bs-danger-bg-subtle); --bs-alert-border-color: var(--bs-danger-border-subtle); }
+
+        .table {
+            --bs-table-color: var(--marfil);
+            --bs-table-bg: transparent;
+            --bs-table-border-color: var(--linea);
+            --bs-table-striped-bg: rgba(255, 255, 255, 0.02);
+            --bs-table-hover-bg: rgba(var(--oro-rgb), 0.06);
+            --bs-table-hover-color: var(--marfil);
+        }
+
+        .table > thead > tr > th { color: var(--bruma); font-size: 0.85rem; font-weight: 500; }
+
+        /* Encabezados y pies de tabla (las pantallas usan table-secondary / table-light) */
+        .table-secondary,
+        .table-light {
+            --bs-table-bg: var(--elevada);
+            --bs-table-color: var(--bruma);
+            --bs-table-border-color: var(--linea);
+            --bs-table-striped-bg: var(--elevada);
+            --bs-table-active-bg: var(--elevada);
+            --bs-table-hover-bg: var(--elevada);
+            --bs-table-hover-color: var(--bruma);
+            color: var(--bruma);
+        }
+
+        /* Las etiquetas se leen mejor en minúsculas que en mayúsculas sostenidas */
+        .text-uppercase,
+        [style*="text-transform: uppercase"],
+        [style*="text-transform:uppercase"] {
+            text-transform: none !important;
+            letter-spacing: normal !important;
+        }
+
+        .nav-tabs { --bs-nav-tabs-border-color: var(--linea); --bs-nav-tabs-link-hover-border-color: var(--linea) var(--linea) var(--linea-fuerte); --bs-nav-tabs-link-active-bg: transparent; --bs-nav-tabs-link-active-color: var(--oro-claro); --bs-nav-tabs-link-active-border-color: var(--linea) var(--linea) var(--tinta); }
+        .nav-pills { --bs-nav-pills-link-active-bg: rgba(var(--oro-rgb), 0.16); --bs-nav-pills-link-active-color: var(--oro-claro); }
+        .progress { --bs-progress-bg: var(--campo); --bs-progress-bar-bg: var(--oro); }
+        .list-group { --bs-list-group-bg: var(--superficie); --bs-list-group-border-color: var(--linea); --bs-list-group-color: var(--marfil); }
+        .dropdown-menu { --bs-dropdown-bg: var(--elevada); --bs-dropdown-border-color: var(--linea-fuerte); --bs-dropdown-link-hover-bg: rgba(var(--oro-rgb), 0.1); --bs-dropdown-link-active-bg: rgba(var(--oro-rgb), 0.18); --bs-dropdown-link-hover-color: var(--marfil); }
+        .modal-content { --bs-modal-bg: var(--superficie); --bs-modal-border-color: var(--linea-fuerte); --bs-modal-border-radius: 0.9rem; --bs-modal-header-border-color: var(--linea); --bs-modal-footer-border-color: var(--linea); }
+        .page-link { --bs-pagination-bg: var(--superficie); --bs-pagination-border-color: var(--linea-fuerte); --bs-pagination-color: var(--bruma); --bs-pagination-hover-bg: var(--elevada); --bs-pagination-hover-color: var(--marfil); --bs-pagination-active-bg: var(--oro); --bs-pagination-active-border-color: var(--oro); --bs-pagination-active-color: #1a1307; }
+
+        .btn-accent,
+        .btn-primary { background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(0, 0, 0, 0.05)); }
+
+        /* ── Piezas compartidas por las pantallas ── */
+        .barra-acciones {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .volver {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin: 0 0 0.75rem;
+            padding: 0.3rem 0.7rem 0.3rem 0.5rem;
+            border: 1px solid var(--linea-fuerte);
+            border-radius: 2rem;
+            color: var(--bruma);
+            font-size: 0.875rem;
+            text-decoration: none;
+            transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+        }
+
+        .volver:hover { background: var(--elevada); border-color: var(--oro); color: var(--oro-claro); }
+        .volver:focus-visible { outline: 2px solid var(--oro); outline-offset: 2px; }
+
+        /* Avisos de campos incompletos (reemplazan el globo del navegador) */
+        .error-campo { margin: 0.4rem 0 0; color: #f0a095; font-size: 0.875rem; }
+        .error-campo::before { content: "\F333"; margin-right: 0.4rem; font-family: "bootstrap-icons"; vertical-align: -0.1em; }
+        .campo-invalido,
+        .campo-invalido:focus { border-color: #e2705f !important; box-shadow: 0 0 0 0.2rem rgba(226, 112, 95, 0.22) !important; }
+        ul.errorlist { margin: 0.4rem 0 0; padding: 0; list-style: none; color: #f0a095; font-size: 0.875rem; }
+
+        .barra-grupo { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
+        .etiqueta-campo { color: var(--bruma); font-size: 0.875rem; }
+
+        .segmentado {
+            display: inline-flex;
+            padding: 3px;
+            background: var(--campo);
+            border: 1px solid var(--linea-fuerte);
+            border-radius: 0.7rem;
+        }
+
+        .segmentado a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.35rem 0.9rem;
+            border-radius: 0.5rem;
+            color: var(--bruma);
+            font-size: 0.9rem;
+            text-decoration: none;
+            transition: color 0.15s ease, background-color 0.15s ease;
+        }
+
+        .segmentado a:hover { color: var(--marfil); }
+        .segmentado a.activo { background: rgba(var(--oro-rgb), 0.18); color: var(--oro-claro); font-weight: 500; }
+        .segmentado a:focus-visible { outline: 2px solid var(--oro); outline-offset: 1px; }
+
+        .btn-icono {
+            display: inline-grid;
+            place-items: center;
+            width: 2.1rem;
+            height: 2.1rem;
+            padding: 0;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 0.55rem;
+            color: var(--bruma);
+            font-size: 1rem;
+            text-decoration: none;
+            cursor: pointer;
+            transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+        }
+
+        .btn-icono:hover { background: var(--elevada); border-color: var(--linea-fuerte); color: var(--marfil); }
+        .btn-icono.exito:hover { color: #9bc49a; }
+        .btn-icono.aviso:hover { color: #dd8a45; }
+        .btn-icono.peligro:hover { color: #e2705f; border-color: rgba(226, 112, 95, 0.4); }
+        .btn-icono:focus-visible { outline: 2px solid var(--oro); outline-offset: 2px; }
+
+        .acciones-fila { display: inline-flex; align-items: center; justify-content: flex-end; gap: 0.15rem; }
+        .acciones-fila form { display: inline-flex; margin: 0; }
+
+        .metricas {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+            gap: 1px;
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+            background: var(--linea);
+            border: 1px solid var(--linea);
+            border-radius: 0.9rem;
+        }
+
+        .metrica { padding: 1.25rem 1.5rem; background: var(--superficie); }
+        .metrica-etiqueta { color: var(--bruma); font-size: 0.875rem; }
+        .metrica-valor { margin: 0.15rem 0; font-family: var(--serif); font-size: 2.4rem; line-height: 1.1; }
+        .metrica-nota { color: var(--apagado); font-size: 0.8rem; }
+
+        .estado { display: inline-flex; align-items: center; gap: 0.45rem; color: var(--bruma); font-size: 0.85rem; white-space: nowrap; }
+        .estado::before { content: ""; flex: none; width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--apagado); }
+        .estado-confirmado { color: var(--oro-claro); }
+        .estado-confirmado::before { background: var(--oro); }
+        .estado-completado { color: #c3dcc2; }
+        .estado-completado::before { background: #9bc49a; }
+        .estado-ausente { color: #f0b88a; }
+        .estado-ausente::before { background: #dd8a45; }
+        .estado-cancelado { color: #f0a095; }
+        .estado-cancelado::before { background: #e2705f; }
+
+        .nav-tabs { gap: 0.25rem; border-bottom: 1px solid var(--linea); }
+        .nav-tabs .nav-link { padding: 0.7rem 1rem; background: transparent; border: 0; border-bottom: 2px solid transparent; border-radius: 0; color: var(--bruma); }
+        .nav-tabs .nav-link:hover { color: var(--marfil); border-bottom-color: var(--linea-fuerte); }
+        .nav-tabs .nav-link.active { background: transparent; color: var(--oro-claro); border-bottom-color: var(--oro); }
+        .nav-tabs .nav-link:focus-visible { outline: 2px solid var(--oro); outline-offset: -2px; }
+
+        /* ── Móvil y tablet ── */
         .mobile-navbar {
             display: none;
-            background-color: var(--sidebar-bg);
-            border-bottom: 1px solid #2a2e35;
-            padding: 0.75rem 1rem;
             position: fixed;
             top: 0;
             left: 0;
             right: 0;
-            height: 60px;
             z-index: 1040;
+            height: 60px;
+            padding: 0 1rem;
             align-items: center;
             justify-content: space-between;
+            background: var(--superficie);
+            border-bottom: 1px solid var(--linea);
         }
+
+        .mobile-navbar .marca-lateral { font-size: 1.5rem; }
 
         .sidebar-backdrop {
             display: none;
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: rgba(0, 0, 0, 0.65);
-            backdrop-filter: blur(2px);
+            inset: 0;
             z-index: 1050;
+            background: rgba(8, 6, 4, 0.72);
+            backdrop-filter: blur(2px);
             opacity: 0;
             transition: opacity 0.3s ease;
         }
 
-        .sidebar-backdrop.show {
-            display: block;
-            opacity: 1;
-        }
+        .sidebar-backdrop.show { display: block; opacity: 1; }
 
         @media (max-width: 991.98px) {
-            body {
-                flex-direction: column;
-                overflow-x: clip;
-            }
-
-            .mobile-navbar {
-                display: flex;
-            }
+            body { flex-direction: column; overflow-x: clip; }
+            .mobile-navbar { display: flex; }
 
             .sidebar {
-                position: fixed;
                 top: 0;
                 left: 0;
                 bottom: 0;
+                z-index: 1055;
                 width: 280px;
                 max-width: 85vw;
-                height: 100vh;
-                z-index: 1055;
                 transform: translateX(-100%);
                 transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                box-shadow: none;
             }
 
-            .sidebar.sidebar-open {
-                transform: translateX(0);
-                box-shadow: 5px 0 25px rgba(0, 0, 0, 0.6);
-            }
+            .sidebar.sidebar-open { transform: translateX(0); box-shadow: 5px 0 25px rgba(0, 0, 0, 0.6); }
 
             .main-content {
-                margin-left: 0 !important;
-                padding: 1rem !important;
-                padding-top: 75px !important;
                 width: 100%;
-                min-width: 0;
+                margin-left: 0 !important;
+                padding: 75px 1rem 2rem !important;
             }
+
+            .encabezado { margin-bottom: 1.5rem; }
         }
 
-        /* ── Botón Flotante Volver Arriba ── */
+        /* ── Zonas táctiles: 44 px como mínimo en celulares y pantallas táctiles ── */
+        @media (max-width: 991.98px), (pointer: coarse) {
+            .btn, .form-control, .form-select { min-height: 2.75rem; }
+            .btn-sm, .form-control-sm, .form-select-sm { min-height: 2.75rem; }
+            .btn-sm { display: inline-flex; align-items: center; justify-content: center; min-width: 2.75rem; }
+            .btn-icono { width: 2.75rem; height: 2.75rem; }
+            .segmentado a { min-height: 2.75rem; padding: 0.5rem 1.1rem; }
+            .filtro { display: inline-flex; align-items: center; min-height: 2.75rem; }
+            .volver { min-height: 2.75rem; padding: 0.5rem 1rem 0.5rem 0.75rem; }
+            .marca-lateral { display: inline-flex; align-items: center; min-height: 2.75rem; }
+            .mobile-navbar button, .mobile-navbar .btn { min-width: 2.75rem; min-height: 2.75rem; }
+            .sidebar-nav .nav-link { min-height: 2.75rem; }
+            .btn-close { min-width: 2.75rem; min-height: 2.75rem; }
+            .form-check-input:not([role="switch"]) { width: 1.4em; height: 1.4em; }
+            .form-switch .form-check-input { width: 3em; height: 1.6em; }
+            .clienta-nombre, .tabla-enlace { display: inline-block; padding: 0.75rem 0; }
+            .telefono-wa a { display: inline-grid; place-items: center; min-width: 2.75rem; min-height: 2.75rem; }
+            .agregar-turno { min-height: 2.75rem; }
+            .btn-link { min-height: 2.75rem; display: inline-flex; align-items: center; }
+            a.btn, button.btn { min-width: 2.75rem; }
+            .chip-alerta { min-height: 2.75rem; }
+        }
+
+        /* ── Tablas como tarjetas en celulares (cada fila pasa a ser un bloque con sus rótulos) ── */
+        @media (max-width: 767.98px) {
+            .tabla-tarjetas thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+            .tabla-tarjetas, .tabla-tarjetas tbody, .tabla-tarjetas tr { display: block; width: 100%; }
+            .tabla-tarjetas tr { padding: 0.85rem 1rem; border-bottom: 1px solid var(--linea); }
+            .tabla-tarjetas td { position: relative; display: block; min-height: 2rem; padding: 0.35rem 0 0.35rem 7.25rem !important; border: 0; text-align: left; }
+            .tabla-tarjetas td::before { content: attr(data-label); position: absolute; top: 0.45rem; left: 0; width: 6.75rem; color: var(--bruma); font-size: 0.85rem; }
+            .tabla-tarjetas td[data-label=""], .tabla-tarjetas td:not([data-label]) { padding-left: 0 !important; }
+            .tabla-tarjetas td:not([data-label])::before { content: none; }
+            .tabla-tarjetas td[data-label=""]::before, .tabla-tarjetas td[colspan]::before { content: none; }
+            .tabla-tarjetas td[colspan] { padding-left: 0 !important; text-align: center; }
+            .tabla-tarjetas .acciones-fila { justify-content: flex-start; flex-wrap: wrap; }
+        }
+
+        /* ── Botón para volver arriba ── */
         .btn-scroll-top {
             position: fixed;
-            bottom: 24px;
             right: 24px;
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background-color: #1a1d24;
-            color: var(--accent-color);
-            border: 2px solid var(--accent-color);
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 12px rgba(229, 193, 88, 0.2);
+            bottom: 24px;
+            z-index: 1030;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.25rem;
+            width: 46px;
+            height: 46px;
+            background: var(--elevada);
+            border: 1px solid var(--linea-fuerte);
+            border-radius: 50%;
+            color: var(--oro-claro);
+            font-size: 1.2rem;
             cursor: pointer;
-            z-index: 1030;
             opacity: 0;
             visibility: hidden;
             pointer-events: none;
             transform: translateY(16px);
-            transition: opacity 0.25s ease, transform 0.25s ease, background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+            transition: opacity 0.25s ease, transform 0.25s ease, background-color 0.2s ease, color 0.2s ease;
         }
 
-        .btn-scroll-top.visible {
-            opacity: 1;
-            visibility: visible;
-            pointer-events: auto;
-            transform: translateY(0);
-        }
-
-        .btn-scroll-top:hover {
-            background-color: var(--accent-color);
-            color: #121418;
-            box-shadow: 0 6px 20px rgba(229, 193, 88, 0.45);
-            transform: translateY(-3px);
-        }
-
-        .btn-scroll-top:active {
-            transform: translateY(0) scale(0.92);
-        }
+        .btn-scroll-top.visible { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0); }
+        .btn-scroll-top:hover { background: var(--oro); border-color: var(--oro); color: #1a1307; }
+        .btn-scroll-top:focus-visible { outline: 2px solid var(--oro); outline-offset: 3px; }
 
         @media (max-width: 575.98px) {
-            .btn-scroll-top {
-                bottom: 18px;
-                right: 18px;
-                width: 44px;
-                height: 44px;
-                font-size: 1.15rem;
-            }
+            .btn-scroll-top { right: 16px; bottom: 16px; width: 42px; height: 42px; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .sidebar, .sidebar-backdrop, .btn-scroll-top, .sidebar-nav .nav-link { transition: none; }
         }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 
 <body>
+    <a class="saltar" href="#contenido">Saltar al contenido</a>
 
-    <!-- Barra Superior Móvil -->
+    <!-- Barra superior para celulares -->
     <header class="mobile-navbar">
         <button type="button" class="btn btn-link text-light p-1 text-decoration-none" id="btnAbrirSidebar" aria-label="Abrir menú">
-            <i class="bi bi-list fs-2 text-accent"></i>
+            <i class="bi bi-list fs-2"></i>
         </button>
-        <div class="d-flex align-items-center gap-2 fw-bold text-light fs-6">
-            <i class="bi bi-scissors text-accent fs-5"></i>
-            <span>Lorena System</span>
-        </div>
-        <div>
-            {% if request.user.is_authenticated %}
-                <span class="badge {% if request.user.es_administradora %}bg-warning text-dark{% else %}bg-info-subtle text-info{% endif %} fw-bold px-2 py-1" style="font-size: 0.72rem;">
-                    {% if request.user.es_administradora %}Admin{% else %}Empleada{% endif %}
-                </span>
-            {% else %}
-                <a href="/usuarios/login/" class="btn btn-sm btn-accent fw-bold px-2 py-0" style="font-size: 0.8rem;">Entrar</a>
-            {% endif %}
-        </div>
+        <a href="/" class="marca-lateral">Peluquería Lorena</a>
+        {% if request.user.is_authenticated %}
+            <span class="avatar-inicial" aria-hidden="true">{{ request.user.nombre|slice:":1"|upper }}</span>
+        {% else %}
+            <a href="/usuarios/login/" class="btn btn-sm btn-accent px-3">Ingresar</a>
+        {% endif %}
     </header>
 
-    <!-- Telón oscuro para menú lateral en móviles -->
+    <!-- Telón oscuro para el menú lateral en celulares -->
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
-    <!-- Sidebar -->
+    <!-- Menú lateral -->
     <aside class="sidebar">
-        <div class="sidebar-header justify-content-between">
-            <div class="d-flex align-items-center gap-2">
-                <i class="bi bi-scissors"></i>
-                <span>Lorena System</span>
-            </div>
+        <div class="sidebar-header">
+            <a href="/" class="marca-lateral">Peluquería Lorena</a>
             <button type="button" class="btn btn-link text-secondary p-0 d-lg-none text-decoration-none" id="btnCerrarSidebar" aria-label="Cerrar menú">
                 <i class="bi bi-x-lg fs-5"></i>
             </button>
@@ -348,73 +687,61 @@
 
         <div class="sidebar-profile">
             {% if request.user.is_authenticated %}
-                <img src="https://ui-avatars.com/api/?name={{ request.user.nombre|urlencode }}&background=22262e&color=e5c158" alt="{{ request.user.nombre }}">
+                <span class="avatar-inicial" aria-hidden="true">{{ request.user.nombre|slice:":1"|upper }}</span>
                 <div class="sidebar-profile-info">
                     <div class="name">{{ request.user.nombre }}</div>
-                    <div class="role">
-                        {% if request.user.es_administradora %}
-                            <i class="bi bi-shield-lock-fill text-warning"></i> Admin
-                        {% else %}
-                            <i class="bi bi-scissors text-accent"></i> Empleada
-                        {% endif %}
-                    </div>
+                    <div class="role">{% if request.user.es_administradora %}Administradora{% else %}Empleada{% endif %}</div>
                 </div>
             {% else %}
-                <img src="https://ui-avatars.com/api/?name=Invitado&background=22262e&color=aaa" alt="Invitado">
+                <span class="avatar-inicial" aria-hidden="true">?</span>
                 <div class="sidebar-profile-info">
-                    <div class="name">Invitado</div>
-                    <div class="role text-secondary">Sin sesión</div>
+                    <div class="name">Invitada</div>
+                    <div class="role">Sin sesión iniciada</div>
                 </div>
             {% endif %}
         </div>
 
-        <ul class="sidebar-nav mt-3">
+        <ul class="sidebar-nav">
             <li class="nav-item">
                 <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">
                     <i class="bi bi-grid-1x2"></i> Inicio
                 </a>
             </li>
-            <li class="nav-item text-secondary text-uppercase px-3 mt-3 mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">
-                <i class="bi bi-scissors me-1 text-accent"></i> Salón
-            </li>
+
+            <li class="nav-grupo">Salón</li>
             <li class="nav-item">
-                <a href="/clientes/"
-                    class="nav-link {% if '/clientes' in request.path %}active{% endif %}">
-                    <i class="bi bi-people"></i> Fichas de Clientas
+                <a href="/turnos/" class="nav-link {% if '/turnos' in request.path %}active{% endif %}">
+                    <i class="bi bi-calendar-event"></i> Agenda y turnos
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/turnos/"
-                    class="nav-link d-flex align-items-center {% if '/turnos' in request.path %}active{% endif %}">
-                    <span><i class="bi bi-calendar-event me-2"></i> Agenda y Turnos</span>
+                <a href="/clientes/" class="nav-link {% if '/clientes' in request.path %}active{% endif %}">
+                    <i class="bi bi-people"></i> Fichas de clientas
                 </a>
             </li>
             <li class="nav-item">
                 <a href="/servicios/"
                     class="nav-link {% if request.path == '/servicios/' or '/servicios/nuevo' in request.path or '/servicios/editar' in request.path %}active{% endif %}">
-                    <i class="bi bi-card-checklist"></i> Catálogo Servicios
+                    <i class="bi bi-card-checklist"></i> Catálogo de servicios
                 </a>
             </li>
             <li class="nav-item">
                 <a href="/servicios/control-diario/"
                     class="nav-link {% if '/servicios/control-diario' in request.path or '/servicios/atencion' in request.path or '/servicios/consentimiento' in request.path %}active{% endif %}">
-                    <i class="bi bi-calendar-check"></i> Control Diario
+                    <i class="bi bi-calendar-check"></i> Control diario
                 </a>
             </li>
             <li class="nav-item">
                 <a href="/servicios/cierre-diario/"
                     class="nav-link {% if '/servicios/cierre-diario' in request.path %}active{% endif %}">
-                    <i class="bi bi-box-arrow-down text-warning"></i> Cierre de Insumos
+                    <i class="bi bi-box-arrow-down"></i> Cierre de insumos
                 </a>
             </li>
 
-            <li class="nav-item text-secondary text-uppercase px-3 mt-3 mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">
-                <i class="bi bi-box-seam me-1 text-info"></i> Inventario
-            </li>
+            <li class="nav-grupo">Inventario</li>
             <li class="nav-item">
-                <a href="/inventario/productos/"
-                    class="nav-link {% if '/inventario/productos' in request.path %}active{% endif %}">
-                    <i class="bi bi-box-seam"></i> Stock e Insumos
+                <a href="/inventario/productos/" class="nav-link {% if '/inventario/productos' in request.path %}active{% endif %}">
+                    <i class="bi bi-box-seam"></i> Stock e insumos
                 </a>
             </li>
             {% if request.user.is_authenticated and request.user.es_administradora %}
@@ -425,133 +752,104 @@
             </li>
             {% endif %}
 
+            <li class="nav-grupo">Caja</li>
             <li class="nav-item">
-                <a href="/pagos/"
-                    class="nav-link {% if '/pagos' in request.path %}active{% endif %}">
-                    <i class="bi bi-cash-coin text-warning"></i> Caja y Ventas
+                <a href="/pagos/" class="nav-link {% if '/pagos' in request.path %}active{% endif %}">
+                    <i class="bi bi-cash-coin"></i> Caja y ventas
                 </a>
             </li>
 
-            <li class="nav-item text-secondary text-uppercase px-3 mt-3 mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">
-                <i class="bi bi-gift me-1 text-accent"></i> Fidelización
-            </li>
+            <li class="nav-grupo">Fidelización</li>
             <li class="nav-item">
-                <a href="/fidelizacion/beneficios/"
-                    class="nav-link {% if '/fidelizacion/beneficios' in request.path %}active{% endif %}">
-                    <i class="bi bi-ticket-perforated"></i> Cupones y Auditoría
+                <a href="/fidelizacion/beneficios/" class="nav-link {% if '/fidelizacion/beneficios' in request.path %}active{% endif %}">
+                    <i class="bi bi-ticket-perforated"></i> Cupones y auditoría
                 </a>
             </li>
             {% if request.user.is_authenticated and request.user.es_administradora %}
             <li class="nav-item">
-                <a href="/fidelizacion/reglas/"
-                    class="nav-link {% if '/fidelizacion/reglas' in request.path %}active{% endif %}">
-                    <i class="bi bi-sliders"></i> Motor de Beneficios
+                <a href="/fidelizacion/reglas/" class="nav-link {% if '/fidelizacion/reglas' in request.path %}active{% endif %}">
+                    <i class="bi bi-sliders"></i> Motor de beneficios
                 </a>
             </li>
             {% endif %}
 
-            <li class="nav-item text-secondary text-uppercase px-3 mt-3 mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">
-                <i class="bi bi-wallet2 me-1 text-accent"></i> Comisiones
-            </li>
+            <li class="nav-grupo">Comisiones</li>
             <li class="nav-item">
-                <a href="/comisiones/registrar/"
-                    class="nav-link {% if '/comisiones/registrar' in request.path %}active{% endif %}">
-                    <i class="bi bi-plus-circle text-accent"></i> Registrar mi Trabajo
+                <a href="/comisiones/registrar/" class="nav-link {% if '/comisiones/registrar' in request.path %}active{% endif %}">
+                    <i class="bi bi-plus-circle"></i> Registrar mi trabajo
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/comisiones/mis-comisiones/"
-                    class="nav-link {% if '/comisiones/mis-comisiones' in request.path %}active{% endif %}">
-                    <i class="bi bi-wallet2"></i> Mis Comisiones
+                <a href="/comisiones/mis-comisiones/" class="nav-link {% if '/comisiones/mis-comisiones' in request.path %}active{% endif %}">
+                    <i class="bi bi-wallet2"></i> Mis comisiones
                 </a>
             </li>
             {% if request.user.is_authenticated and request.user.es_administradora %}
             <li class="nav-item">
-                <a href="/comisiones/liquidacion/"
-                    class="nav-link {% if '/comisiones/liquidacion' in request.path %}active{% endif %}">
-                    <i class="bi bi-file-earmark-spreadsheet text-warning"></i> Liquidación Personal
+                <a href="/comisiones/liquidacion/" class="nav-link {% if '/comisiones/liquidacion' in request.path %}active{% endif %}">
+                    <i class="bi bi-file-earmark-spreadsheet"></i> Liquidación del personal
                 </a>
             </li>
             <li class="nav-item">
-                <a href="/comisiones/configuracion/"
-                    class="nav-link {% if '/comisiones/configuracion' in request.path %}active{% endif %}">
-                    <i class="bi bi-sliders"></i> Configurar % Comisiones
+                <a href="/comisiones/configuracion/" class="nav-link {% if '/comisiones/configuracion' in request.path %}active{% endif %}">
+                    <i class="bi bi-percent"></i> Porcentajes de comisión
                 </a>
             </li>
             {% endif %}
 
             {% if request.user.is_authenticated and request.user.es_administradora %}
-                <li class="nav-item text-secondary text-uppercase px-3 mt-3 mb-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">
-                    <i class="bi bi-shield-lock me-1"></i> Administración
-                </li>
-                <li class="nav-item">
-                    <a href="/usuarios/gestion/" class="nav-link {% if '/usuarios/gestion' in request.path %}active{% endif %}">
-                        <i class="bi bi-people-fill text-warning"></i> Gestión Usuarios
-                    </a>
-                </li>
+            <li class="nav-grupo">Administración</li>
+            <li class="nav-item">
+                <a href="/usuarios/gestion/" class="nav-link {% if '/usuarios/gestion' in request.path %}active{% endif %}">
+                    <i class="bi bi-people-fill"></i> Usuarios y accesos
+                </a>
+            </li>
             {% endif %}
 
-            <li class="nav-item mt-auto">
+            <li class="nav-item nav-salir">
                 {% if request.user.is_authenticated %}
-                    <a href="/usuarios/logout/" class="nav-link text-danger">
-                        <i class="bi bi-box-arrow-right"></i> Cerrar Sesión
+                    <a href="/usuarios/logout/" class="nav-link">
+                        <i class="bi bi-box-arrow-right"></i> Cerrar sesión
                     </a>
                 {% else %}
-                    <a href="/usuarios/login/" class="nav-link text-accent">
-                        <i class="bi bi-box-arrow-in-right"></i> Iniciar Sesión
+                    <a href="/usuarios/login/" class="nav-link">
+                        <i class="bi bi-box-arrow-in-right"></i> Iniciar sesión
                     </a>
                 {% endif %}
             </li>
         </ul>
     </aside>
 
-    <!-- Main Content -->
-    <main class="main-content">
-        <!-- Top bar (date, notifications) -->
-        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-2 mb-4">
+    <!-- Contenido principal -->
+    <main class="main-content" id="contenido" tabindex="-1">
+        <div class="encabezado">
             <div>
+                {% block page_back %}{% endblock %}
                 {% if request.user.is_authenticated %}
-                    <h3 class="mb-0 fw-bold fs-4 fs-md-3">{% block page_title %}¡Bienvenida/o, {{ request.user.nombre }}! 👋{% endblock %}</h3>
-                    <p class="text-secondary mb-0 small">{% block page_subtitle %}Panel de control de Peluquería Lorena.{% endblock %}</p>
+                    <h1 class="titulo-pagina">{% block page_title %}Hola, {{ request.user.nombre }}{% endblock %}</h1>
+                    <p class="subtitulo-pagina">{% block page_subtitle %}Panel de control de Peluquería Lorena.{% endblock %}</p>
                 {% else %}
-                    <h3 class="mb-0 fw-bold fs-4 fs-md-3">{% block page_title_anon %}Peluquería Lorena 👋{% endblock %}</h3>
-                    <p class="text-secondary mb-0 small">{% block page_subtitle_anon %}Sistema de Gestión Integral del Salón.{% endblock %}</p>
+                    <h1 class="titulo-pagina">{% block page_title_anon %}Peluquería Lorena{% endblock %}</h1>
+                    <p class="subtitulo-pagina">{% block page_subtitle_anon %}Sistema de gestión del salón.{% endblock %}</p>
                 {% endif %}
             </div>
-            <div class="d-flex align-items-center flex-wrap gap-2 text-secondary">
-                <span id="current-date" class="small"></span>
-                {% if request.user.is_authenticated %}
-                    {% if request.user.es_administradora %}
-                        <span class="badge bg-warning text-dark px-2 px-sm-3 py-2 fw-bold small">
-                            <i class="bi bi-shield-check me-1"></i> Modo Administradora
-                        </span>
-                    {% else %}
-                        <span class="badge bg-info-subtle text-info px-2 px-sm-3 py-2 small">
-                            <i class="bi bi-scissors me-1"></i> Modo Empleada
-                        </span>
-                    {% endif %}
-                {% else %}
-                    <a href="/usuarios/login/" class="btn btn-sm btn-accent fw-bold text-dark px-3">
-                        <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión
-                    </a>
-                {% endif %}
-            </div>
+            <span id="current-date" class="fecha-hoy"></span>
         </div>
 
         {% if messages %}
         {% for message in messages %}
         <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
             {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
         </div>
         {% endfor %}
         {% endif %}
 
-        <!-- Dynamic Content -->
+        <!-- Contenido de cada pantalla -->
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Botón Flotante Volver Arriba -->
+    <!-- Botón flotante para volver arriba -->
     <button type="button" class="btn-scroll-top" id="btnVolverArriba" aria-label="Volver arriba" title="Volver al inicio de la página">
         <i class="bi bi-arrow-up"></i>
     </button>
@@ -559,7 +857,7 @@
     <!-- Modal Global de Confirmación de Salida / Descarte de Cambios -->
     <div class="modal fade" id="modalConfirmarSalidaNavegacion" tabindex="-1" aria-labelledby="modalConfirmarSalidaNavegacionLabel" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+            <div class="modal-content shadow-lg" style="background-color: var(--superficie); border: 1px solid var(--linea-fuerte);">
                 <div class="modal-header border-0 pb-0">
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
@@ -575,7 +873,7 @@
                     </p>
                 </div>
                 <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
-                    <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                    <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
                         Continuar aquí
                     </button>
                     <a href="#" class="btn btn-danger px-4 fw-semibold" id="btnConfirmarSalidaNavegacion">
@@ -586,9 +884,52 @@
         </div>
     </div>
 
+    <!-- Ventana de confirmación para acciones que no se pueden deshacer -->
+    <div class="modal fade" id="modalConfirmarAccion" tabindex="-1" aria-labelledby="modalConfirmarAccionTitulo" aria-describedby="modalConfirmarAccionMensaje" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body p-4">
+                    <h2 class="h4 mb-2" id="modalConfirmarAccionTitulo">¿Querés continuar?</h2>
+                    <p class="text-secondary mb-0" id="modalConfirmarAccionMensaje"></p>
+                </div>
+                <div class="modal-footer border-0 pt-0 px-4 pb-4 gap-2">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-accent" id="btnAceptarConfirmacion">Confirmar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap 5 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
     <script>
+        // Las personas que piden menos movimiento en su sistema no reciben desplazamientos animados.
+        function comportamientoScroll() {
+            return window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+        }
+
+        // Muestra la ventana de confirmación propia. Devuelve una promesa que se resuelve con true o false.
+        window.confirmarAccion = function (mensaje, titulo, textoBoton) {
+            return new Promise(function (resolver) {
+                var el = document.getElementById('modalConfirmarAccion');
+                var modal = bootstrap.Modal.getOrCreateInstance(el);
+                var aceptar = document.getElementById('btnAceptarConfirmacion');
+                var aceptado = false;
+                document.getElementById('modalConfirmarAccionMensaje').textContent = mensaje;
+                document.getElementById('modalConfirmarAccionTitulo').textContent = titulo || '¿Querés continuar?';
+                aceptar.textContent = textoBoton || 'Confirmar';
+                function alAceptar() { aceptado = true; modal.hide(); }
+                function alCerrar() {
+                    aceptar.removeEventListener('click', alAceptar);
+                    el.removeEventListener('hidden.bs.modal', alCerrar);
+                    resolver(aceptado);
+                }
+                aceptar.addEventListener('click', alAceptar);
+                el.addEventListener('hidden.bs.modal', alCerrar);
+                modal.show();
+            });
+        };
+
         // Set current date
         const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
         const currentDateEl = document.getElementById('current-date');
@@ -665,11 +1006,20 @@
             // Formularios con data-confirmar="mensaje" piden confirmación antes de enviarse.
             // Se escucha en captura para cortar el envío antes que el resto de los listeners.
             document.addEventListener('submit', function(e) {
-                const mensaje = e.target.dataset ? e.target.dataset.confirmar : null;
-                if (mensaje && !confirm(mensaje)) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }
+                const form = e.target;
+                const mensaje = form.dataset ? form.dataset.confirmar : null;
+                if (!mensaje || form.dataset.confirmado === '1') { return; }
+                // Si faltan datos, primero se muestran los avisos del formulario y recién después se pide confirmar.
+                const faltanDatos = form.noValidate && typeof form.checkValidity === 'function' && !form.checkValidity();
+                if (faltanDatos) { return; }
+                e.preventDefault();
+                e.stopPropagation();
+                const botonEnvio = e.submitter || null;
+                window.confirmarAccion(mensaje, '¿Confirmás esta acción?', 'Sí, continuar').then(function(acepto) {
+                    if (!acepto) { return; }
+                    form.dataset.confirmado = '1';
+                    if (form.requestSubmit) { form.requestSubmit(botonEnvio || undefined); } else { form.submit(); }
+                });
             }, true);
 
             // Función global para verificar si hay cambios sin guardar
@@ -805,10 +1155,96 @@
                 btnVolverArriba.addEventListener('click', function() {
                     window.scrollTo({
                         top: 0,
-                        behavior: 'smooth'
+                        behavior: comportamientoScroll()
                     });
                 });
             }
+        })();
+    </script>
+    <script>
+        // ── Avisos de campos incompletos ──
+        // Todos los formularios de envío (POST) muestran el aviso debajo de cada campo, con el
+        // diseño del sistema, en lugar del globo que dibuja el navegador. Un formulario puede
+        // excluirse con el atributo data-no-validar.
+        (function () {
+            function mensaje(campo) {
+                var v = campo.validity;
+                var tipo = (campo.type || '').toLowerCase();
+                if (v.valueMissing) {
+                    if (campo.tagName === 'SELECT') return 'Elegí una opción.';
+                    if (tipo === 'date') return 'Elegí una fecha.';
+                    if (tipo === 'time') return 'Elegí una hora.';
+                    if (tipo === 'checkbox') return 'Tenés que marcar esta casilla.';
+                    return 'Completá este campo.';
+                }
+                if (v.typeMismatch) {
+                    if (tipo === 'email') return 'Escribí un correo válido, por ejemplo nombre@correo.com.';
+                    return 'El formato no es válido.';
+                }
+                if (v.patternMismatch) return campo.title || 'El formato no es válido.';
+                if (v.tooShort) return 'Escribí al menos ' + campo.minLength + ' caracteres.';
+                if (v.tooLong) return 'Escribí como máximo ' + campo.maxLength + ' caracteres.';
+                if (v.rangeUnderflow) return 'El valor mínimo es ' + campo.min + '.';
+                if (v.rangeOverflow) return 'El valor máximo es ' + campo.max + '.';
+                if (v.stepMismatch || v.badInput) return 'Revisá este valor.';
+                return 'Revisá este campo.';
+            }
+
+            function ubicacionAviso(campo) {
+                var grupo = campo.closest('.input-group');
+                return grupo || campo;
+            }
+
+            var contadorAvisos = 0;
+
+            function limpiar(campo) {
+                campo.classList.remove('campo-invalido');
+                campo.removeAttribute('aria-invalid');
+                if (campo._aviso) {
+                    campo._aviso.remove();
+                    campo._aviso = null;
+                }
+            }
+
+            function marcar(campo) {
+                limpiar(campo);
+                var aviso = document.createElement('p');
+                aviso.className = 'error-campo';
+                aviso.id = 'aviso-campo-' + (++contadorAvisos);
+                aviso.setAttribute('role', 'alert');
+                aviso.textContent = mensaje(campo);
+                ubicacionAviso(campo).insertAdjacentElement('afterend', aviso);
+                campo._aviso = aviso;
+                campo.classList.add('campo-invalido');
+                campo.setAttribute('aria-invalid', 'true');
+                campo.setAttribute('aria-describedby', aviso.id);
+            }
+
+            document.querySelectorAll('form[method="post" i]:not([data-no-validar])').forEach(function (form) {
+                form.noValidate = true;
+
+                form.addEventListener('submit', function (e) {
+                    // Un botón con formnovalidate (por ejemplo "Descartar") envía sin validar.
+                    if (e.submitter && e.submitter.formNoValidate) return;
+                    var invalidos = Array.prototype.filter.call(form.elements, function (campo) {
+                        return campo.willValidate && !campo.checkValidity();
+                    });
+                    form.querySelectorAll('.campo-invalido').forEach(limpiar);
+                    if (!invalidos.length) return;
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    invalidos.forEach(marcar);
+                    invalidos[0].focus({ preventScroll: true });
+                    invalidos[0].scrollIntoView({ block: 'center', behavior: comportamientoScroll() });
+                }, true);
+
+                form.addEventListener('input', function (e) {
+                    if (e.target.classList && e.target.classList.contains('campo-invalido') && e.target.checkValidity()) limpiar(e.target);
+                });
+                form.addEventListener('change', function (e) {
+                    if (e.target.classList && e.target.classList.contains('campo-invalido') && e.target.checkValidity()) limpiar(e.target);
+                });
+            });
         })();
     </script>
     {% block extra_js %}{% endblock %}

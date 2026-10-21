@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
 
+{% block page_back %}
+<a href="{% url 'pagos:caja_diaria' %}" class="volver" data-confirmar-salida="true"><i class="bi bi-arrow-left"></i> Volver a la caja</a>
+{% endblock %}
 {% block page_title %}Registrar Cobro{% endblock %}
 {% block page_subtitle %}Venta con carrito: múltiples servicios y/o productos en una transacción.{% endblock %}
 
@@ -23,7 +26,7 @@
 
     .tabla-carrito input {
         background-color: #21252e;
-        border: 1px solid #3c4149;
+        border: 1px solid var(--linea-fuerte);
         color: #f1f3f5;
         border-radius: 0.375rem;
         padding: 0.25rem 0.5rem;
@@ -32,7 +35,7 @@
 
     .tabla-carrito input:focus {
         outline: none;
-        border-color: #c9a227;
+        border-color: var(--cobre);
     }
 
     #id_add_cantidad:disabled {
@@ -51,19 +54,19 @@
         z-index: 1050;
         max-height: 280px;
         overflow-y: auto;
-        background-color: #22262e;
-        border: 1px solid #3c4149;
+        background-color: var(--campo);
+        border: 1px solid var(--linea-fuerte);
         border-radius: 0.5rem;
     }
     #resultadosBuscador .list-group-item {
         background-color: transparent;
-        border-color: #2a2e35;
+        border-color: var(--linea);
         cursor: pointer;
     }
     #resultadosBuscador .list-group-item:hover,
     #resultadosBuscador .list-group-item.active {
-        background-color: rgba(229, 193, 88, 0.12);
-        border-color: #c9a227;
+        background-color: rgba(207, 169, 90, 0.12);
+        border-color: var(--cobre);
     }
     #resultadosBuscador .sin-stock {
         opacity: 0.55;
@@ -74,7 +77,7 @@
 {% block content %}
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-header py-3">
-        <h5 class="mb-0 text-light"><i class="bi bi-cash-coin me-2 text-accent"></i> Nuevo Cobro — Carrito</h5>
+        <h2 class="h6 mb-0 fw-semibold">Nuevo Cobro — Carrito</h2>
     </div>
     <div class="card-body p-4">
         <form method="POST" novalidate id="formCobro">
@@ -86,14 +89,14 @@
             {% if form.items_json.errors %}<div class="alert alert-danger">{{ form.items_json.errors }}</div>{% endif %}
             <div class="row g-3">
                 <div class="col-md-3">
-                    <label class="form-label text-secondary small fw-bold text-uppercase">Medio de pago</label>
+                    <label for="{{ form.medio_pago.id_for_label }}" class="form-label text-secondary small fw-bold">Medio de pago</label>
                     {{ form.medio_pago }}
                     <div class="form-text text-success" id="textoDescuento">Efectivo, Mercado Pago y Ualá admiten
                         descuento manual.
                     </div>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label text-secondary small fw-bold text-uppercase">Descuento (%)</label>
+                    <label for="{{ form.porcentaje_descuento.id_for_label }}" class="form-label text-secondary small fw-bold">Descuento (%)</label>
                     {{ form.porcentaje_descuento }}
                     {% if form.porcentaje_descuento.errors %}<div class="text-danger small">
                         {{ form.porcentaje_descuento.errors }}</div>{% endif %}
@@ -101,20 +104,20 @@
                         sin descuento.</div>
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label text-secondary small fw-bold text-uppercase">Fecha</label>
+                    <label for="{{ form.fecha.id_for_label }}" class="form-label text-secondary small fw-bold">Fecha</label>
                     {{ form.fecha }}
                     {% if form.fecha.errors %}<div class="text-danger small">{{ form.fecha.errors }}</div>{% endif %}
                 </div>
                 <div class="col-md-3">
-                    <label class="form-label text-secondary small fw-bold text-uppercase">Profesional que cobra</label>
+                    <label for="{{ form.profesional.id_for_label }}" class="form-label text-secondary small fw-bold">Profesional que cobra</label>
                     {{ form.profesional }}
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label text-secondary small fw-bold text-uppercase">Clienta registrada</label>
+                    <label for="{{ form.cliente.id_for_label }}" class="form-label text-secondary small fw-bold">Clienta registrada</label>
                     {{ form.cliente }}
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label text-secondary small fw-bold text-uppercase">Nombre de la clienta *</label>
+                    <label for="{{ form.cliente_nombre.id_for_label }}" class="form-label text-secondary small fw-bold">Nombre de la clienta *</label>
                     {{ form.cliente_nombre }}
                     {% if form.cliente_nombre.errors %}<div class="text-danger small">{{ form.cliente_nombre.errors }}
                     </div>{% endif %}
@@ -124,10 +127,10 @@
             <hr class="border-secondary my-4">
 
             <!-- Alta de ítems al carrito con buscador dinámico -->
-            <h6 class="text-light fw-bold mb-3"><i class="bi bi-cart-plus me-2 text-accent"></i> Agregar ítems</h6>
+            <h2 class="h6 mb-3">Agregar ítems</h2>
             <div class="row g-3 align-items-start" id="filaAgregarItem">
                 <div class="col-md-2 d-flex flex-column">
-                    <label class="form-label text-secondary small fw-bold text-uppercase" for="id_add_tipo">Tipo</label>
+                    <label class="form-label text-secondary small fw-bold" for="id_add_tipo">Tipo</label>
                     <select class="form-select" id="id_add_tipo" aria-label="Filtrar por tipo">
                         <option value="TODOS" selected>Todos</option>
                         <option value="SERVICIO">Servicio</option>
@@ -136,7 +139,7 @@
                     <div class="form-text text-secondary">Filtra la búsqueda.</div>
                 </div>
                 <div class="col-md-6 d-flex flex-column">
-                    <label class="form-label text-secondary small fw-bold text-uppercase" for="id_add_buscador">Buscar
+                    <label class="form-label text-secondary small fw-bold" for="id_add_buscador">Buscar
                         ítem</label>
                     <div class="position-relative">
                         <input type="text" class="form-control" id="id_add_buscador" autocomplete="off"
@@ -150,12 +153,12 @@
                         resultado.</div>
                 </div>
                 <div class="col-md-2 d-flex flex-column" id="grupoCantidad">
-                    <label class="form-label text-secondary small fw-bold text-uppercase" for="id_add_cantidad">Cantidad</label>
+                    <label class="form-label text-secondary small fw-bold" for="id_add_cantidad">Cantidad</label>
                     <input type="number" class="form-control" id="id_add_cantidad" min="1" step="1" value="1">
                     <div class="form-text text-secondary" id="textoCantidad">Solo productos.</div>
                 </div>
                 <div class="col-md-2 d-flex flex-column">
-                    <label class="form-label text-secondary small fw-bold text-uppercase" for="id_add_precio">Precio
+                    <label class="form-label text-secondary small fw-bold" for="id_add_precio">Precio
                         (opcional)</label>
                     <input type="number" class="form-control" id="id_add_precio" min="0.01" step="0.01"
                         placeholder="Sugerido">
@@ -169,12 +172,12 @@
                 <table class="table table-dark table-hover align-middle tabla-carrito mb-0">
                     <thead>
                         <tr>
-                            <th>Tipo</th>
-                            <th>Ítem</th>
-                            <th class="text-center" style="width: 110px;">Cantidad</th>
-                            <th style="width: 160px;">Precio unit.</th>
-                            <th class="text-end">Subtotal</th>
-                            <th style="width: 60px;"></th>
+                            <th scope="col">Tipo</th>
+                            <th scope="col">Ítem</th>
+                            <th scope="col" class="text-center" style="width: 110px;">Cantidad</th>
+                            <th scope="col" style="width: 160px;">Precio unit.</th>
+                            <th scope="col" class="text-end">Subtotal</th>
+                            <th scope="col" style="width: 60px;"></th>
                         </tr>
                     </thead>
                     <tbody id="cuerpoCarrito">
@@ -189,21 +192,21 @@
             <!-- Total general con descuento -->
             <div class="alert alert-dark border border-secondary mt-4 d-flex flex-wrap gap-4 align-items-center"
                 id="vistaPrevia">
-                <div><span class="text-secondary small text-uppercase fw-bold">Subtotal carrito:</span><br><strong
+                <div><span class="text-secondary small fw-bold">Subtotal carrito:</span><br><strong
                         id="prevSubtotal" class="fs-5">$0,00</strong></div>
-                <div><span class="text-secondary small text-uppercase fw-bold">Descuento:</span><br><strong
+                <div><span class="text-secondary small fw-bold">Descuento:</span><br><strong
                         id="prevDescuento" class="fs-5 text-success">-$0,00 (0%)</strong></div>
-                <div><span class="text-secondary small text-uppercase fw-bold">Beneficio cupón:</span><br><strong
+                <div><span class="text-secondary small fw-bold">Beneficio cupón:</span><br><strong
                         id="prevCupon" class="fs-5 text-accent">-$0,00</strong></div>
-                <div><span class="text-secondary small text-uppercase fw-bold">Total general:</span><br><strong
+                <div><span class="text-secondary small fw-bold">Total general:</span><br><strong
                         id="prevTotal" class="fs-4 text-accent">$0,00</strong></div>
-                <div class="ms-auto"><span class="text-secondary small text-uppercase fw-bold">Ítems:</span><br><strong
+                <div class="ms-auto"><span class="text-secondary small fw-bold">Ítems:</span><br><strong
                         id="prevCantidad" class="fs-5">0</strong></div>
             </div>
 
             <div class="row g-3 mt-1">
                 <div class="col-md-12">
-                    <label class="form-label text-secondary small fw-bold text-uppercase">Observaciones</label>
+                    <label for="{{ form.observaciones.id_for_label }}" class="form-label text-secondary small fw-bold">Observaciones</label>
                     {{ form.observaciones }}
                 </div>
             </div>
@@ -212,11 +215,11 @@
             <hr class="border-secondary my-4">
 
             <!-- Otorgar cupón de fidelización (solo administradora) -->
-            <h6 class="text-light fw-bold mb-3"><i class="bi bi-gift me-2 text-accent"></i> Otorgar cupón de
-                fidelización <span class="badge bg-secondary fw-normal">opcional</span></h6>
+            <h2 class="h6 mb-3">Otorgar cupón de
+                fidelización <span class="badge bg-secondary fw-normal">opcional</span></h2>
             <div class="row g-3">
                 <div class="col-md-8 position-relative">
-                    <label class="form-label text-secondary small fw-bold text-uppercase" for="buscadorCupon">Buscar
+                    <label class="form-label text-secondary small fw-bold" for="buscadorCupon">Buscar
                         beneficio existente</label>
                     <div class="d-none">{{ form.regla_beneficio }}</div>
                     <div class="input-group">
@@ -243,10 +246,10 @@
             {% endif %}
 
             <div class="d-flex gap-2 mt-3">
-                <button type="submit" class="btn btn-accent text-dark fw-bold px-4" id="btnConfirmarVenta">
+                <button type="submit" class="btn btn-accent px-4" id="btnConfirmarVenta">
                     <i class="bi bi-check-circle me-1"></i> Confirmar Venta
                 </button>
-                <a href="{% url 'pagos:caja_diaria' %}" class="btn btn-outline-light px-4 text-center"
+                <a href="{% url 'pagos:caja_diaria' %}" class="btn btn-outline-secondary px-4 text-center"
                     id="btnCancelarCobro">Cancelar</a>
             </div>
         </form>
@@ -256,7 +259,7 @@
 <div class="modal fade" id="modalCancelarCobro" tabindex="-1" aria-labelledby="modalCancelarCobroLabel"
     aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+        <div class="modal-content shadow-lg" style="background-color: var(--superficie); border: 1px solid var(--linea-fuerte);">
             <div class="modal-header border-0 pb-0">
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                     aria-label="Cerrar"></button>
@@ -274,7 +277,7 @@
             </div>
             <div
                 class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
-                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
                     Continuar editando
                 </button>
                 <a href="{% url 'pagos:caja_diaria' %}" id="btnConfirmarCancelarCobro"
@@ -289,7 +292,7 @@
 <div class="modal fade" id="modalConfirmarVenta" tabindex="-1" aria-labelledby="modalConfirmarVentaLabel"
     aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+        <div class="modal-content shadow-lg" style="background-color: var(--superficie); border: 1px solid var(--linea-fuerte);">
             <div class="modal-header border-0 pb-0">
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                     aria-label="Cerrar"></button>
@@ -305,30 +308,30 @@
                     <p class="text-secondary small mb-0">Revisá el resumen antes de registrar el cobro.</p>
                 </div>
                 <dl class="row small mb-2">
-                    <dt class="col-4 text-secondary text-uppercase">Clienta</dt>
+                    <dt class="col-4 text-secondary">Clienta</dt>
                     <dd class="col-8 text-light fw-semibold" id="resumenClienta">—</dd>
-                    <dt class="col-4 text-secondary text-uppercase">Medio</dt>
+                    <dt class="col-4 text-secondary">Medio</dt>
                     <dd class="col-8 text-light" id="resumenMedio">—</dd>
                 </dl>
                 <ul class="list-group list-group-flush mb-2 overflow-auto" id="listaResumenItems"
                     style="max-height: 180px;"></ul>
                 <dl class="row small mb-0">
-                    <dt class="col-4 text-secondary text-uppercase">Descuento</dt>
+                    <dt class="col-4 text-secondary">Descuento</dt>
                     <dd class="col-8 text-success fw-semibold" id="resumenDescuento">—</dd>
-                    <dt class="col-4 text-secondary text-uppercase">Total</dt>
+                    <dt class="col-4 text-secondary">Total</dt>
                     <dd class="col-8 fs-5 fw-bold text-accent" id="resumenTotal">—</dd>
                     {% if es_administradora %}
-                    <dt class="col-4 text-secondary text-uppercase">Cupón</dt>
+                    <dt class="col-4 text-secondary">Cupón</dt>
                     <dd class="col-8 text-accent fw-semibold" id="resumenCupon">—</dd>
                     {% endif %}
                 </dl>
             </div>
             <div
                 class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
-                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
                     Seguir editando
                 </button>
-                <button type="button" id="btnConfirmarVentaFinal" class="btn btn-accent text-dark px-4 fw-bold">
+                <button type="button" id="btnConfirmarVentaFinal" class="btn btn-accent px-4">
                     <i class="bi bi-check-circle me-1"></i> Sí, confirmar venta
                 </button>
             </div>
@@ -339,7 +342,7 @@
 <div class="modal fade" id="modalEliminarItem" tabindex="-1" aria-labelledby="modalEliminarItemLabel"
     aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+        <div class="modal-content shadow-lg" style="background-color: var(--superficie); border: 1px solid var(--linea-fuerte);">
             <div class="modal-header border-0 pb-0">
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                     aria-label="Cerrar"></button>
@@ -355,7 +358,7 @@
             </div>
             <div
                 class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
-                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
                     Volver
                 </button>
                 <button type="button" id="btnEliminarItemFinal" class="btn btn-danger px-4 fw-semibold"

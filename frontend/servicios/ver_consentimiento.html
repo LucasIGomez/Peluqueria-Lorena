@@ -17,7 +17,7 @@
         </div>
 
         <!-- Ficha Imprimible -->
-        <div class="card shadow border border-secondary p-4 p-md-5" style="background-color: #1a1c23;" id="documento-legal">
+        <div class="card shadow border border-secondary p-4 p-md-5" style="background-color: var(--superficie);" id="documento-legal">
             <div class="d-flex justify-content-between align-items-center border-bottom border-warning-subtle pb-4 mb-4">
                 <div>
                     <h3 class="fw-bold text-accent mb-0">PELUQUERÍA LORENA</h3>
@@ -31,7 +31,7 @@
                 </div>
             </div>
 
-            <h5 class="fw-bold text-light text-uppercase border-bottom border-secondary pb-2 mb-3">
+            <h5 class="fw-bold text-light border-bottom border-secondary pb-2 mb-3">
                 Consentimiento Informado – Servicios Químicos
             </h5>
 
@@ -54,7 +54,7 @@
             </div>
 
             <!-- Servicio Solicitado -->
-            <h6 class="fw-bold text-light text-uppercase small mb-2">Servicio Solicitado:</h6>
+            <h6 class="fw-bold text-light small mb-2">Servicio Solicitado:</h6>
             <div class="p-3 bg-dark rounded border border-secondary mb-4 small">
                 <ul class="list-unstyled mb-0 row g-1">
                     {% for valor, etiqueta in consentimiento.TipoProcedimiento.choices %}

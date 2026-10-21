@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
 
+{% block page_back %}
+<a href="{% url 'inventario:lista_productos' %}" class="volver" data-confirmar-salida="true"><i class="bi bi-arrow-left"></i> Volver al inventario</a>
+{% endblock %}
 {% block page_title %}Agregar Stock de Producto{% endblock %}
 {% block page_subtitle %}Registra el ingreso o reposición de existencias de un producto en el inventario.{% endblock %}
 
@@ -8,10 +11,7 @@
     <div class="col-lg-7 col-md-9">
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="bi bi-plus-circle me-2 text-success"></i>
-                    Agregar / Reponer Stock
-                </h5>
+                <h2 class="h6 mb-0 fw-semibold">Agregar / Reponer Stock</h2>
             </div>
             <div class="card-body p-4">
                 {% if producto_inicial %}
@@ -84,10 +84,10 @@
 
                     <!-- Botones de Acción -->
                     <div class="d-flex justify-content-end gap-2 pt-3 border-top border-secondary border-opacity-25">
-                        <a href="{% url 'inventario:lista_productos' %}" id="btn-cancelar" class="btn btn-outline-light px-4">
+                        <a href="{% url 'inventario:lista_productos' %}" id="btn-cancelar" class="btn btn-outline-secondary px-4">
                             Cancelar
                         </a>
-                        <button type="submit" id="btn-confirmar-trigger" class="btn btn-success fw-bold px-4">
+                        <button type="submit" id="btn-confirmar-trigger" class="btn btn-accent px-4">
                             <i class="bi bi-plus-lg me-1"></i> Confirmar Ingreso de Stock
                         </button>
                     </div>
@@ -100,7 +100,7 @@
 <!-- Modal Emergente de Confirmación de Cancelación -->
 <div class="modal fade" id="modalCancelar" tabindex="-1" aria-labelledby="modalCancelarLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+        <div class="modal-content shadow-lg" style="background-color: var(--superficie); border: 1px solid var(--linea-fuerte);">
             <div class="modal-header border-0 pb-0">
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
@@ -114,7 +114,7 @@
                 </p>
             </div>
             <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
-                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
                     Continuar editando
                 </button>
                 <a href="{% url 'inventario:lista_productos' %}" id="btn-confirmar-cancelar" class="btn btn-danger px-4 fw-semibold">
@@ -128,7 +128,7 @@
 <!-- Modal Emergente de Confirmación de Ingreso de Stock -->
 <div class="modal fade" id="modalConfirmarReponer" tabindex="-1" aria-labelledby="modalConfirmarReponerLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg" style="background-color: #1a1d24; border: 1px solid #3c4149;">
+        <div class="modal-content shadow-lg" style="background-color: var(--superficie); border: 1px solid var(--linea-fuerte);">
             <div class="modal-header border-0 pb-0">
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
@@ -142,10 +142,10 @@
                 </p>
             </div>
             <div class="modal-footer border-top border-secondary border-opacity-25 justify-content-center gap-2 pt-3 pb-3">
-                <button type="button" class="btn btn-outline-light px-4" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
                     Revisar
                 </button>
-                <button type="button" id="btn-confirmar-reponer-submit" class="btn btn-success px-4 fw-semibold">
+                <button type="button" id="btn-confirmar-reponer-submit" class="btn btn-accent px-4">
                     <i class="bi bi-plus-lg me-1"></i> Sí, confirmar ingreso
                 </button>
             </div>

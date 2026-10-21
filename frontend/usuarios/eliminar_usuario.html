@@ -1,14 +1,17 @@
 {% extends 'base.html' %}
 
+{% block page_back %}
+<a href="{% url 'usuarios:lista_usuarios' %}" class="volver" data-confirmar-salida="true"><i class="bi bi-arrow-left"></i> Volver a usuarios</a>
+{% endblock %}
 {% block page_title %}Desactivar Usuario{% endblock %}
 {% block page_subtitle %}Confirmación de baja lógica de usuario.{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center py-4">
     <div class="col-md-6">
-        <div class="card shadow border-danger" style="background-color: #1a1d24;">
+        <div class="card shadow border-danger" style="background-color: var(--superficie);">
             <div class="card-header bg-danger-subtle text-danger py-3">
-                <h5 class="mb-0"><i class="bi bi-exclamation-triangle-fill me-2"></i> Confirmar Desactivación de Usuario</h5>
+                <h2 class="h6 mb-0 fw-semibold">Confirmar Desactivación de Usuario</h2>
             </div>
             
             <div class="card-body p-4 text-center">

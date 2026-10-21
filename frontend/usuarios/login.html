@@ -1,46 +1,51 @@
 {% extends 'base_auth.html' %}
 
-{% block title %}Iniciar Sesión — Peluquería Lorena{% endblock %}
+{% block title %}Ingresar — Peluquería Lorena{% endblock %}
 
 {% block content %}
-<div class="card shadow-lg border-0" style="background-color: #1a1d24; border: 1px solid #2a2e35 !important;">
-            <div class="card-header text-center py-4 border-bottom" style="border-color: #2a2e35 !important;">
-                <div class="rounded-circle bg-dark p-3 d-inline-flex align-items-center justify-content-center mb-2" style="width: 60px; height: 60px;">
-                    <i class="bi bi-scissors fs-2 text-accent"></i>
-                </div>
-                <h4 class="fw-bold mb-0 text-light">Peluquería Lorena</h4>
-                <small class="text-secondary">Sistema de Gestión Integral</small>
-            </div>
-            
-            <div class="card-body p-4">
-                <form method="POST" action="{% url 'usuarios:login' %}">
-                    {% csrf_token %}
-                    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+<h1>Ingresá a tu cuenta</h1>
+<p class="bajada">Usá el correo con el que te dieron acceso.</p>
 
-                    <div class="mb-3">
-                        <label for="{{ form.email.id_for_label }}" class="form-label text-light fw-semibold">Correo Electrónico</label>
-                        {{ form.email }}
-                        {% if form.email.errors %}
-                            <div class="text-danger small mt-1">{{ form.email.errors|striptags }}</div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="mb-4">
-                        <label for="{{ form.password.id_for_label }}" class="form-label text-light fw-semibold">Contraseña</label>
-                        {{ form.password }}
-                        {% if form.password.errors %}
-                            <div class="text-danger small mt-1">{{ form.password.errors|striptags }}</div>
-                        {% endif %}
-                    </div>
-                    
-                    <button type="submit" class="btn btn-accent w-100 py-2 fw-bold text-dark mb-3">
-                        <i class="bi bi-box-arrow-in-right me-2"></i> Iniciar Sesión
-                    </button>
+<form method="POST" action="{% url 'usuarios:login' %}" novalidate>
+    {% csrf_token %}
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
 
-                    <p class="text-secondary small text-center mb-0">
-                        La contraseña es tu DNI. Si no podés ingresar, contactá a la administración.
-                    </p>
-                </form>
-            </div>
-</div>
+    <div class="campo">
+        <label for="{{ form.email.id_for_label }}">Correo electrónico</label>
+        {{ form.email }}
+        {% if form.email.errors %}
+            <p class="error-campo">{{ form.email.errors|striptags }}</p>
+        {% endif %}
+    </div>
+
+    <div class="campo">
+        <label for="{{ form.password.id_for_label }}">Contraseña</label>
+        <div class="campo-clave">
+            {{ form.password }}
+            <button type="button" class="ver-clave" aria-controls="{{ form.password.id_for_label }}">Mostrar</button>
+        </div>
+        {% if form.password.errors %}
+            <p class="error-campo">{{ form.password.errors|striptags }}</p>
+        {% endif %}
+    </div>
+
+    <button type="submit" class="ingresar">Ingresar</button>
+
+    <p class="ayuda">Tu contraseña es tu DNI. Si no podés ingresar, contactá a la administración.</p>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    (function () {
+        var boton = document.querySelector('.ver-clave');
+        if (!boton) { return; }
+        var campo = document.getElementById(boton.getAttribute('aria-controls'));
+        boton.addEventListener('click', function () {
+            var visible = campo.type === 'text';
+            campo.type = visible ? 'password' : 'text';
+            boton.textContent = visible ? 'Mostrar' : 'Ocultar';
+        });
+    })();
+</script>
 {% endblock %}

@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es" data-bs-theme="dark">
 
@@ -5,96 +6,402 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Peluquería Lorena — Acceso{% endblock %}</title>
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f0c09'/%3E%3Ctext x='32' y='46' font-family='Georgia,serif' font-size='42' text-anchor='middle' fill='%23cfa95a'%3EL%3C/text%3E%3C/svg%3E">
+    <link rel="preload" href="{% static 'vendor/fonts/hanken-grotesk-normal-1.woff2' %}" as="font" type="font/woff2" crossorigin>
+    <link rel="preload" href="{% static 'vendor/fonts/instrument-serif-normal-3.woff2' %}" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="{% static 'vendor/fonts/fuentes.css' %}">
     <style>
         :root {
-            --bs-body-bg: #121418;
-            --bs-body-color: #e9ecef;
-            --accent-color: #e5c158;
-            --card-bg: #1a1d24;
+            --tinta: #0f0c09;
+            --tabaco: #16120e;
+            --campo: #231d16;
+            --linea: #3f3527;
+            --marfil: #f4eee3;
+            --bruma: #baad98;
+            --oro: #cfa95a;
+            --oro-claro: #e4c987;
+            --cobre: #b5793c;
+            --error: #f0a095;
+            --serif: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+            --sans: 'Hanken Grotesk', 'Segoe UI', system-ui, sans-serif;
         }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        html { background: var(--tinta); }
 
         body {
-            background-color: var(--bs-body-bg);
-            color: var(--bs-body-color);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            min-height: 100vh;
             margin: 0;
+            min-height: 100vh;
+            background: var(--tinta);
+            color: var(--marfil);
+            font-family: var(--sans);
+            font-size: 1rem;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .acceso {
+            display: grid;
+            grid-template-columns: minmax(0, 1.4fr) minmax(380px, 0.8fr);
+            min-height: 100vh;
+        }
+
+        /* ── Panel de imagen ── */
+        .escena {
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
+            background:
+                radial-gradient(110% 80% at 18% 0%, #8a6c3e 0%, rgba(74, 53, 32, 0) 60%),
+                radial-gradient(90% 70% at 90% 100%, #4a2f16 0%, rgba(74, 47, 22, 0) 62%),
+                linear-gradient(180deg, #17120d 0%, #0f0c09 100%);
+        }
+
+        .escena-hebras {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            animation: aparecer 1.6s ease-out both;
+        }
+
+        .escena::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            background:
+                linear-gradient(180deg, rgba(15, 12, 9, 0.55) 0%, rgba(15, 12, 9, 0) 26%),
+                linear-gradient(0deg, rgba(15, 12, 9, 0.78) 0%, rgba(15, 12, 9, 0) 42%);
+        }
+
+        .escena-texto {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100%;
+            min-height: 100vh;
+            padding: clamp(1.75rem, 4vw, 3.5rem);
+        }
+
+        .marca {
+            margin: 0;
+            font-family: var(--serif);
+            font-size: clamp(1.9rem, 2.6vw, 2.6rem);
+            font-weight: 400;
+            line-height: 1;
+            letter-spacing: 0.005em;
+        }
+
+        .frase {
+            margin: 0;
+            max-width: 17ch;
+            font-family: var(--serif);
+            font-style: italic;
+            font-size: clamp(2rem, 3.4vw, 3.4rem);
+            line-height: 1.08;
+            text-wrap: balance;
+        }
+
+        /* ── Panel del formulario ── */
+        .panel {
             display: flex;
             align-items: center;
-            justify-content: center;
-            padding: 2rem 1rem;
+            padding: clamp(1.75rem, 4vw, 4rem);
+            background: var(--tabaco);
+            border-left: 1px solid var(--linea);
         }
 
-        .auth-container {
+        .panel-contenido {
             width: 100%;
-            max-width: 440px;
+            max-width: 22.5rem;
         }
 
-        .card {
-            background-color: var(--card-bg);
-            border: 1px solid #2a2e35;
-            border-radius: 12px;
+        .panel h1 {
+            margin: 0 0 0.5rem;
+            font-family: var(--serif);
+            font-size: 2.5rem;
+            font-weight: 400;
+            line-height: 1.05;
         }
 
-        .card-header {
-            border-bottom: 1px solid #2a2e35;
-            background-color: transparent;
+        .panel .bajada {
+            margin: 0 0 2rem;
+            color: var(--bruma);
         }
 
-        .text-accent {
-            color: var(--accent-color) !important;
+        .campo { margin-bottom: 1.25rem; }
+
+        .campo label {
+            display: block;
+            margin-bottom: 0.4rem;
+            font-size: 0.9rem;
+            font-weight: 500;
         }
 
-        .btn-accent {
-            background-color: var(--accent-color);
-            color: #121418;
+        .campo input {
+            display: block;
+            width: 100%;
+            height: 3rem;
+            padding: 0 0.95rem;
+            background: var(--campo);
+            border: 1px solid var(--linea);
+            border-radius: 0.6rem;
+            color: var(--marfil);
+            font: inherit;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .campo input::placeholder { color: #857a69; }
+
+        .campo input:focus {
+            outline: none;
+            border-color: var(--oro);
+            box-shadow: 0 0 0 3px rgba(207, 169, 90, 0.28);
+        }
+
+        .campo-clave { position: relative; }
+        .campo-clave input { padding-right: 5.25rem; }
+
+        .ver-clave {
+            position: absolute;
+            right: 0.35rem;
+            bottom: 0.35rem;
+            height: 2.3rem;
+            padding: 0 0.8rem;
+            background: transparent;
+            border: 0;
+            border-radius: 0.45rem;
+            color: var(--bruma);
+            font: inherit;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
+
+        .ver-clave:hover { color: var(--marfil); }
+        .ver-clave:focus-visible { outline: 2px solid var(--oro); outline-offset: 1px; }
+
+        .error-campo {
+            margin: 0.4rem 0 0;
+            color: var(--error);
+            font-size: 0.875rem;
+        }
+
+        .ingresar {
+            display: block;
+            width: 100%;
+            height: 3rem;
+            margin-top: 1.75rem;
+            background: var(--oro);
+            border: 0;
+            border-radius: 0.6rem;
+            color: #1a1307;
+            font: inherit;
             font-weight: 600;
-            border: none;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
         }
 
-        .btn-accent:hover {
-            background-color: #d4b24e;
-            color: #121418;
+        .ingresar:hover { background: var(--oro-claro); }
+        .ingresar:focus-visible { outline: 2px solid var(--marfil); outline-offset: 3px; }
+
+        .ayuda {
+            margin: 1.25rem 0 0;
+            color: var(--bruma);
+            font-size: 0.875rem;
         }
 
-        .form-control,
-        .form-select {
-            background-color: #22262e;
-            border: 1px solid #3c4149;
-            color: #fff;
+        .aviso {
+            margin: 0 0 1.5rem;
+            padding: 0.8rem 1rem;
+            background: rgba(207, 169, 90, 0.1);
+            border: 1px solid rgba(207, 169, 90, 0.35);
+            border-radius: 0.5rem;
+            font-size: 0.925rem;
         }
 
-        .form-control:focus,
-        .form-select:focus {
-            background-color: #22262e;
-            border-color: var(--accent-color);
-            color: #fff;
-            box-shadow: 0 0 0 0.25rem rgba(229, 193, 88, 0.25);
+        .aviso-error, .aviso-danger { border-color: rgba(240, 160, 149, 0.45); background: rgba(240, 160, 149, 0.1); }
+        .aviso-success { border-color: rgba(155, 196, 154, 0.45); background: rgba(155, 196, 154, 0.1); }
+
+        .escena-hebras path { stroke-opacity: 0.95; }
+        .escena-hebras .lock { animation: oscilar 18s ease-in-out infinite; }
+        .escena-hebras .lock-2 { animation-duration: 23s; animation-delay: -6s; }
+        .escena-hebras .lock-3 { animation-duration: 20s; animation-delay: -11s; }
+        .escena-hebras .lock-4 { animation-duration: 26s; animation-delay: -3s; }
+        .escena-hebras .lock-5 { animation-duration: 21s; animation-delay: -14s; }
+        .escena-hebras .lock-6 { animation-duration: 24s; animation-delay: -8s; }
+
+        @keyframes oscilar {
+            0%, 100% { transform: translateX(-9px); }
+            50% { transform: translateX(9px); }
+        }
+
+        @keyframes aparecer {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .escena-hebras, .escena-hebras .lock { animation: none; }
+        }
+
+        /* ── Celular y tablet ── */
+        @media (max-width: 860px) {
+            .acceso { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+            .escena-texto { min-height: 0; padding: 1.5rem 1.25rem 1.75rem; }
+            .escena { min-height: 9.5rem; }
+            .frase { display: none; }
+            .panel { align-items: flex-start; border-left: 0; border-top: 1px solid var(--linea); padding: 2rem 1.25rem 3rem; }
+            .panel-contenido { max-width: 26rem; margin: 0 auto; }
+            .panel h1 { font-size: 2.1rem; }
         }
     </style>
     {% block extra_css %}{% endblock %}
 </head>
 
 <body>
-    <div class="auth-container">
-        {% if messages %}
-            {% for message in messages %}
-                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                    {{ message }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                </div>
-            {% endfor %}
-        {% endif %}
+    <main class="acceso">
+        <section class="escena" aria-hidden="true">
+            <svg class="escena-hebras" viewBox="0 0 900 1200" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg" focusable="false">
+                <defs>
+                    <linearGradient id="hair-a" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1200">
+                        <stop offset="0" stop-color="#e6c27a" />
+                        <stop offset="0.5" stop-color="#f7dfa5" />
+                        <stop offset="1" stop-color="#fff3d1" />
+                    </linearGradient>
+                    <linearGradient id="hair-b" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1200">
+                        <stop offset="0" stop-color="#dd9a55" />
+                        <stop offset="0.55" stop-color="#eeb877" />
+                        <stop offset="1" stop-color="#fadcb0" />
+                    </linearGradient>
+                    <linearGradient id="hair-c" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="1200">
+                        <stop offset="0" stop-color="#e6cb8d" />
+                        <stop offset="0.5" stop-color="#f2dca4" />
+                        <stop offset="1" stop-color="#efd18e" />
+                    </linearGradient>
+                </defs>
+                <g class="lock lock-1">
+                <path d="M10.9,-60 C17.3,336.0 -220.4,864.0 -75.5,1260" stroke="url(#hair-a)" stroke-width="2.67" stroke-opacity="0.75" fill="none" stroke-linecap="round"/>
+                <path d="M12.3,-60 C20.1,336.0 -201.4,864.0 -68.5,1260" stroke="url(#hair-a)" stroke-width="2.70" stroke-opacity="0.72" fill="none" stroke-linecap="round"/>
+                <path d="M13.7,-60 C24.7,336.0 -190.3,864.0 -61.5,1260" stroke="url(#hair-a)" stroke-width="1.92" stroke-opacity="0.72" fill="none" stroke-linecap="round"/>
+                <path d="M15.1,-60 C27.5,336.0 -171.5,864.0 -54.5,1260" stroke="url(#hair-a)" stroke-width="3.62" stroke-opacity="0.50" fill="none" stroke-linecap="round"/>
+                <path d="M16.5,-60 C33.8,336.0 -167.6,864.0 -47.5,1260" stroke="url(#hair-a)" stroke-width="1.65" stroke-opacity="0.88" fill="none" stroke-linecap="round"/>
+                <path d="M17.9,-60 C39.5,336.0 -161.2,864.0 -40.5,1260" stroke="url(#hair-a)" stroke-width="1.52" stroke-opacity="0.97" fill="none" stroke-linecap="round"/>
+                <path d="M19.3,-60 C40.0,336.0 -132.5,864.0 -33.5,1260" stroke="url(#hair-a)" stroke-width="3.23" stroke-opacity="0.78" fill="none" stroke-linecap="round"/>
+                <path d="M20.7,-60 C43.9,336.0 -118.5,864.0 -26.5,1260" stroke="url(#hair-a)" stroke-width="1.44" stroke-opacity="0.73" fill="none" stroke-linecap="round"/>
+                <path d="M22.1,-60 C48.2,336.0 -105.8,864.0 -19.5,1260" stroke="url(#hair-a)" stroke-width="1.93" stroke-opacity="0.58" fill="none" stroke-linecap="round"/>
+                <path d="M23.5,-60 C56.5,336.0 -110.7,864.0 -12.5,1260" stroke="url(#hair-a)" stroke-width="2.70" stroke-opacity="0.68" fill="none" stroke-linecap="round"/>
+                <path d="M24.9,-60 C59.2,336.0 -91.6,864.0 -5.5,1260" stroke="url(#hair-a)" stroke-width="2.85" stroke-opacity="0.79" fill="none" stroke-linecap="round"/>
+                <path d="M26.3,-60 C62.6,336.0 -75.0,864.0 1.5,1260" stroke="url(#hair-a)" stroke-width="3.25" stroke-opacity="0.69" fill="none" stroke-linecap="round"/>
+                <path d="M27.7,-60 C69.7,336.0 -74.6,864.0 8.5,1260" stroke="url(#hair-a)" stroke-width="4.19" stroke-opacity="0.98" fill="none" stroke-linecap="round"/>
+                <path d="M29.1,-60 C71.2,336.0 -50.0,864.0 15.5,1260" stroke="url(#hair-a)" stroke-width="3.38" stroke-opacity="0.62" fill="none" stroke-linecap="round"/>
+                </g>
+                <g class="lock lock-2">
+                <path d="M179.5,-60 C312.7,336.0 163.7,864.0 176.2,1260" stroke="url(#hair-b)" stroke-width="2.18" stroke-opacity="0.49" fill="none" stroke-linecap="round"/>
+                <path d="M180.9,-60 C305.9,336.0 175.4,864.0 184.8,1260" stroke="url(#hair-b)" stroke-width="2.56" stroke-opacity="0.90" fill="none" stroke-linecap="round"/>
+                <path d="M182.3,-60 C298.9,336.0 187.0,864.0 193.2,1260" stroke="url(#hair-b)" stroke-width="4.46" stroke-opacity="0.90" fill="none" stroke-linecap="round"/>
+                <path d="M183.7,-60 C317.1,336.0 202.8,864.0 201.8,1260" stroke="url(#hair-b)" stroke-width="1.91" stroke-opacity="0.93" fill="none" stroke-linecap="round"/>
+                <path d="M185.1,-60 C309.8,336.0 214.4,864.0 210.2,1260" stroke="url(#hair-b)" stroke-width="4.53" stroke-opacity="0.66" fill="none" stroke-linecap="round"/>
+                <path d="M186.5,-60 C320.0,336.0 228.8,864.0 218.8,1260" stroke="url(#hair-b)" stroke-width="3.34" stroke-opacity="0.86" fill="none" stroke-linecap="round"/>
+                <path d="M187.9,-60 C344.9,336.0 245.6,864.0 227.2,1260" stroke="url(#hair-b)" stroke-width="1.50" stroke-opacity="0.63" fill="none" stroke-linecap="round"/>
+                <path d="M189.3,-60 C328.1,336.0 255.7,864.0 235.8,1260" stroke="url(#hair-b)" stroke-width="3.78" stroke-opacity="0.51" fill="none" stroke-linecap="round"/>
+                <path d="M190.7,-60 C348.8,336.0 271.8,864.0 244.2,1260" stroke="url(#hair-b)" stroke-width="1.54" stroke-opacity="0.48" fill="none" stroke-linecap="round"/>
+                <path d="M192.1,-60 C342.9,336.0 283.7,864.0 252.8,1260" stroke="url(#hair-b)" stroke-width="1.80" stroke-opacity="0.75" fill="none" stroke-linecap="round"/>
+                <path d="M193.5,-60 C337.9,336.0 295.7,864.0 261.2,1260" stroke="url(#hair-b)" stroke-width="1.85" stroke-opacity="0.84" fill="none" stroke-linecap="round"/>
+                <path d="M194.9,-60 C350.9,336.0 310.5,864.0 269.8,1260" stroke="url(#hair-b)" stroke-width="3.39" stroke-opacity="0.51" fill="none" stroke-linecap="round"/>
+                <path d="M196.3,-60 C371.5,336.0 326.6,864.0 278.2,1260" stroke="url(#hair-b)" stroke-width="1.92" stroke-opacity="0.59" fill="none" stroke-linecap="round"/>
+                <path d="M197.7,-60 C373.4,336.0 339.7,864.0 286.8,1260" stroke="url(#hair-b)" stroke-width="3.93" stroke-opacity="0.61" fill="none" stroke-linecap="round"/>
+                <path d="M199.1,-60 C376.9,336.0 353.1,864.0 295.2,1260" stroke="url(#hair-b)" stroke-width="1.92" stroke-opacity="0.66" fill="none" stroke-linecap="round"/>
+                <path d="M200.5,-60 C385.3,336.0 367.2,864.0 303.8,1260" stroke="url(#hair-b)" stroke-width="3.38" stroke-opacity="0.50" fill="none" stroke-linecap="round"/>
+                </g>
+                <g class="lock lock-3">
+                <path d="M371.6,-60 C435.6,336.0 415.5,864.0 315.0,1260" stroke="url(#hair-c)" stroke-width="2.20" stroke-opacity="0.59" fill="none" stroke-linecap="round"/>
+                <path d="M373.0,-60 C429.2,336.0 410.7,864.0 322.5,1260" stroke="url(#hair-c)" stroke-width="2.52" stroke-opacity="0.61" fill="none" stroke-linecap="round"/>
+                <path d="M374.4,-60 C436.2,336.0 427.3,864.0 330.0,1260" stroke="url(#hair-c)" stroke-width="1.85" stroke-opacity="0.76" fill="none" stroke-linecap="round"/>
+                <path d="M375.8,-60 C443.9,336.0 445.1,864.0 337.5,1260" stroke="url(#hair-c)" stroke-width="3.28" stroke-opacity="0.65" fill="none" stroke-linecap="round"/>
+                <path d="M377.2,-60 C450.2,336.0 460.6,864.0 345.0,1260" stroke="url(#hair-c)" stroke-width="4.29" stroke-opacity="0.71" fill="none" stroke-linecap="round"/>
+                <path d="M378.6,-60 C448.0,336.0 462.7,864.0 352.5,1260" stroke="url(#hair-c)" stroke-width="4.03" stroke-opacity="0.55" fill="none" stroke-linecap="round"/>
+                <path d="M380.0,-60 C453.9,336.0 477.5,864.0 360.0,1260" stroke="url(#hair-c)" stroke-width="4.14" stroke-opacity="0.88" fill="none" stroke-linecap="round"/>
+                <path d="M381.4,-60 C469.1,336.0 507.1,864.0 367.5,1260" stroke="url(#hair-c)" stroke-width="2.13" stroke-opacity="0.84" fill="none" stroke-linecap="round"/>
+                <path d="M382.8,-60 C472.5,336.0 518.2,864.0 375.0,1260" stroke="url(#hair-c)" stroke-width="2.15" stroke-opacity="0.95" fill="none" stroke-linecap="round"/>
+                <path d="M384.2,-60 C464.8,336.0 511.4,864.0 382.5,1260" stroke="url(#hair-c)" stroke-width="3.29" stroke-opacity="0.67" fill="none" stroke-linecap="round"/>
+                <path d="M385.6,-60 C471.3,336.0 527.2,864.0 390.0,1260" stroke="url(#hair-c)" stroke-width="1.71" stroke-opacity="0.96" fill="none" stroke-linecap="round"/>
+                <path d="M387.0,-60 C484.8,336.0 554.2,864.0 397.5,1260" stroke="url(#hair-c)" stroke-width="3.57" stroke-opacity="0.59" fill="none" stroke-linecap="round"/>
+                <path d="M388.4,-60 C479.2,336.0 550.7,864.0 405.0,1260" stroke="url(#hair-c)" stroke-width="3.27" stroke-opacity="0.61" fill="none" stroke-linecap="round"/>
+                </g>
+                <g class="lock lock-4">
+                <path d="M549.5,-60 C487.1,336.0 664.9,864.0 572.5,1260" stroke="url(#hair-b)" stroke-width="3.79" stroke-opacity="0.49" fill="none" stroke-linecap="round"/>
+                <path d="M550.9,-60 C488.3,336.0 689.5,864.0 581.5,1260" stroke="url(#hair-b)" stroke-width="3.21" stroke-opacity="0.90" fill="none" stroke-linecap="round"/>
+                <path d="M552.3,-60 C496.1,336.0 692.2,864.0 590.5,1260" stroke="url(#hair-b)" stroke-width="2.21" stroke-opacity="0.94" fill="none" stroke-linecap="round"/>
+                <path d="M553.7,-60 C498.5,336.0 712.8,864.0 599.5,1260" stroke="url(#hair-b)" stroke-width="1.26" stroke-opacity="0.59" fill="none" stroke-linecap="round"/>
+                <path d="M555.1,-60 C503.5,336.0 724.7,864.0 608.5,1260" stroke="url(#hair-b)" stroke-width="1.42" stroke-opacity="0.54" fill="none" stroke-linecap="round"/>
+                <path d="M556.5,-60 C508.0,336.0 738.5,864.0 617.5,1260" stroke="url(#hair-b)" stroke-width="3.26" stroke-opacity="0.52" fill="none" stroke-linecap="round"/>
+                <path d="M557.9,-60 C509.9,336.0 760.6,864.0 626.5,1260" stroke="url(#hair-b)" stroke-width="4.41" stroke-opacity="0.97" fill="none" stroke-linecap="round"/>
+                <path d="M559.3,-60 C518.7,336.0 760.4,864.0 635.5,1260" stroke="url(#hair-b)" stroke-width="3.69" stroke-opacity="0.76" fill="none" stroke-linecap="round"/>
+                <path d="M560.7,-60 C516.6,336.0 795.6,864.0 644.5,1260" stroke="url(#hair-b)" stroke-width="1.33" stroke-opacity="0.46" fill="none" stroke-linecap="round"/>
+                <path d="M562.1,-60 C528.5,336.0 785.2,864.0 653.5,1260" stroke="url(#hair-b)" stroke-width="3.72" stroke-opacity="0.96" fill="none" stroke-linecap="round"/>
+                <path d="M563.5,-60 C526.9,336.0 818.7,864.0 662.5,1260" stroke="url(#hair-b)" stroke-width="3.49" stroke-opacity="0.71" fill="none" stroke-linecap="round"/>
+                <path d="M564.9,-60 C536.8,336.0 814.7,864.0 671.5,1260" stroke="url(#hair-b)" stroke-width="2.35" stroke-opacity="0.98" fill="none" stroke-linecap="round"/>
+                <path d="M566.3,-60 C534.3,336.0 851.3,864.0 680.5,1260" stroke="url(#hair-b)" stroke-width="3.17" stroke-opacity="0.84" fill="none" stroke-linecap="round"/>
+                <path d="M567.7,-60 C539.6,336.0 862.4,864.0 689.5,1260" stroke="url(#hair-b)" stroke-width="3.85" stroke-opacity="0.82" fill="none" stroke-linecap="round"/>
+                <path d="M569.1,-60 C544.9,336.0 873.4,864.0 698.5,1260" stroke="url(#hair-b)" stroke-width="4.49" stroke-opacity="0.64" fill="none" stroke-linecap="round"/>
+                <path d="M570.5,-60 C551.5,336.0 880.0,864.0 707.5,1260" stroke="url(#hair-b)" stroke-width="4.44" stroke-opacity="0.91" fill="none" stroke-linecap="round"/>
+                </g>
+                <g class="lock lock-5">
+                <path d="M731.6,-60 C597.4,336.0 658.5,864.0 678.0,1260" stroke="url(#hair-a)" stroke-width="3.61" stroke-opacity="0.91" fill="none" stroke-linecap="round"/>
+                <path d="M733.0,-60 C601.6,336.0 670.6,864.0 685.0,1260" stroke="url(#hair-a)" stroke-width="3.15" stroke-opacity="0.65" fill="none" stroke-linecap="round"/>
+                <path d="M734.4,-60 C604.7,336.0 682.7,864.0 692.0,1260" stroke="url(#hair-a)" stroke-width="3.10" stroke-opacity="0.49" fill="none" stroke-linecap="round"/>
+                <path d="M735.8,-60 C607.1,336.0 694.9,864.0 699.0,1260" stroke="url(#hair-a)" stroke-width="4.18" stroke-opacity="0.92" fill="none" stroke-linecap="round"/>
+                <path d="M737.2,-60 C614.8,336.0 706.6,864.0 706.0,1260" stroke="url(#hair-a)" stroke-width="2.49" stroke-opacity="0.84" fill="none" stroke-linecap="round"/>
+                <path d="M738.6,-60 C630.6,336.0 717.5,864.0 713.0,1260" stroke="url(#hair-a)" stroke-width="2.63" stroke-opacity="0.89" fill="none" stroke-linecap="round"/>
+                <path d="M740.0,-60 C623.2,336.0 730.6,864.0 720.0,1260" stroke="url(#hair-a)" stroke-width="3.50" stroke-opacity="0.47" fill="none" stroke-linecap="round"/>
+                <path d="M741.4,-60 C625.3,336.0 742.8,864.0 727.0,1260" stroke="url(#hair-a)" stroke-width="2.75" stroke-opacity="0.57" fill="none" stroke-linecap="round"/>
+                <path d="M742.8,-60 C624.6,336.0 755.3,864.0 734.0,1260" stroke="url(#hair-a)" stroke-width="2.79" stroke-opacity="0.78" fill="none" stroke-linecap="round"/>
+                <path d="M744.2,-60 C643.2,336.0 766.0,864.0 741.0,1260" stroke="url(#hair-a)" stroke-width="2.12" stroke-opacity="0.46" fill="none" stroke-linecap="round"/>
+                <path d="M745.6,-60 C650.6,336.0 777.7,864.0 748.0,1260" stroke="url(#hair-a)" stroke-width="3.30" stroke-opacity="0.56" fill="none" stroke-linecap="round"/>
+                <path d="M747.0,-60 C648.8,336.0 790.3,864.0 755.0,1260" stroke="url(#hair-a)" stroke-width="3.94" stroke-opacity="0.80" fill="none" stroke-linecap="round"/>
+                <path d="M748.4,-60 C648.1,336.0 802.7,864.0 762.0,1260" stroke="url(#hair-a)" stroke-width="3.90" stroke-opacity="0.62" fill="none" stroke-linecap="round"/>
+                </g>
+                <g class="lock lock-6">
+                <path d="M870.9,-60 C710.8,336.0 749.5,864.0 898.0,1260" stroke="url(#hair-c)" stroke-width="1.84" stroke-opacity="0.68" fill="none" stroke-linecap="round"/>
+                <path d="M872.3,-60 C726.3,336.0 771.7,864.0 906.0,1260" stroke="url(#hair-c)" stroke-width="4.13" stroke-opacity="0.92" fill="none" stroke-linecap="round"/>
+                <path d="M873.7,-60 C737.3,336.0 790.1,864.0 914.0,1260" stroke="url(#hair-c)" stroke-width="3.07" stroke-opacity="0.62" fill="none" stroke-linecap="round"/>
+                <path d="M875.1,-60 C722.8,336.0 787.5,864.0 922.0,1260" stroke="url(#hair-c)" stroke-width="2.79" stroke-opacity="0.89" fill="none" stroke-linecap="round"/>
+                <path d="M876.5,-60 C742.4,336.0 813.0,864.0 930.0,1260" stroke="url(#hair-c)" stroke-width="3.48" stroke-opacity="0.95" fill="none" stroke-linecap="round"/>
+                <path d="M877.9,-60 C746.8,336.0 826.1,864.0 938.0,1260" stroke="url(#hair-c)" stroke-width="1.74" stroke-opacity="0.69" fill="none" stroke-linecap="round"/>
+                <path d="M879.3,-60 C741.9,336.0 831.4,864.0 946.0,1260" stroke="url(#hair-c)" stroke-width="1.89" stroke-opacity="0.67" fill="none" stroke-linecap="round"/>
+                <path d="M880.7,-60 C740.7,336.0 839.7,864.0 954.0,1260" stroke="url(#hair-c)" stroke-width="2.78" stroke-opacity="0.62" fill="none" stroke-linecap="round"/>
+                <path d="M882.1,-60 C765.4,336.0 869.5,864.0 962.0,1260" stroke="url(#hair-c)" stroke-width="4.34" stroke-opacity="0.69" fill="none" stroke-linecap="round"/>
+                <path d="M883.5,-60 C770.6,336.0 883.2,864.0 970.0,1260" stroke="url(#hair-c)" stroke-width="1.30" stroke-opacity="0.91" fill="none" stroke-linecap="round"/>
+                <path d="M884.9,-60 C767.9,336.0 890.3,864.0 978.0,1260" stroke="url(#hair-c)" stroke-width="3.47" stroke-opacity="0.75" fill="none" stroke-linecap="round"/>
+                <path d="M886.3,-60 C776.9,336.0 907.1,864.0 986.0,1260" stroke="url(#hair-c)" stroke-width="3.73" stroke-opacity="0.46" fill="none" stroke-linecap="round"/>
+                <path d="M887.7,-60 C762.9,336.0 904.9,864.0 994.0,1260" stroke="url(#hair-c)" stroke-width="2.66" stroke-opacity="0.46" fill="none" stroke-linecap="round"/>
+                <path d="M889.1,-60 C788.1,336.0 935.1,864.0 1002.0,1260" stroke="url(#hair-c)" stroke-width="1.96" stroke-opacity="0.52" fill="none" stroke-linecap="round"/>
+                </g>
+            </svg>
+            <div class="escena-texto">
+                <p class="marca">Peluquería Lorena</p>
+                <p class="frase">Agenda, caja y fichas de clientas en un solo lugar.</p>
+            </div>
+        </section>
 
-        {% block content %}{% endblock %}
-    </div>
+        <section class="panel">
+            <div class="panel-contenido">
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="aviso aviso-{{ message.tags }}" role="alert">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
 
-    <!-- Bootstrap 5 JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+                {% block content %}{% endblock %}
+            </div>
+        </section>
+    </main>
     {% block extra_js %}{% endblock %}
 </body>
 

@@ -1,75 +1,187 @@
 {% extends 'base.html' %}
 
-{% block page_title %}Agenda y Turnos{% endblock %}
-{% block page_subtitle %}Reservas de horario por clienta, asignación de peluquera y seguimiento del día.{% endblock %}
+{% block title %}Agenda y turnos — Peluquería Lorena{% endblock %}
+{% block page_title %}Agenda y turnos{% endblock %}
+{% block page_subtitle %}Reservas, asignación de peluquera y seguimiento del día.{% endblock %}
+
+{% block extra_css %}
+<style>
+    .rango { margin: 0; font-family: var(--serif); font-size: 1.7rem; font-weight: 400; line-height: 1.1; }
+    .rango small { color: var(--bruma); font-family: var(--sans); font-size: 0.9rem; }
+    .navegar { display: inline-flex; align-items: center; gap: 0.25rem; }
+    .ir-a-fecha { width: 9.5rem; }
+
+    .semana { display: grid; grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr)); gap: 0.75rem; }
+    @media (min-width: 1400px) { .semana { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
+
+    .dia {
+        display: flex;
+        flex-direction: column;
+        min-height: 16rem;
+        background: var(--superficie);
+        border: 1px solid var(--linea);
+        border-radius: 0.9rem;
+        overflow: hidden;
+    }
+
+    .dia.hoy { border-color: var(--oro); }
+    .dia.cerrado { background: transparent; border-style: dashed; }
+
+    .dia-cabecera { display: flex; align-items: baseline; justify-content: space-between; padding: 0.8rem 1rem 0.6rem; }
+    .dia-nombre { color: var(--bruma); font-size: 0.9rem; }
+    .dia-nombre::first-letter { text-transform: uppercase; }
+    .dia-numero { font-family: var(--serif); font-size: 1.75rem; line-height: 1; }
+    .dia.hoy .dia-numero { color: var(--oro-claro); }
+    .dia-etiqueta { padding: 0 1rem; color: var(--apagado); font-size: 0.8rem; }
+
+    .dia-turnos { display: flex; flex: 1; flex-direction: column; gap: 0.5rem; padding: 0.25rem 0.75rem 0.75rem; }
+    .dia-vacio { margin: auto; color: var(--apagado); font-size: 0.85rem; }
+
+    .turno {
+        display: block;
+        padding: 0.55rem 0.7rem;
+        background: var(--elevada);
+        border-radius: 0.5rem;
+        color: var(--marfil);
+        font-size: 0.875rem;
+        line-height: 1.35;
+        text-decoration: none;
+    }
+
+    a.turno:hover { background: var(--campo); color: var(--marfil); }
+    a.turno:focus-visible { outline: 2px solid var(--oro); outline-offset: 2px; }
+    .turno-hora { color: var(--oro-claro); font-weight: 600; }
+    .turno-hora::before, .mes-hora::before { content: ""; display: inline-block; width: 0.5rem; height: 0.5rem; margin-right: 0.4rem; border-radius: 50%; background: var(--oro); vertical-align: 0.05em; }
+    .turno-servicio { color: var(--bruma); }
+    .turno.completado .turno-hora::before, .mes-turno.completado .mes-hora::before { background: #9bc49a; }
+    .turno.cancelado .turno-hora::before { background: #e2705f; }
+    .turno.cancelado { color: var(--apagado); text-decoration: line-through; opacity: 0.7; }
+    .turno.cancelado .turno-hora, .turno.cancelado .turno-servicio { color: var(--apagado); }
+
+    .dia-pie { padding: 0 0.75rem 0.75rem; }
+    .agregar-turno { display: flex; align-items: center; justify-content: center; gap: 0.35rem; width: 100%; padding: 0.4rem; border: 1px dashed var(--linea-fuerte); border-radius: 0.55rem; color: var(--bruma); font-size: 0.85rem; text-decoration: none; transition: color 0.15s ease, border-color 0.15s ease; }
+    .agregar-turno:hover { border-color: var(--oro); color: var(--oro-claro); }
+    .agregar-turno:focus-visible { outline: 2px solid var(--oro); outline-offset: 2px; }
+
+    .select-peluquera { width: 9.5rem; }
+
+    /* Vista mensual */
+    .mes { overflow: hidden; border: 1px solid var(--linea); border-radius: 0.9rem; }
+    .mes-tabla { width: 100%; table-layout: fixed; border-collapse: separate; border-spacing: 1px; background: var(--linea); }
+    .mes-tabla th { padding: 0.55rem 0.75rem; background: var(--elevada); color: var(--bruma); font-size: 0.85rem; font-weight: 500; text-align: left; }
+
+    .mes-dia { position: relative; height: 7.5rem; padding: 0.4rem 0.45rem 0.5rem; background: var(--superficie); vertical-align: top; }
+    .mes-dia.fuera { background: var(--tinta); }
+    .mes-dia.fuera .mes-numero { color: var(--apagado); }
+    .mes-dia.cerrado:not(.fuera) { background: var(--elevada); }
+    .mes-dia.hoy { box-shadow: inset 0 0 0 1px var(--oro); }
+
+    .mes-numero { display: inline-grid; place-items: center; min-width: 1.9rem; height: 1.9rem; margin-bottom: 0.2rem; border-radius: 50%; color: var(--marfil); font-family: var(--serif); font-size: 1.2rem; text-decoration: none; }
+    .mes-numero:hover { background: var(--elevada); color: var(--oro-claro); }
+    .mes-numero:focus-visible { outline: 2px solid var(--oro); outline-offset: 1px; }
+    .mes-dia.hoy .mes-numero { background: var(--oro); color: var(--sobre-oro); }
+
+    .mes-turno { display: block; margin-top: 0.2rem; padding: 0.15rem 0.4rem; overflow: hidden; border-radius: 0.3rem; background: var(--elevada); color: var(--marfil); font-size: 0.78rem; line-height: 1.35; text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
+    .mes-turno:hover { background: var(--campo); color: var(--marfil); }
+    .mes-turno:focus-visible { outline: 2px solid var(--oro); outline-offset: 1px; }
+    .mes-hora { color: var(--oro-claro); font-weight: 600; }
+    .mes-hora::before { width: 0.4rem; height: 0.4rem; margin-right: 0.3rem; }
+    .mes-mas { display: block; margin-top: 0.25rem; padding-left: 0.4rem; color: var(--bruma); font-size: 0.78rem; text-decoration: none; }
+    .mes-mas:hover { color: var(--oro-claro); }
+    .mes-cuenta { display: none; }
+
+    @media (max-width: 767.98px) {
+        .mes-dia { height: 4.25rem; padding: 0.3rem; text-align: center; }
+        .mes-turno, .mes-mas { display: none; }
+        /* En celular el número ocupa toda la celda: se toca el día completo. */
+        .mes-numero::after { content: ""; position: absolute; inset: 0; }
+        .mes-cuenta { display: inline-block; min-width: 1.4rem; padding: 0 0.35rem; background: rgba(var(--oro-rgb), 0.2); border-radius: 1rem; color: var(--oro-claro); font-size: 0.75rem; }
+        .mes-tabla th { padding: 0.5rem 0.2rem; text-align: center; font-size: 0.75rem; }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
-<!-- Selector de fecha, vista y acciones -->
-<div class="card shadow-sm border-0 mb-4">
-    <div class="card-body p-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
-        <div class="d-flex flex-wrap align-items-center gap-2">
-            <form method="GET" class="d-flex align-items-center gap-2">
-                <input type="hidden" name="vista" value="{{ vista }}">
-                <label class="text-secondary small fw-bold text-uppercase me-1">Fecha:</label>
-                <input type="date" name="fecha" value="{{ fecha_str }}" class="form-control form-control-sm"
-                    style="width: 170px;" onchange="this.form.submit()">
-                <a href="{% url 'turnos:agenda' %}?vista={{ vista }}" class="btn btn-sm btn-outline-secondary">Hoy</a>
-            </form>
-            <div class="btn-group btn-group-sm" role="group">
-                <a href="?vista=dia&fecha={{ fecha_str }}" class="btn {% if vista == 'dia' %}btn-accent text-dark fw-bold{% else %}btn-outline-secondary{% endif %}">
-                    <i class="bi bi-calendar-day me-1"></i> Día
-                </a>
-                <a href="?vista=semana&fecha={{ fecha_str }}" class="btn {% if vista != 'dia' %}btn-accent text-dark fw-bold{% else %}btn-outline-secondary{% endif %}">
-                    <i class="bi bi-calendar-week me-1"></i> Semana
-                </a>
-            </div>
+<!-- Barra de navegación de la agenda -->
+<div class="barra-acciones">
+    <div class="barra-grupo">
+        <div class="navegar">
+            {% if vista == 'dia' %}
+            <a href="?vista=dia&fecha={{ dia_anterior }}" class="btn-icono" title="Día anterior" aria-label="Día anterior"><i class="bi bi-chevron-left"></i></a>
+            <a href="{% url 'turnos:agenda' %}?vista=dia" class="btn btn-sm btn-outline-secondary">Hoy</a>
+            <a href="?vista=dia&fecha={{ dia_siguiente }}" class="btn-icono" title="Día siguiente" aria-label="Día siguiente"><i class="bi bi-chevron-right"></i></a>
+            {% elif vista == 'mes' %}
+            <a href="?vista=mes&fecha={{ mes_anterior }}" class="btn-icono" title="Mes anterior" aria-label="Mes anterior"><i class="bi bi-chevron-left"></i></a>
+            <a href="{% url 'turnos:agenda' %}?vista=mes" class="btn btn-sm btn-outline-secondary">Hoy</a>
+            <a href="?vista=mes&fecha={{ mes_siguiente }}" class="btn-icono" title="Mes siguiente" aria-label="Mes siguiente"><i class="bi bi-chevron-right"></i></a>
+            {% else %}
+            <a href="?vista=semana&fecha={{ semana_anterior }}" class="btn-icono" title="Semana anterior" aria-label="Semana anterior"><i class="bi bi-chevron-left"></i></a>
+            <a href="{% url 'turnos:agenda' %}?vista=semana" class="btn btn-sm btn-outline-secondary">Hoy</a>
+            <a href="?vista=semana&fecha={{ semana_siguiente }}" class="btn-icono" title="Semana siguiente" aria-label="Semana siguiente"><i class="bi bi-chevron-right"></i></a>
+            {% endif %}
         </div>
-        <a href="{% url 'turnos:crear_turno' %}?fecha={{ fecha_str }}" class="btn btn-accent text-dark fw-bold btn-sm">
-            <i class="bi bi-calendar-plus me-1"></i> Nuevo Turno
+        <h2 class="rango">
+            {% if vista == 'dia' %}
+                {{ fecha|date:"l j \d\e F" }} <small>{{ fecha|date:"Y" }}</small>
+            {% elif vista == 'mes' %}
+                {{ fecha|date:"F" }} <small>{{ fecha|date:"Y" }}</small>
+            {% else %}
+                {% with primero=dias_semana.0.fecha ultimo=dias_semana.6.fecha %}
+                Del {{ primero|date:"j" }} al {{ ultimo|date:"j \d\e F" }} <small>{{ ultimo|date:"Y" }}</small>
+                {% endwith %}
+            {% endif %}
+        </h2>
+    </div>
+
+    <div class="barra-grupo">
+        <form method="GET" class="d-flex align-items-center gap-2">
+            <input type="hidden" name="vista" value="{{ vista }}">
+            <label for="ir-a-fecha" class="etiqueta-campo">Ir a</label>
+            <input type="date" id="ir-a-fecha" name="fecha" value="{{ fecha_str }}" class="form-control form-control-sm ir-a-fecha" onchange="this.form.submit()">
+        </form>
+        <div class="segmentado" role="group" aria-label="Tipo de vista">
+            <a href="?vista=dia&fecha={{ fecha_str }}" class="{% if vista == 'dia' %}activo{% endif %}" {% if vista == 'dia' %}aria-current="page"{% endif %}>Día</a>
+            <a href="?vista=semana&fecha={{ fecha_str }}" class="{% if vista != 'dia' and vista != 'mes' %}activo{% endif %}" {% if vista != 'dia' and vista != 'mes' %}aria-current="page"{% endif %}>Semana</a>
+            <a href="?vista=mes&fecha={{ fecha_str }}" class="{% if vista == 'mes' %}activo{% endif %}" {% if vista == 'mes' %}aria-current="page"{% endif %}>Mes</a>
+        </div>
+        <a href="{% url 'turnos:crear_turno' %}?fecha={{ fecha_str }}" class="btn btn-accent">
+            <i class="bi bi-plus-lg me-1"></i> Nuevo turno
         </a>
     </div>
 </div>
 
 {% if vista == 'dia' %}
-<!-- Vista Día -->
-<div class="card shadow-sm border-0 mb-3">
-    <div class="card-body p-2 d-flex justify-content-between align-items-center">
-        <a href="?vista=dia&fecha={{ dia_anterior }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-left"></i></a>
-        <h5 class="mb-0 text-light">{{ fecha|date:"l, d \d\e F \d\e Y" }}</h5>
-        <a href="?vista=dia&fecha={{ dia_siguiente }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-right"></i></a>
-    </div>
-</div>
-
-<div class="card shadow-sm border-0">
+<!-- Vista por día -->
+<div class="card">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-dark table-hover mb-0 align-middle">
-                <thead class="table-secondary text-secondary">
+            <table class="table table-hover mb-0 align-middle tabla-tarjetas">
+                <thead class="table-secondary">
                     <tr>
-                        <th class="ps-4">Hora</th>
-                        <th>Clienta</th>
-                        <th>Servicio</th>
-                        <th>Peluquera</th>
-                        <th>Estado</th>
-                        <th class="text-end pe-4">Acciones</th>
+                        <th scope="col" class="ps-4">Hora</th>
+                        <th scope="col">Clienta</th>
+                        <th scope="col">Servicio</th>
+                        <th scope="col">Peluquera</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col" class="text-end pe-4">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for turno in turnos %}
                     <tr class="{% if turno.estado == 'CANCELADO' %}opacity-50{% endif %}">
-                        <td class="ps-4 fw-bold text-accent">{{ turno.hora|time:"H:i" }}</td>
-                        <td>
-                            <div class="fw-semibold text-light">{{ turno.cliente_nombre }}</div>
+                        <td class="ps-4 fw-semibold text-accent" data-label="Hora">{{ turno.hora|time:"H:i" }}</td>
+                        <td data-label="Clienta">
+                            <div class="fw-semibold">{{ turno.cliente_nombre }}</div>
                             {% if turno.cliente_telefono %}<div class="text-secondary small">{{ turno.cliente_telefono }}</div>{% endif %}
                         </td>
-                        <td class="text-secondary">{{ turno.servicio.nombre }} <span class="text-secondary small">({{ turno.duracion_minutos }} min)</span></td>
-                        <td>
+                        <td class="text-secondary" data-label="Servicio">{{ turno.servicio.nombre }} <span class="small">({{ turno.duracion_minutos }} min)</span></td>
+                        <td data-label="Peluquera">
                             {% if turno.estado != 'CANCELADO' and turno.estado != 'COMPLETADO' %}
-                            <form method="POST" action="{% url 'turnos:asignar_profesional' turno.pk %}" class="d-flex gap-1">
+                            <form method="POST" action="{% url 'turnos:asignar_profesional' turno.pk %}">
                                 {% csrf_token %}
                                 <input type="hidden" name="vista" value="dia">
                                 <input type="hidden" name="fecha" value="{{ fecha_str }}">
-                                <select name="profesional" class="form-select form-select-sm" style="width: 140px;" onchange="this.form.submit()">
+                                <select name="profesional" class="form-select form-select-sm select-peluquera" aria-label="Peluquera de {{ turno.cliente_nombre }}" onchange="this.form.submit()">
                                     <option value="">Sin asignar</option>
                                     {% for prof in profesionales %}
                                     <option value="{{ prof.pk }}" {% if turno.profesional_id == prof.pk %}selected{% endif %}>{{ prof.nombre }}</option>
@@ -80,31 +192,22 @@
                             <span class="text-secondary small">{{ turno.profesional.nombre|default:"Sin asignar" }}</span>
                             {% endif %}
                         </td>
-                        <td>
-                            <span class="badge
-                                {% if turno.estado == 'PENDIENTE' %}bg-secondary
-                                {% elif turno.estado == 'CONFIRMADO' %}bg-info text-dark
-                                {% elif turno.estado == 'COMPLETADO' %}bg-success
-                                {% elif turno.estado == 'AUSENTE' %}bg-warning text-dark
-                                {% else %}bg-danger{% endif %}">
-                                {{ turno.get_estado_display }}
-                            </span>
-                        </td>
-                        <td class="text-end pe-4">
-                            <div class="btn-group btn-group-sm">
+                        <td data-label="Estado"><span class="estado estado-{{ turno.estado|lower }}">{{ turno.get_estado_display }}</span></td>
+                        <td class="text-end pe-4" data-label="">
+                            <div class="acciones-fila">
                                 {% if turno.estado != 'CANCELADO' and turno.estado != 'COMPLETADO' %}
-                                <a href="{% url 'turnos:completar_turno' turno.pk %}" class="btn btn-outline-success" title="Completar (registrar atención)">
+                                <a href="{% url 'turnos:completar_turno' turno.pk %}" class="btn-icono exito" title="Completar y registrar la atención" aria-label="Completar turno de {{ turno.cliente_nombre }}">
                                     <i class="bi bi-check-lg"></i>
                                 </a>
-                                <form method="POST" action="{% url 'turnos:cambiar_estado' turno.pk %}" class="d-inline" data-confirmar="¿Marcar el turno de {{ turno.cliente_nombre }} ({{ turno.hora|time:'H:i' }}) como ausente?">
+                                <form method="POST" action="{% url 'turnos:cambiar_estado' turno.pk %}" data-confirmar="¿Marcar el turno de {{ turno.cliente_nombre }} ({{ turno.hora|time:'H:i' }}) como ausente?">
                                     {% csrf_token %}
                                     <input type="hidden" name="vista" value="dia">
                                     <input type="hidden" name="fecha" value="{{ fecha_str }}">
                                     <input type="hidden" name="estado" value="AUSENTE">
-                                    <button type="submit" class="btn btn-outline-warning" title="Marcar ausente"><i class="bi bi-person-x"></i></button>
+                                    <button type="submit" class="btn-icono aviso" title="Marcar como ausente" aria-label="Marcar ausente a {{ turno.cliente_nombre }}"><i class="bi bi-person-x"></i></button>
                                 </form>
-                                <a href="{% url 'turnos:editar_turno' turno.pk %}" class="btn btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
-                                <a href="{% url 'turnos:cancelar_turno' turno.pk %}" class="btn btn-outline-danger" title="Cancelar"><i class="bi bi-x-circle"></i></a>
+                                <a href="{% url 'turnos:editar_turno' turno.pk %}" class="btn-icono" title="Editar" aria-label="Editar turno de {{ turno.cliente_nombre }}"><i class="bi bi-pencil"></i></a>
+                                <a href="{% url 'turnos:cancelar_turno' turno.pk %}" class="btn-icono peligro" title="Cancelar turno" aria-label="Cancelar turno de {{ turno.cliente_nombre }}"><i class="bi bi-x-circle"></i></a>
                                 {% else %}
                                 <span class="text-secondary small">—</span>
                                 {% endif %}
@@ -116,6 +219,9 @@
                         <td colspan="6" class="text-center py-5 text-secondary">
                             <i class="bi bi-calendar-x fs-1 d-block mb-2"></i>
                             No hay turnos agendados para este día.
+                            <div class="mt-3">
+                                <a href="{% url 'turnos:crear_turno' %}?fecha={{ fecha_str }}" class="btn btn-sm btn-accent">Agendar un turno</a>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -125,55 +231,85 @@
     </div>
 </div>
 
-{% else %}
-<!-- Vista Semana -->
-<div class="card shadow-sm border-0 mb-3">
-    <div class="card-body p-2 d-flex justify-content-between align-items-center">
-        <a href="?vista=semana&fecha={{ semana_anterior }}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-chevron-left"></i> Semana anterior</a>
-        <a href="?vista=semana&fecha={{ semana_siguiente }}" class="btn btn-sm btn-outline-secondary">Semana siguiente <i class="bi bi-chevron-right"></i></a>
-    </div>
+{% elif vista == 'mes' %}
+<!-- Vista por mes -->
+<div class="mes">
+    <table class="mes-tabla">
+        <caption class="visually-hidden">Turnos de {{ fecha|date:"F \d\e Y" }}</caption>
+        <thead>
+            <tr>
+                <th scope="col">Lun</th><th scope="col">Mar</th><th scope="col">Mié</th><th scope="col">Jue</th><th scope="col">Vie</th><th scope="col">Sáb</th><th scope="col">Dom</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for semana in semanas_mes %}
+            <tr>
+                {% for d in semana %}
+                {% with dow=d.fecha|date:"w" %}
+                <td class="mes-dia {% if not d.del_mes %}fuera{% endif %} {% if d.fecha == hoy %}hoy{% endif %} {% if dow == '0' or dow == '1' %}cerrado{% endif %}">
+                    <a href="?vista=dia&fecha={{ d.fecha|date:'Y-m-d' }}" class="mes-numero" aria-label="{{ d.fecha|date:'l j \d\e F' }}: {{ d.turnos|length }} turnos">{{ d.fecha|date:"j" }}</a>
+                    {% for t in d.turnos|slice:":3" %}
+                    <a href="{% if t.estado == 'COMPLETADO' %}?vista=dia&fecha={{ d.fecha|date:'Y-m-d' }}{% else %}{% url 'turnos:editar_turno' t.pk %}{% endif %}" class="mes-turno {% if t.estado == 'COMPLETADO' %}completado{% endif %}" title="{{ t.hora|time:'H:i' }} · {{ t.cliente_nombre }} · {{ t.servicio.nombre }}">
+                        <span class="mes-hora">{{ t.hora|time:"H:i" }}</span> {{ t.cliente_nombre }}
+                    </a>
+                    {% endfor %}
+                    {% if d.turnos|length > 3 %}
+                    <a href="?vista=dia&fecha={{ d.fecha|date:'Y-m-d' }}" class="mes-mas">+{{ d.turnos|length|add:"-3" }} más</a>
+                    {% endif %}
+                    {% if d.turnos %}<span class="mes-cuenta" aria-hidden="true">{{ d.turnos|length }}</span>{% endif %}
+                </td>
+                {% endwith %}
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 </div>
 
-<div class="row g-2">
+{% else %}
+<!-- Vista por semana -->
+<div class="semana">
     {% for grupo in dias_semana %}
-    <div class="col">
-        <div class="card shadow-sm border-0 h-100 {% if grupo.fecha == hoy %}border border-accent{% endif %}">
-            <div class="card-header py-2 text-center {% if grupo.fecha == hoy %}bg-accent text-dark fw-bold{% endif %}">
-                <div class="small text-uppercase">{{ grupo.fecha|date:"D" }}</div>
-                <div class="fw-bold">{{ grupo.fecha|date:"d/m" }}</div>
-            </div>
-            <div class="card-body p-2" style="min-height: 200px;">
-                {% for t in grupo.turnos %}
-                {% if t.estado == 'CANCELADO' or t.estado == 'COMPLETADO' %}
-                <div class="p-2 mb-2 rounded small {% if t.estado == 'CANCELADO' %}bg-dark text-secondary text-decoration-line-through{% else %}bg-dark border border-success{% endif %}">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div class="fw-bold text-accent">{{ t.hora|time:"H:i" }}</div>
-                        {% if t.estado == 'COMPLETADO' %}<span class="badge bg-success"><i class="bi bi-check-lg"></i></span>{% endif %}
-                    </div>
-                    <div class="text-light">{{ t.cliente_nombre }}</div>
-                    <div class="text-secondary">{{ t.servicio.nombre }}</div>
-                    <div class="small {% if t.estado == 'COMPLETADO' %}text-success{% else %}text-secondary{% endif %}">{{ t.get_estado_display }}</div>
-                </div>
-                {% else %}
-                <a href="{% url 'turnos:editar_turno' t.pk %}" class="text-decoration-none">
-                    <div class="p-2 mb-2 rounded small bg-dark border border-secondary border-opacity-25">
-                        <div class="fw-bold text-accent">{{ t.hora|time:"H:i" }}</div>
-                        <div class="text-light">{{ t.cliente_nombre }}</div>
-                        <div class="text-secondary">{{ t.servicio.nombre }}</div>
-                    </div>
-                </a>
-                {% endif %}
-                {% empty %}
-                <div class="text-secondary small text-center pt-3">Sin turnos</div>
-                {% endfor %}
-            </div>
-            <div class="card-footer p-2 text-center">
-                <a href="{% url 'turnos:crear_turno' %}?fecha={{ grupo.fecha|date:'Y-m-d' }}" class="btn btn-sm btn-outline-secondary w-100">
-                    <i class="bi bi-plus-lg"></i>
-                </a>
-            </div>
+    {% with dia_semana=grupo.fecha|date:"w" %}
+    {% with cerrado=dia_semana|stringformat:"s" %}
+    <section class="dia {% if grupo.fecha == hoy %}hoy{% endif %} {% if cerrado == '0' or cerrado == '1' %}cerrado{% endif %}" aria-label="{{ grupo.fecha|date:'l j \d\e F' }}">
+        <div class="dia-cabecera">
+            <span class="dia-nombre">{{ grupo.fecha|date:"l" }}</span>
+            <span class="dia-numero">{{ grupo.fecha|date:"j" }}</span>
         </div>
-    </div>
+        {% if cerrado == '0' or cerrado == '1' %}<div class="dia-etiqueta">Cerrado</div>{% endif %}
+
+        <div class="dia-turnos">
+            {% for t in grupo.turnos %}
+            {% if t.estado == 'CANCELADO' or t.estado == 'COMPLETADO' %}
+            <div class="turno {% if t.estado == 'CANCELADO' %}cancelado{% else %}completado{% endif %}">
+                <div class="turno-hora">{{ t.hora|time:"H:i" }}</div>
+                <div>{{ t.cliente_nombre }}</div>
+                <div class="turno-servicio">{{ t.servicio.nombre }}</div>
+                <div class="estado estado-{{ t.estado|lower }} mt-1">{{ t.get_estado_display }}</div>
+            </div>
+            {% else %}
+            <a href="{% url 'turnos:editar_turno' t.pk %}" class="turno">
+                <div class="turno-hora">{{ t.hora|time:"H:i" }}</div>
+                <div>{{ t.cliente_nombre }}</div>
+                <div class="turno-servicio">{{ t.servicio.nombre }}</div>
+            </a>
+            {% endif %}
+            {% empty %}
+            {% if cerrado != '0' and cerrado != '1' %}<div class="dia-vacio">Sin turnos</div>{% endif %}
+            {% endfor %}
+        </div>
+
+        {% if cerrado != '0' and cerrado != '1' %}
+        <div class="dia-pie">
+            <a href="{% url 'turnos:crear_turno' %}?fecha={{ grupo.fecha|date:'Y-m-d' }}" class="agregar-turno" aria-label="Agregar un turno el {{ grupo.fecha|date:'j \d\e F' }}">
+                <i class="bi bi-plus-lg"></i> Agregar
+            </a>
+        </div>
+        {% endif %}
+    </section>
+    {% endwith %}
+    {% endwith %}
     {% endfor %}
 </div>
 {% endif %}

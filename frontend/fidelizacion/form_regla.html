@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
 
+{% block page_back %}
+<a href="{% url 'fidelizacion:lista_reglas' %}" class="volver" data-confirmar-salida="true"><i class="bi bi-arrow-left"></i> Volver a las reglas</a>
+{% endblock %}
 {% block page_title %}{{ accion }}{% endblock %}
 {% block page_subtitle %}Defina umbrales, recompensa y mensaje personalizado de la regla.{% endblock %}
 
@@ -19,7 +22,7 @@
         <form method="POST" id="formRegla" class="card shadow-sm border-0">
             {% csrf_token %}
             <div class="card-header py-3">
-                <h5 class="mb-0 text-light"><i class="bi bi-gift me-2 text-accent"></i> {{ accion }}</h5>
+                <h2 class="h6 mb-0 fw-semibold">{{ accion }}</h2>
             </div>
             <div class="card-body p-4">
                 {% if form.non_field_errors %}
@@ -28,64 +31,64 @@
 
                 <div class="row g-3">
                     <div class="col-md-8">
-                        <label class="form-label text-secondary small">Nombre de la regla</label>
+                        <label for="{{ form.nombre.id_for_label }}" class="form-label text-secondary small">Nombre de la regla</label>
                         {{ form.nombre }}
                         <div class="text-danger small">{{ form.nombre.errors }}</div>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label text-secondary small">Tipo de beneficio</label>
+                        <label for="{{ form.tipo.id_for_label }}" class="form-label text-secondary small">Tipo de beneficio</label>
                         {{ form.tipo }}
                         <div class="text-danger small">{{ form.tipo.errors }}</div>
                     </div>
                     <div class="col-12">
-                        <label class="form-label text-secondary small">Descripción interna</label>
+                        <label for="{{ form.descripcion.id_for_label }}" class="form-label text-secondary small">Descripción interna</label>
                         {{ form.descripcion }}
                     </div>
                     <div class="col-md-4">
                         <div class="form-check form-switch mt-4">
                             {{ form.activo }}
-                            <label class="form-check-label text-light">Regla activa</label>
+                            <label for="{{ form.activo.id_for_label }}" class="form-check-label text-light">Regla activa</label>
                         </div>
                     </div>
                 </div>
 
                 <hr class="border-secondary my-4">
 
-                <h6 class="text-accent fw-bold mb-3"><i class="bi bi-bullseye me-1"></i> Criterios de disparo</h6>
+                <h2 class="h6 text-accent mb-3">Criterios de disparo</h2>
                 <div class="row g-3" id="bloqueRegularidad">
                     <div class="col-md-4">
-                        <label class="form-label text-secondary small">Mínimo de visitas</label>
+                        <label for="{{ form.min_visitas.id_for_label }}" class="form-label text-secondary small">Mínimo de visitas</label>
                         {{ form.min_visitas }}
                         <div class="text-danger small">{{ form.min_visitas.errors }}</div>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label text-secondary small">Monto mínimo ($)</label>
+                        <label for="{{ form.min_monto.id_for_label }}" class="form-label text-secondary small">Monto mínimo ($)</label>
                         {{ form.min_monto }}
                         <div class="text-danger small">{{ form.min_monto.errors }}</div>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label text-secondary small">Período (días, 0 = historial)</label>
+                        <label for="{{ form.periodo_dias.id_for_label }}" class="form-label text-secondary small">Período (días, 0 = historial)</label>
                         {{ form.periodo_dias }}
                     </div>
                 </div>
                 <div class="row g-3 mt-1" id="bloqueCumpleanos">
                     <div class="col-md-4">
-                        <label class="form-label text-secondary small">Ventana de aviso (días previos)</label>
+                        <label for="{{ form.ventana_dias.id_for_label }}" class="form-label text-secondary small">Ventana de aviso (días previos)</label>
                         {{ form.ventana_dias }}
                     </div>
                 </div>
 
                 <hr class="border-secondary my-4">
 
-                <h6 class="text-accent fw-bold mb-3"><i class="bi bi-ticket-perforated me-1"></i> Recompensa</h6>
+                <h2 class="h6 text-accent mb-3">Recompensa</h2>
                 <div class="row g-3">
                     <div class="col-md-4">
-                        <label class="form-label text-secondary small">Tipo de recompensa</label>
+                        <label for="{{ form.tipo_recompensa.id_for_label }}" class="form-label text-secondary small">Tipo de recompensa</label>
                         {{ form.tipo_recompensa }}
                         <div class="text-danger small">{{ form.tipo_recompensa.errors }}</div>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label text-secondary small">Valor (% o $)</label>
+                        <label for="{{ form.valor.id_for_label }}" class="form-label text-secondary small">Valor (% o $)</label>
                         {{ form.valor }}
                         <div class="text-danger small">{{ form.valor.errors }}</div>
                     </div>
@@ -104,11 +107,11 @@
                         <div class="text-danger small">{{ form.servicio_bonificado.errors }}</div>
                     </div>
                     <div class="col-md-4">
-                        <label class="form-label text-secondary small">Vigencia del cupón (días)</label>
+                        <label for="{{ form.dias_validez.id_for_label }}" class="form-label text-secondary small">Vigencia del cupón (días)</label>
                         {{ form.dias_validez }}
                     </div>
                     <div class="col-12">
-                        <label class="form-label text-secondary small">Plantilla de mensaje</label>
+                        <label for="{{ form.plantilla_mensaje.id_for_label }}" class="form-label text-secondary small">Plantilla de mensaje</label>
                         {{ form.plantilla_mensaje }}
                         <div class="text-danger small">{{ form.plantilla_mensaje.errors }}</div>
                     </div>
@@ -116,7 +119,7 @@
             </div>
             <div class="card-footer py-3 d-flex justify-content-between bg-dark">
                 <a href="{% url 'fidelizacion:lista_reglas' %}" class="btn btn-outline-secondary" data-confirmar-salida="true">Cancelar</a>
-                <button type="button" id="btnGuardarRegla" class="btn btn-accent text-dark fw-bold px-4">
+                <button type="button" id="btnGuardarRegla" class="btn btn-accent px-4">
                     <i class="bi bi-check-circle me-1"></i> Guardar regla
                 </button>
             </div>
@@ -140,7 +143,7 @@
             </div>
             <div class="modal-footer border-secondary">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Revisar</button>
-                <button type="button" id="btnConfirmarGuardarRegla" class="btn btn-accent text-dark fw-bold px-4">
+                <button type="button" id="btnConfirmarGuardarRegla" class="btn btn-accent px-4">
                     <i class="bi bi-check2-circle me-1"></i> Sí, guardar
                 </button>
             </div>
@@ -164,7 +167,7 @@
                 </p>
             </div>
             <div class="modal-footer border-secondary justify-content-center">
-                <button type="button" class="btn btn-accent text-dark fw-bold px-4" data-bs-dismiss="modal">
+                <button type="button" class="btn btn-accent px-4" data-bs-dismiss="modal">
                     Entendido
                 </button>
             </div>

@@ -1,5 +1,8 @@
 {% extends 'base.html' %}
 
+{% block page_back %}
+<a href="{% url 'clientes:detalle_cliente' tratamiento.cliente.pk %}" class="volver" data-confirmar-salida="true"><i class="bi bi-arrow-left"></i> Volver a la ficha</a>
+{% endblock %}
 {% block page_title %}Registrar Sesión Técnica: {{ tratamiento.titulo_tratamiento }}{% endblock %}
 {% block page_subtitle %}Carga de fórmulas aplicadas, diagnóstico de fibra y evolución para {{ tratamiento.cliente.nombre }}.{% endblock %}
 
@@ -8,49 +11,49 @@
     <div class="col-lg-8">
         <div class="card shadow-sm border-0">
             <div class="card-header py-3 d-flex justify-content-between align-items-center">
-                <h5 class="mb-0 text-light"><i class="bi bi-journal-medical me-2 text-accent"></i> Registro Técnico de Sesión</h5>
+                <h2 class="h6 mb-0 fw-semibold">Registro Técnico de Sesión</h2>
                 <span class="badge bg-dark border border-secondary text-secondary">Clienta: {{ tratamiento.cliente.nombre }}</span>
             </div>
             <div class="card-body p-4">
-                <form method="POST">
+                <form method="POST" data-validar novalidate>
                     {% csrf_token %}
 
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
-                            <label class="form-label text-light">Número de Sesión <span class="text-danger">*</span></label>
+                            <label for="{{ form.numero_sesion.id_for_label }}" class="form-label text-light">Número de Sesión <span class="text-danger">*</span></label>
                             {{ form.numero_sesion }}
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label text-light">Tiempo de Exposición Total (Minutos)</label>
+                            <label for="{{ form.tiempo_exposicion_minutos.id_for_label }}" class="form-label text-light">Tiempo de Exposición Total (Minutos)</label>
                             {{ form.tiempo_exposicion_minutos }}
                         </div>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-light">Diagnóstico Previo de la Fibra <span class="text-danger">*</span></label>
+                        <label for="{{ form.diagnostico_fibra.id_for_label }}" class="form-label text-light">Diagnóstico Previo de la Fibra <span class="text-danger">*</span></label>
                         {{ form.diagnostico_fibra }}
                         <small class="text-secondary">{{ form.diagnostico_fibra.help_text }}</small>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-light">Fórmula Química y Productos Aplicados <span class="text-danger">*</span></label>
+                        <label for="{{ form.formula_quimica_utilizada.id_for_label }}" class="form-label text-light">Fórmula Química y Productos Aplicados <span class="text-danger">*</span></label>
                         {{ form.formula_quimica_utilizada }}
                         <small class="text-secondary">{{ form.formula_quimica_utilizada.help_text }}</small>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label text-light">Resultado Obtenido en esta Sesión <span class="text-danger">*</span></label>
+                        <label for="{{ form.resultado_obtenido.id_for_label }}" class="form-label text-light">Resultado Obtenido en esta Sesión <span class="text-danger">*</span></label>
                         {{ form.resultado_obtenido }}
                     </div>
 
                     <div class="row g-3 mb-4">
                         <div class="col-md-6">
-                            <label class="form-label text-light">Próxima Cita Sugerida</label>
+                            <label for="{{ form.proxima_cita_recomendada.id_for_label }}" class="form-label text-light">Próxima Cita Sugerida</label>
                             {{ form.proxima_cita_recomendada }}
                             <small class="text-secondary">Espaciado recomendado para reposo de la fibra.</small>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label text-light">Indicaciones y Cuidados para el Hogar</label>
+                            <label for="{{ form.indicaciones_hogar.id_for_label }}" class="form-label text-light">Indicaciones y Cuidados para el Hogar</label>
                             {{ form.indicaciones_hogar }}
                             <small class="text-secondary">{{ form.indicaciones_hogar.help_text }}</small>
                         </div>

@@ -45,6 +45,7 @@ class LoginForm(forms.Form):
                 "class": "form-control",
                 "placeholder": "ejemplo@peluquerialorena.com",
                 "autofocus": True,
+                "autocomplete": "username",
             }
         ),
     )
@@ -55,6 +56,7 @@ class LoginForm(forms.Form):
             attrs={
                 "class": "form-control",
                 "placeholder": "••••••••",
+                "autocomplete": "current-password",
             }
         ),
     )
